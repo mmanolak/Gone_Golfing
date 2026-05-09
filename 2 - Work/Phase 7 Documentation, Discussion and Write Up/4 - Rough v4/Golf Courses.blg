@@ -1,0 +1,15 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is 'Golf Courses.blg'
+[102] biber-MSWIN64:342> INFO - === 
+[134] Biber.pm:421> INFO - Reading 'Golf Courses.bcf'
+[250] Biber.pm:1002> INFO - Found 18 citekeys in bib section 0
+[265] Biber.pm:4487> INFO - Processing section 0
+[276] Biber.pm:4678> INFO - Looking for bibtex file 'grass.bib' for section 0
+[322] bibtex.pm:1713> INFO - LaTeX decoding ...
+[372] bibtex.pm:1519> INFO - Found BibTeX data source 'grass.bib'
+[526] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[526] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[526] Biber.pm:4307> INFO - Sorting list 'nyt/global//global/global/global' of type 'entry' with template 'nyt' and locale 'en-US'
+[526] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
+[544] bbl.pm:676> INFO - Writing 'Golf Courses.bbl' with encoding 'UTF-8'
+[558] bbl.pm:779> INFO - Output to Golf Courses.bbl

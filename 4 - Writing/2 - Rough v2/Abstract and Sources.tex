@@ -1,0 +1,62 @@
+\documentclass[11pt, letterpaper]{article}
+
+% --- PACKAGES AND SETUP ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{csquotes}
+\usepackage[english]{babel}
+\usepackage[margin=1in]{geometry}
+\usepackage{lmodern}
+\usepackage{parskip}
+\usepackage{microtype}
+
+ 
+\usepackage{etoolbox}
+\usepackage[backend=biber, style=authoryear, sorting=nyt]{biblatex}
+\usepackage{hyperref}
+
+\hypersetup{colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue, pdftitle={Bibliography Abstract Complete}, pdfauthor={Michael Manolakis},}
+
+% --- Link your .bib file ---
+\addbibresource{duck.bib}
+
+% --- CUSTOMIZATION TO PRINT ABSTRACTS ---
+\newtoggle{bbx:abstract}
+\toggletrue{bbx:abstract}
+
+\let\CheckCommand\providecommand
+
+% --- CUSTOMIZATION TO PRINT ABSTRACTS ---
+
+\renewbibmacro*{finentry}{
+  \par
+  \iftoggle{bbx:abstract}{
+    \ifboolexpr{ test {\iffieldundef{abstract}} }
+      {}
+      {
+        \begin{quotation}
+        \small
+        \printfield{abstract}
+        \end{quotation}
+      }
+  }{}
+}
+
+
+% --- DOCUMENT START ---
+\begin{document}
+
+\begin{center}
+    \huge\textbf{Source and Abstract Review}
+    \vspace{0.5em}
+    
+    \large A compilation of all entries from \texttt{duck.bib}
+\end{center}
+
+% This command tells biblatex to include EVERY entry from your .bib file.
+\nocite{*}
+
+% This command prints the full bibliography using the custom format.
+\printbibliography[title={All Sources and Abstracts}]
+
+\end{document}
