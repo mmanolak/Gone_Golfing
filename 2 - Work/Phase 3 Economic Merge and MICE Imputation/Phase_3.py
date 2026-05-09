@@ -10,6 +10,7 @@
 
 # === 1. LIBRARIES ===
 
+import gc
 import multiprocessing
 import pathlib
 
@@ -105,6 +106,7 @@ def run_imputation(input_csv, out_dir, m_datasets=100):
 
         fname = out_dir / f"Py_Imputed_Dataset_{i + 1}.csv"
         out.to_csv(fname, index=False)
+        del completed, out; gc.collect()
         print(f"    [OK] {fname}")
 
     # 5. Verification report (Dataset 1) -------------------------------------
@@ -146,6 +148,7 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
         aggregates.append(q_i)
         within_vars.append(var_i)
 
+        del df; gc.collect()
         print(f"  Dataset {i}:  ${q_i / 1e9:>10.3f} B")
 
     print("\n--- 2  Applying Rubin's Rules ---")
@@ -153,6 +156,8 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
     aggregates  = np.array(aggregates)
     within_vars = np.array(within_vars)
 
+    # [METHODOLOGY] Rubin's Rules pooling — q_bar is the pooled national estimate;
+    #               v_t combines within- and between-imputation variance (Rubin 1987)
     q_bar = aggregates.mean()
     v_w   = within_vars.mean()
     v_b   = aggregates.var(ddof=1)
@@ -206,7 +211,6 @@ def pool_acreage(x: np.ndarray) -> dict:
 
 
 def run_acreage_summary(in_dir, out_csv, m_datasets=100):
-    print("\n=== STEP 2: NATIONAL ACREAGE SUMMARY ===")
     print("Computing total U.S. golf course footprint (pooled across imputations)\n")
 
     print("--- 1  Loading imputed datasets and computing acreage totals ---\n")
@@ -230,6 +234,7 @@ def run_acreage_summary(in_dir, out_csv, m_datasets=100):
         type_sums["imputation"] = i
         by_type_frames.append(type_sums)
 
+        del df; gc.collect()
         urban = type_sums.loc[type_sums["county_type"] == "Urban", "acreage"].iat[0]
         rural = type_sums.loc[type_sums["county_type"] == "Rural", "acreage"].iat[0]
         print(
@@ -239,6 +244,8 @@ def run_acreage_summary(in_dir, out_csv, m_datasets=100):
 
     print("\n--- 2  Pooling across imputations ---\n")
 
+    # [METHODOLOGY] Rubin's Rules (acreage) — between-imputation variance only;
+    #               within-variance is zero for a spatially fixed attribute
     nat_pool = pool_acreage(national_totals)
 
     all_by_type = pd.concat(by_type_frames, ignore_index=True)

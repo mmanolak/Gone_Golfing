@@ -348,62 +348,105 @@ Rubin's Rules summary CSVs.
 ### Part 3B — `Phase_3.jl`
 
 **Structural**
-- [ ] Four-section layout; all logic in `main()`
-- [ ] Two blank lines; `@__DIR__` paths; ALL_CAPS constants
-- [ ] No `Plasma.jl`
+- [x] Four-section layout; all logic in `main()` — headers at lines 18, 23, 42, 281; `main()` at lines 283–302; entry guard `if abspath(PROGRAM_FILE) == @__FILE__` at line 304 ✓
+- [x] Two blank lines; `@__DIR__` paths; ALL_CAPS constants — `const SCRIPT_DIR = @__DIR__` at line 25; `const INPUT_CSV`, `OUT_DIR`, `OUT_CSV`, `OUT_ACREAGE_CSV`, `M`, `IMPUTE_COLS`, `PREDICTOR_COLS` all `const` ALL_CAPS ✓; **FIXED**: stale dev comment at old lines 35–36 removed; stale header lines 5 and 9 corrected from `m=30` → `m=100`
+- [x] No `Plasma.jl` — no reference anywhere in the file ✓
 
 **Input / Output**
-- [ ] Phase 2 `Jl_Phase2_Acreage_Matched.csv` exists
-- [ ] All 100 `Jl_Imputed_Dataset_{1..100}.csv` written to `Data/Julia/`
-- [ ] `Jl_National_Acreage_Summary.csv` + `Jl_Rubins_Rules_Summary.csv` written to `Data/Julia/`
-- [ ] `isfile` checks on all inputs
+- [x] Phase 2 `Jl_Phase2_Acreage_Matched.csv` exists — `INPUT_CSV` resolves to `Phase 2 Spatial Polygons and True Acreage/Data/Julia/Jl_Phase2_Acreage_Matched.csv`; confirmed in directory listing from Part 2B ✓
+- [x] All 100 `Jl_Imputed_Dataset_{1..100}.csv` written to `Data/Julia/` — `const M = 100`; loop `for i in 1:m_datasets` in `run_imputation()` writes `Jl_Imputed_Dataset_$i.csv` to `OUT_DIR` (`Data/Julia/`) ✓
+- [x] `Jl_National_Acreage_Summary.csv` + `Jl_Rubins_Rules_Summary.csv` written to `Data/Julia/` — `OUT_CSV` and `OUT_ACREAGE_CSV` both resolve to `Data/Julia/` ✓
+- [x] `isfile` checks on all inputs — `isfile(input_csv) || error(...)` at line 48; `isfile(fpath) || error(...)` at line 125; `isfile(path) || error(...)` at line 215 ✓
 
 **MICE Methodology**
-- [ ] `# [METHODOLOGY]` on Rubin's Rules block
-- [ ] M = 100; random seed documented
-- [ ] No data leakage in imputation model
-- [ ] `Baseline_Value_Per_Acre` present in all 100 imputed datasets
-- [ ] `df = nothing; GC.gc()` after each dataset is written
+- [x] `# [METHODOLOGY]` on Rubin's Rules block — tagged at lines 139–140 above `q_bar = mean(aggregates)` in `run_pooling()` ✓; **FIXED**: added `# [METHODOLOGY]` above `pool_acreage(national_totals)` in `run_acreage_summary()` (was missing)
+- [x] M = 100; random seed documented — `const M = 100`; `Random.seed!(42)  # [METHODOLOGY]` at line 72 ✓
+- [x] No data leakage in imputation model — `PREDICTOR_COLS = [:Holes, :Course_Type, :county_type, :Longitude, :Latitude]`; no OC or outcome-derived variables ✓
+- [x] `Baseline_Value_Per_Acre` present in all 100 imputed datasets — in `IMPUTE_COLS` at line 38; assigned in saving loop at lines 84–90 ✓. Note: Julia saves full `acreage_df` schema (`out = copy(acreage_df)`) — imputed datasets are wider than R's 7-column subset
+- [x] `df = nothing; GC.gc()` after each dataset is written — **FIXED**: added `df = nothing; GC.gc()` in `run_pooling()` loop after extracting `q_i`/`var_i`; added `df = nothing; GC.gc()` in `run_acreage_summary()` loop after `by_type_list[i] = type_sums`
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+1. **Stale header comment `{1..30}` and `m = 30`** — **FIXED**: Line 5 said `Jl_Imputed_Dataset_{1..30}.csv`; line 9 said `m = 30 imputations`. Both corrected to `{1..100}` and `m = 100` to match `const M = 100`.
+
+2. **Stale dev comment at lines 35–36** — **FIXED**: Comment `# For testing purposes, run M=5, increase to 30 to see if it can be done on your hardware, and 100 as a goal mark.` described a development progression that is already complete. Removed; `const M = 100` stands without the obsolete annotation.
+
+3. **Missing `df = nothing; GC.gc()` in `run_pooling()` loop** — **FIXED**: CLAUDE.md memory violation. Loop loaded `df` each of 100 iterations but never freed it. Added `df = nothing; GC.gc()` before the `@printf` line inside the loop.
+
+4. **Missing `df = nothing; GC.gc()` in `run_acreage_summary()` loop** — **FIXED**: Same violation. Loop loaded `df` each of 100 iterations without freeing. Added `df = nothing; GC.gc()` after `by_type_list[i] = type_sums` and before the `urban_acres`/`rural_acres` extraction (both depend only on `type_sums`, which is preserved).
+
+5. **Missing `# [METHODOLOGY]` on `pool_acreage(national_totals)` call** — **FIXED**: `pool_acreage()` implements acreage-specific Rubin's Rules (between-imputation variance only). Added two-line `# [METHODOLOGY]` comment above the call in `run_acreage_summary()`, matching the pattern applied to Phase_3.R Fix 3.
+
+6. **Observation — Julia imputed datasets save full Phase 2 schema**: `run_imputation()` writes `out = copy(acreage_df)` with imputed values merged back in (line 88 equivalent). Julia's 100 imputed CSVs contain all Phase 2 columns, not the 7-column subset that R's `complete(imputed_list, i)` produces. Not a CLAUDE.md violation; Phase 4 Julia should reference `osm_acreage` (not `final_acreage`) and should be agnostic to the additional columns.
+
+7. **Observation — `ds1` not freed after verification block**: `ds1 = CSV.read(..., "Jl_Imputed_Dataset_1.csv")` is read at line 98 for post-imputation verification and never freed. However, it is a local variable inside `run_imputation()` and goes out of scope when the function returns — Julia GC handles this. No CLAUDE.md violation.
 
 ---
 
 ### Part 3C — `Phase_3.py`
 
 **Structural**
-- [ ] Four-section layout; relative `__file__` paths; top-level constants
+- [x] Four-section layout; relative `__file__` paths; top-level constants — sections at lines 11, 24, 45, 286 with two blank lines at all boundaries; `SCRIPT_DIR = pathlib.Path(__file__).parent` at line 26; all constants ALL_CAPS ✓
 
 **Input / Output**
-- [ ] Phase 2 `Py_Phase2_Acreage_Matched.csv` exists
-- [ ] All 100 `Py_Imputed_Dataset_{1..100}.csv` written to `Data/python/`
-- [ ] `Py_National_Acreage_Summary.csv` + `Py_Rubins_Rules_Summary.csv` written to `Data/python/`
-- [ ] File existence checks on all inputs
+- [x] Phase 2 `Py_Phase2_Acreage_Matched.csv` exists — `INPUT_CSV` → `Phase 2 Spatial Polygons and True Acreage/Data/python/Py_Phase2_Acreage_Matched.csv`; confirmed in Part 2C ✓
+- [x] All 100 `Py_Imputed_Dataset_{1..100}.csv` written to `Data/python/` — loop `for i in range(m_datasets)` with M=100; `Py_Imputed_Dataset_{i+1}.csv` to `OUT_DIR` (`Data/python/`) ✓
+- [x] `Py_National_Acreage_Summary.csv` + `Py_Rubins_Rules_Summary.csv` written to `Data/python/` — `OUT_RUBINS_CSV` and `OUT_ACREAGE_CSV` both resolve to `Data/python/` ✓
+- [x] File existence checks on all inputs — `if not input_csv.exists(): raise FileNotFoundError(...)` present in all three functions ✓
 
 **MICE Methodology**
-- [ ] `# [METHODOLOGY]` on Rubin's Rules block
-- [ ] M = 100; random seed documented
-- [ ] No data leakage in imputation model
-- [ ] `Baseline_Value_Per_Acre` present in all 100 imputed datasets
-- [ ] `del df; gc.collect()` after each dataset is written
+- [x] `# [METHODOLOGY]` on Rubin's Rules block — **FIXED**: tag absent above `q_bar = aggregates.mean()` in `run_pooling()`; added two-line comment. Also **FIXED**: tag absent above `pool_acreage(national_totals)` in `run_acreage_summary()`; added two-line comment. (`ImputationKernel` and `.mice()` calls at lines 82–89 were already tagged ✓)
+- [x] M = 100; random seed documented — `M = 100` at line 37; `random_state=42` documented in `# [METHODOLOGY]` comment at lines 82–83 ✓
+- [x] No data leakage in imputation model — `PREDICTOR_COLS = ["Holes", "Ownership_Type", "county_type", "Longitude", "Latitude"]`; no OC or outcome-derived variables ✓
+- [x] `Baseline_Value_Per_Acre` present in all 100 imputed datasets — in `IMPUTE_COLS`; assigned back in saving loop lines 98–104 ✓
+- [x] `del df; gc.collect()` after each dataset is written — **FIXED**: `import gc` was entirely absent (would have raised `NameError`); added. `del completed, out; gc.collect()` added to `run_imputation()` save loop; `del df; gc.collect()` added to `run_pooling()` loading loop; `del df; gc.collect()` added to `run_acreage_summary()` loading loop
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+1. **Missing `import gc`** — `gc` module never imported; CLAUDE.md requires `gc.collect()` in all dataset loops. Any added `gc.collect()` would have raised `NameError`. **FIXED**: added `import gc` to Section 1 (alphabetically: `gc` < `multiprocessing` < `pathlib`).
+
+2. **Missing `del completed, out; gc.collect()` in `run_imputation()` save loop** — loop (100 iterations) creates `completed` via `imputed_list.complete_data(dataset=i)` and `out = acreage_df.copy()` each iteration but never frees them. **FIXED**: added `del completed, out; gc.collect()` after `out.to_csv(fname, index=False)`.
+
+3. **Missing `del df; gc.collect()` in `run_pooling()` loading loop** — loop reads `df` each of 100 iterations but never frees it. Same class as Phase_3.R Fix 1 and Phase_3.jl Fix 3. **FIXED**: added `del df; gc.collect()` after `within_vars.append(var_i)`.
+
+4. **Missing `del df; gc.collect()` in `run_acreage_summary()` loading loop** — loop reads `df` each of 100 iterations but never frees it. Same class as Phase_3.R Fix 2 and Phase_3.jl Fix 4. **FIXED**: added `del df; gc.collect()` after `by_type_frames.append(type_sums)` (safe: `urban` and `rural` downstream use `type_sums`, not `df`).
+
+5. **Missing `# [METHODOLOGY]` on opportunity-cost Rubin's Rules block in `run_pooling()`** — no tag above `q_bar = aggregates.mean()`. Same class as Phase_3.R Fix 3 and Phase_3.jl Fix 5. **FIXED**: added two-line `# [METHODOLOGY]` comment.
+
+6. **Missing `# [METHODOLOGY]` on `pool_acreage(national_totals)` in `run_acreage_summary()`** — acreage-specific Rubin's pooling block untagged. **FIXED**: added two-line `# [METHODOLOGY]` comment above call.
+
+7. **Stale "STEP 2" print inside `run_acreage_summary()`** — function opened with `print("\n=== STEP 2: NATIONAL ACREAGE SUMMARY ===")` but execution section already prints the correct "STEP 3" header before calling the function, creating a duplicate with the wrong number. **FIXED**: removed stale print from function body; execution-section label is authoritative.
 
 ---
 
 ### Part 3D — Phase 3 Cross-Language Consistency
 
-- [ ] All three scripts target the same set of courses for imputation (same `acreage_source == "MICE_Target"` logic)
-- [ ] Imputation predictor variable set is equivalent across languages
-- [ ] M = 100 confirmed for all three languages
-- [ ] `Baseline_Value_Per_Acre` column present and populated in all 300 imputed datasets (100 × 3)
-- [ ] `Rubins_Rules_Summary` CSVs report the same parameter names (Intercept, Holes, Urban County) for downstream Phase 4 cross-check
-- [ ] National acreage totals in summary CSVs are in the same plausible range across languages
+- [x] All three scripts target the same set of courses for imputation (same `acreage_source == "MICE_Target"` logic) — None of the three scripts explicitly filter on `acreage_source`; all three rely on the NA pattern in the acreage column (which Phase 2 assigned as `acreage_source == "MICE_Target"`). Logically identical. Cross-language target count asymmetry (R fewer MICE targets due to Tigris Tier 2) is the documented Phase 2D finding — not a Phase 3 inconsistency ✓
+- [x] Imputation predictor variable set is equivalent across languages — All five predictors {Holes, ownership/course type, county_type, Longitude, Latitude} are present in all three. Column name for ownership type differs: R detects `"Course_Type"` or `"Ownership_Type"` dynamically; Julia creates `Course_Type` alias from `Ownership_Type`; Python uses `"Ownership_Type"` directly. Functionally equivalent — same underlying information ✓
+- [x] M = 100 confirmed for all three languages — `M <- 100` (R line 45); `const M = 100` (Julia line 35); `M = 100` (Python line 38) ✓
+- [x] `Baseline_Value_Per_Acre` column present and populated in all 300 imputed datasets (100 × 3) — In `IMPUTE_COLS` in all three; extracted from MICE output and written to every imputed dataset CSV ✓
+- [x] `Rubins_Rules_Summary` CSVs report the same parameter names (Intercept, Holes, Urban County) for downstream Phase 4 cross-check — **Observation**: checklist item conflates Phase 3 and Phase 4 outputs. Phase 3's pooling is over the national aggregate opportunity cost scalar; the Metric column contains aggregate statistics ("Pooled Aggregate National Value ($B)", etc.) — not regression coefficients. Those appear only in Phase 4 output CSVs. However, the eight Metric strings ARE hard-coded identically across all three Phase 3 scripts (same literal strings), so Phase 6 CSV reads by metric name will be consistent ✓ (with note about item framing)
+- [x] National acreage totals in summary CSVs are in the same plausible range across languages — Confirmed from actual output CSVs: R = 2,303,152 acres; Julia = 2,291,064 acres; Python = 2,306,485 acres. Spread = 15,421 acres = 0.67% of mean. All three consistent with ~2.30 M acre U.S. golf footprint. Urban/Rural split consistent across all three (~74% Urban, ~26% Rural) ✓
 
 **Findings:**
-_(document any cross-language discrepancies here)_
+
+1. **No fixes required.** This is a read-only consistency check; all code-level items confirmed from the three scripts already reviewed in Parts 3A–3C.
+
+2. **Checklist item 5 conflates Phase 3 and Phase 4 content**: The item asks for "Intercept, Holes, Urban County" parameter names in Phase 3's Rubins_Rules_Summary. Those parameter names are regression coefficients and appear only in Phase 4 (`R_Regression_Results.csv`, etc.). Phase 3's Rubins_Rules_Summary tracks the aggregate national opportunity cost scalar and its pooling statistics. The relevant consistency check (identical Metric string names) is confirmed — all three use the same 8+M row structure.
+
+3. **Julia scientific notation in Acreage CSV**: `Pooled_Acres` for the National Total is written as `2.29106386e6` — Julia's default float formatting for large numbers. All CSV readers handle this, but it's cosmetically different from R's and Python's decimal format. No fix needed.
+
+4. **Python NA-county groupby gap**: Python's `run_acreage_summary()` uses pandas `groupby("county_type")` which drops NA keys by default. Python's Urban+Rural subtotals (1,700,032 + 602,051 = 2,302,083) do not sum to the national total (2,306,485) — the 4,402-acre gap represents NA-county courses counted nationally but absent from the breakdown. R has an explicit "NA" row (4,325 acres); Julia has an explicit blank-label row (4,287 acres). Python's national total is correct; only the breakdown is incomplete. Phase 6 scripts reading this CSV should not assume column sums equal the national total for the Python file.
+
+5. **National acreage totals (confirmed from output CSVs)**:
+
+| Language | National Total | Urban | Rural | NA/empty county |
+|----------|---------------|-------|-------|-----------------|
+| R | 2,303,152 acres | 1,701,726 | 597,101 | 4,325 (labeled "NA") |
+| Julia | 2,291,064 acres | 1,698,944 | 587,833 | 4,287 (blank label) |
+| Python | 2,306,485 acres | 1,700,032 | 602,051 | absent (pandas groupby drops NA) |
+
+Spread: 15,421 acres (0.67% of mean) — well within expected range for independent MICE runs with different backends (Random Forest/R, LightGBM/Python, Mice.jl/Julia).
 
 ---
 
@@ -688,10 +731,10 @@ _(document any integration issues here)_
 | 2B    | Phase_2.jl         | `[x]`   | 1 fix: `acreage_source` column added ("OSM"\|"MICE_Target"); 1 obs: no Tigris tier (R-only package, expected) |
 | 2C    | Phase_2.py         | `[x]`   | 1 fix: `acreage_source` column added ("OSM"\|"MICE_Target"); Part 1D flag resolved (no `course_id` join in Phase 2) |
 | 2D    | Phase 2 Cross-Lang | `[x]`   | 5 obs: acreage_source 3-value (R) vs 2-value (Jl/Py); `final_acreage` (R) vs `osm_acreage` (Jl/Py) name divergence; `tigris_acreage` R-only column; MICE_Target count higher in Jl/Py (explainable); Phase 1 schema gap carries forward in Py |
-| 3A    | Phase_3.R          | `[ ]`   |              |
-| 3B    | Phase_3.jl         | `[ ]`   |              |
-| 3C    | Phase_3.py         | `[ ]`   |              |
-| 3D    | Phase 3 Cross-Lang | `[ ]`   |              |
+| 3A    | Phase_3.R          | `[x]`   | 3 fixes: `rm(df);gc()` added to Rubin's loop; `rm(df_ac);gc()` added to Acreage loop; `[METHODOLOGY]` added above `pool_acreage()`. 2 obs: imputed CSVs 7-col subset only; `imputed_list` not freed post-Step 1 |
+| 3B    | Phase_3.jl         | `[x]`   | 5 fixes: header `{1..30}`→`{1..100}` + `m=30`→`m=100`; stale dev comment removed; `df=nothing;GC.gc()` added to Rubin's loop; `df=nothing;GC.gc()` added to Acreage loop; `[METHODOLOGY]` added above `pool_acreage()`. 2 obs: imputed CSVs full Phase 2 schema (vs R's 7-col); `ds1` freed on function return |
+| 3C    | Phase_3.py         | `[x]`   | 7 fixes: `import gc` added; `del completed,out;gc.collect()` in imputation save loop; `del df;gc.collect()` in Rubin's loop; `del df;gc.collect()` in Acreage loop; `[METHODOLOGY]` on Rubin's `q_bar` block; `[METHODOLOGY]` on `pool_acreage()`; stale "STEP 2" print removed from function body |
+| 3D    | Phase 3 Cross-Lang | `[x]`   | No fixes needed. 4 observations: Phase 4 parameter names not in Phase 3 CSVs (item 5 conflation); Julia scientific notation in Acreage CSV; Python NA-county groupby gap (4,402 acres absent from breakdown, present in national total); acreage totals R=2.303M/Jl=2.291M/Py=2.306M — 0.67% spread, consistent |
 | 4A    | Phase_4.R          | `[ ]`   |              |
 | 4B    | Phase_4.jl         | `[ ]`   |              |
 | 4C    | Phase_4.py         | `[ ]`   |              |
