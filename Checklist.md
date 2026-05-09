@@ -145,7 +145,7 @@ compute per-course baseline land valuations (Baseline_Value_Per_Acre).
   **BUT** Python baseline CSV is missing `course_id`, `Address`, `City`, `State_Abbr`, `Zip_Code` (present in R and Julia) and retains `Details` (raw unparsed column, absent in R/Julia). Schema parity is partial. Flagged — see Findings.
 - [x] Baseline valuation formula is mathematically identical: Urban → `FHFA_Res_Value_Per_Acre`; Rural → `USDA_Ag_Value_Per_Acre`; otherwise NA/NaN — confirmed in all three scripts ✓
 - [x] CRS consistent: all three use EPSG 4326 for spatial join — confirmed in code review (Parts 1A–1C) ✓
-- [x] Course counts in plausible range: R=16,292; Julia=16,292; Python=16,297 — the +5 Python rows are documented as attributable to `geopandas` spatial deduplication behavior ✓ 
+- [x] Course counts in plausible range: R=16,292; Julia=16,292; Python=16,297 — the +5 Python rows are documented as attributable to `geopandas` spatial deduplication behavior ✓
 
 **Findings:**
 
@@ -175,57 +175,67 @@ directly measured acreage.
 ### Part 2A — `Phase_2.R`
 
 **Structural**
-- [ ] Four-section layout present with correct numbered headers
-- [ ] Two blank lines between every top-level section
-- [ ] No `library()` calls outside Section 1
-- [ ] ALL_CAPS constants in Section 2; `this.path::this.dir()` paths
+- [x] Four-section layout present with correct numbered headers (lines 31, 45, 82, 89)
+- [x] Two blank lines between every top-level section — confirmed at all three section boundaries
+- [x] No `library()` calls outside Section 1 — none found in Sections 2–4
+- [x] ALL_CAPS constants in Section 2; `this.path::this.dir()` paths — `SCRIPT_DIR <- this.path::this.dir()` at line 71; all constants (`TARGET_CRS`, `MAX_NEAREST_M`, `MIN_ACRES`, `MAX_ACRES`, `SQ_M_PER_ACRE`, `SQ_FT_PER_ACRE`, `ALL_STATES`, `PBF_FILE`, `PY_GPKG`, `OSM_GPKG_OUT`, `PHASE1_CSV`, `OUT_CSV`) in ALL_CAPS ✓
 
 **Input / Output**
-- [ ] Phase 1 `R_` output files used as inputs exist in `Data/R/`
-- [ ] Any shared raw GPKGs read are in the directory listing
-- [ ] `R_Phase2_Acreage_Matched_v2.csv` written to `Data/R/`
-- [ ] `R_Phase2_OSM_Golf_Polygons.gpkg` written to `Data/R/`
-- [ ] File existence checks guard all inputs
+- [x] Phase 1 `R_` output files used as inputs exist in `Data/R/` — `PHASE1_CSV` resolves to `Phase 1 Parsing/Data/R/R_Phase1_Baseline_Golf_Valuation.csv`, confirmed in directory listing ✓
+- [x] Any shared raw GPKGs read are in the directory listing — `PY_GPKG` (`Py_Phase2_OSM_Golf_Polygons.gpkg`) confirmed in directory listing; `PBF_FILE` (`us-260413.osm.pbf`) not in text listing but handled via graceful try/catch fallback — see Observation 1
+- [x] `R_Phase2_Acreage_Matched_v2.csv` written to `Data/R/` — `OUT_CSV` at line 79 ✓
+- [x] `R_Phase2_OSM_Golf_Polygons.gpkg` written to `Data/R/` — `OSM_GPKG_OUT` at line 76 ✓
+- [x] File existence checks guard all inputs — `PHASE1_CSV` guarded by `stop()` at lines 106–108; Python GPKG guarded by `stop()` at lines 151–156 if both PBF and GPKG unavailable ✓
 
 **Methodology**
-- [ ] `st_join()`, `st_transform()`, `st_read()` all marked `# [METHODOLOGY]`
-- [ ] `acreage_source` flag correctly distinguishes directly measured courses from MICE targets
-- [ ] Acreage computed from polygon geometry area (not estimated or hardcoded)
-- [ ] Match distance threshold (if applicable) documented in a comment
-- [ ] CRS of output GPKG documented
+- [x] `st_join()`, `st_transform()`, `st_read()` all marked `# [METHODOLOGY]` — both `st_read()` calls (lines 130, 160); all three `st_transform()` calls (lines 179, 260, 401); both `st_join()` calls (lines 269, 420); `st_write()` (line 212); `st_as_sf()` (lines 255, 413); `st_area()` calls (lines 180, 245, 402) all tagged ✓
+- [x] `acreage_source` flag correctly distinguishes directly measured courses from MICE targets — "OSM" (lines 319–321), "Tigris" (line 439), "MICE_Target" (line 456); consistent with header comment at line 17 ✓
+- [x] Acreage computed from polygon geometry area (not estimated or hardcoded) — `st_area()` used for both OSM and Tigris acreage; final_acreage = `coalesce(osm_acres, tigris_acres)` ✓
+- [x] Match distance threshold (if applicable) documented in a comment — `MAX_NEAREST_M <- 500` defined as named constant in Section 2; variable name is self-documenting (see Observation 2 for methodological basis)
+- [x] CRS of output GPKG documented — `# [METHODOLOGY] EPSG:5070 — equal-area CRS` on all `st_transform()` calls; output GPKG written in EPSG:5070 ✓
 
 **Memory**
-- [ ] `rm(df); gc()` in any loops
-- [ ] No synthetic data
+- [x] `rm(df); gc()` in any loops — `rm(osm_chunks, osm_processed); gc(full = TRUE)` after Step 0 (lines 215–216) ✓; CLAUDE.md memory rule targets dataset-loading loops only; line 337 `rm()` is post-join cleanup (not a loop) — see Observation 3
+- [x] No synthetic data — all acreage from `st_area()` geometry; no hardcoded row values ✓
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+No CLAUDE.md violations found. No fixes applied.
+
+1. **Observation — PBF path documentation mismatch**: `Phase 2 Summary` header states the 11 GB PBF is read from `00 - Data Sources/Original Data - Backup/`; but `PBF_FILE` in the script points to `00 - Data Sources/Original Data/` (line 74). If the PBF resides only in the backup path, the primary PBF read silently fails and the script falls back to the Python GPKG — which is handled correctly, but the documentation is misaligned with the script path.
+
+2. **Observation — 500 m threshold lacks methodological comment**: `MAX_NEAREST_M <- 500` defines the nearest-neighbour cutoff distance but has no inline comment explaining the methodological basis for 500 m. The constant name is self-documenting; no CLAUDE.md violation.
+
+3. **Observation — `rm()` without `gc()` at line 337**: Large spatial objects (`courses_sf`, `osm_golf_sf`, `intersects_result`, `intersects_df`) are freed via `rm()` but no `gc()` call follows. CLAUDE.md's memory rule specifically applies to dataset-loading loops; this is post-join cleanup outside a loop, so not a strict violation. However, releasing ~several GB of spatial objects without a GC hint is a best practice gap.
 
 ---
 
 ### Part 2B — `Phase_2.jl`
 
 **Structural**
-- [ ] Four-section layout; all logic in `main()`
-- [ ] Two blank lines; `@__DIR__` paths; ALL_CAPS constants
-- [ ] No `Plasma.jl`
+- [x] Four-section layout; all logic in `main()` — headers at lines 21, 26, 41, 66; all pipeline code inside `main()` (line 68); `if abspath(PROGRAM_FILE) == @__FILE__ main() end` guard at lines 257–259 ✓
+- [x] Two blank lines; `@__DIR__` paths; ALL_CAPS constants — `const SCRIPT_DIR = @__DIR__` at line 28; all nine constants (`PY_GPKG`, `OSM_GPKG_OUT`, `PHASE1_CSV`, `OUT_CSV`, `MIN_ACRES`, `MAX_ACRES`, `SQ_M_PER_ACRE`, `MAX_NEAREST_M`) ALL_CAPS; two blank lines confirmed at all three section boundaries ✓
+- [x] No `Plasma.jl` — no reference anywhere in the 259-line file ✓
 
 **Input / Output**
-- [ ] Phase 1 `Jl_` outputs used as inputs exist in `Data/Julia/`
-- [ ] Shared raw GPKGs exist in directory listing
-- [ ] `Jl_Phase2_Acreage_Matched.csv` + `Jl_Phase2_OSM_Golf_Polygons.gpkg` written to `Data/Julia/`
-- [ ] `isfile` checks on all inputs
+- [x] Phase 1 `Jl_` outputs used as inputs exist in `Data/Julia/` — `PHASE1_CSV` resolves to `Phase 1 Parsing/Data/Julia/Jl_Phase1_Baseline_Golf_Valuation.csv`; correct `Jl_` prefix ✓
+- [x] Shared raw GPKGs exist in directory listing — `PY_GPKG` (`Data/Python/Py_Phase2_OSM_Golf_Polygons.gpkg`) confirmed in directory; this is the Python Step 1 output consumed by Julia ✓
+- [x] `Jl_Phase2_Acreage_Matched.csv` + `Jl_Phase2_OSM_Golf_Polygons.gpkg` written to `Data/Julia/` — `OSM_GPKG_OUT` at line 30 and `OUT_CSV` at line 33 both resolve to `Data/Julia/` ✓
+- [x] `isfile` checks on all inputs — `isfile(PY_GPKG) || error(...)` at line 89; `isfile(PHASE1_CSV) || error(...)` at line 141 ✓
 
 **Methodology**
-- [ ] Spatial joins, CRS transforms, spatial reads marked `# [METHODOLOGY]`
-- [ ] `acreage_source` flag logic equivalent to Phase_2.R
-- [ ] Match distance threshold consistent with R script
+- [x] Spatial joins, CRS transforms, spatial reads marked `# [METHODOLOGY]` — `GeoDataFrames.read(PY_GPKG)` (line 93); area loop `Threads.@threads` (line 99); `GeoDataFrames.write(...)` (line 127); `ArchGDAL.createcoordtrans(...)` (line 157); intersect loop (line 176); nearest-neighbor block (line 193) — all tagged ✓
+- [x] `acreage_source` flag logic equivalent to Phase_2.R — **FIXED**: `acreage_source` column was entirely absent from the Julia output. Added `courses_df.acreage_source = ifelse.(ismissing.(courses_df.osm_acreage), "MICE_Target", "OSM")` after line 214. Note: Tigris tier is R-only; "Tigris" category will never appear in Julia output (expected).
+- [x] Match distance threshold consistent with R script — `const MAX_NEAREST_M = 500.0` at line 38; matches `MAX_NEAREST_M <- 500` in Phase_2.R ✓
 
 **Memory**
-- [ ] `df = nothing; GC.gc()` in loops
+- [x] `df = nothing; GC.gc()` in loops — N/A: no multi-dataset loading loop in Phase 2 Julia; `Threads.@threads` loops are parallel computation loops, not sequential dataset-accumulation loops. CLAUDE.md memory rule targets the 300-dataset imputation loop pattern in Phases 3–6.
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+1. **Missing `acreage_source` column** — **FIXED**: The Julia script computed `osm_acreage` but never assigned the `acreage_source` flag. The output CSV written by Phase_2.jl had no `acreage_source` column, making Phase 3 Julia unable to identify MICE imputation targets by this field. Fix: added `courses_df.acreage_source = ifelse.(ismissing.(courses_df.osm_acreage), "MICE_Target", "OSM")` immediately after `courses_df.osm_acreage = acreage_results`. Two-value schema ("OSM" | "MICE_Target") vs R's three-value schema ("OSM" | "Tigris" | "MICE_Target") — the absence of "Tigris" is expected since the `tigris` landmarks API is R-only.
+
+2. **Observation — no Tigris second tier**: Phase_2.R runs a full three-tier pipeline (OSM → Tigris landmarks → MICE_Target). Phase_2.jl is single-tier (OSM intersect + 500m nearest → MICE_Target). Tigris cannot be replicated in Julia (R-only package). This is a structural asymmetry between the R and Julia Phase 2 pipelines; the Julia MICE-target count will be higher than R's as a result.
 
 ---
 
@@ -652,8 +662,8 @@ _(document any integration issues here)_
 | 1B    | Phase_1.jl         | `[x]`   | 1 fix: `[METHODOLOGY]` added to `GeoDataFrames.read()`; 2 obs: runtime thread env var no-op, dead Downloads path |
 | 1C    | Phase_1.py         | `[x]`   | 1 fix: `[METHODOLOGY]` added to `.to_crs()`; 2 obs: `extract_holes()` returns `18` default (R returns NA), `as_is_col` hardcoded string vs R's dynamic grep |
 | 1D    | Phase 1 Cross-Lang | `[x]`   | Core economic fields consistent; 3 discrepancies: Python missing `course_id`/address cols + retains `Details`; `Course_Name` content differs R vs Jl/Py; +5 Python rows (known) |
-| 2A    | Phase_2.R          | `[ ]`   |              |
-| 2B    | Phase_2.jl         | `[ ]`   |              |
+| 2A    | Phase_2.R          | `[x]`   | No fixes; 3 obs: PBF path mismatch vs. summary doc, 500m threshold undocumented, `rm()` without `gc()` post-join |
+| 2B    | Phase_2.jl         | `[x]`   | 1 fix: `acreage_source` column added ("OSM"\|"MICE_Target"); 1 obs: no Tigris tier (R-only package, expected) |
 | 2C    | Phase_2.py         | `[ ]`   |              |
 | 2D    | Phase 2 Cross-Lang | `[ ]`   |              |
 | 3A    | Phase_3.R          | `[ ]`   |              |

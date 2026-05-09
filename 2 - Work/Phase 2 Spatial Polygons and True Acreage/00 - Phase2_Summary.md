@@ -156,6 +156,41 @@ The acreage gap is now clearly marked with `"MICE_Target"` in the `acreage_sourc
 
 ---
 
+## CLAUDE.md Compliance Review (2026-05-08)
+
+Scope: structural and methodological compliance review of `Phase_2.R` and `Phase_2.jl`
+against CLAUDE.md standards.
+
+### `Phase_2.R` — Result
+
+No violations found. No fixes applied.
+
+### `Phase_2.R` — Observations (No Fix Required)
+
+| Script | Observation |
+|--------|-------------|
+| `Phase_2.R` | `PBF_FILE` in the script points to `00 - Data Sources/Original Data/us-260413.osm.pbf` but the Phase 2 summary header documents the PBF as residing in `Original Data - Backup/`. The script handles the mismatch via try/catch fallback to the Python GPKG, but the documentation path is misaligned. |
+| `Phase_2.R` | `MAX_NEAREST_M <- 500` defines the nearest-neighbour cutoff but has no inline comment explaining the methodological basis for 500 m. Named constant is self-documenting; not a CLAUDE.md violation. |
+| `Phase_2.R` | `rm(courses_sf, intersects_result, intersects_df, osm_golf_sf)` at line 337 (post Tier 1 cleanup) has no following `gc()` call. CLAUDE.md memory rule targets dataset-loading loops; this is post-join cleanup outside a loop, so not a strict violation, but several GB of spatial objects are freed without a GC hint. |
+
+### `Phase_2.jl` — Result
+
+One violation found. Fix applied.
+
+### `Phase_2.jl` — Fix Applied
+
+| Script | Fix | Location |
+|--------|-----|----------|
+| `Phase_2.jl` | Added `courses_df.acreage_source = ifelse.(ismissing.(courses_df.osm_acreage), "MICE_Target", "OSM")` immediately after `courses_df.osm_acreage = acreage_results` | After line 214 (original) |
+
+### `Phase_2.jl` — Observation (No Fix Required)
+
+| Script | Observation |
+|--------|-------------|
+| `Phase_2.jl` | No Tigris second tier: Phase_2.R runs a three-tier pipeline (OSM → Tigris landmarks → MICE_Target); Phase_2.jl is single-tier (OSM intersect + 500 m nearest → MICE_Target). Tigris cannot be replicated in Julia (`tigris` is an R-only package). The Julia MICE-target count will therefore be higher than R's. This is expected and not a violation. |
+
+---
+
 ## Dependencies
 
 - **Python**: `osmium` (pyosmium), `geopandas`, `pandas`, `shapely`

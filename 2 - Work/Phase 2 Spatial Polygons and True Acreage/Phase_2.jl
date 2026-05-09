@@ -211,7 +211,8 @@ function main()
         end
     end
 
-    courses_df.osm_acreage = acreage_results
+    courses_df.osm_acreage    = acreage_results
+    courses_df.acreage_source = ifelse.(ismissing.(courses_df.osm_acreage), "MICE_Target", "OSM")
 
     has_acre_mask = .!ismissing.(courses_df.osm_acreage)
     has_acre      = sum(has_acre_mask)
