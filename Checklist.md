@@ -468,93 +468,135 @@ group; write pooled regression result CSVs and model objects.
 ### Part 4A — `Phase_4.R`
 
 **Structural**
-- [ ] Four-section layout present with correct numbered headers
-- [ ] Two blank lines between every top-level section
-- [ ] No `library()` calls outside Section 1
-- [ ] ALL_CAPS constants; `this.path::this.dir()` paths
+- [x] Four-section layout present with correct numbered headers — `# === 1. LIBRARIES ===` through `# === 4. EXECUTION ===` at lines 8, 20, 38, 56 ✓
+- [x] Two blank lines between every top-level section — confirmed at all three section boundaries ✓
+- [x] No `library()` calls outside Section 1 — all 6 libraries inside `suppressPackageStartupMessages({})` at lines 10–17 ✓
+- [x] ALL_CAPS constants; `this.path::this.dir()` paths — `SCRIPT_DIR <- this.path::this.dir()` at line 22; `PHASE3_DIR`, `OUT_DIR`, `MODEL_RDS`, `OUT_CSV`, `FORMULA_STR`, `M`, `IMPUTED_PATHS` all ALL_CAPS ✓
 
 **Input / Output**
-- [ ] All 100 `R_Imputed_Dataset_{1..100}.csv` referenced via correct relative path to `Data/R/`
-- [ ] `R_Regression_Results.csv` written to `Data/R/`
-- [ ] `R_model_results.rds` written to `Data/R/`
-- [ ] File existence check on at least one sentinel input (e.g., dataset 1) before loop starts
+- [x] All 100 `R_Imputed_Dataset_{1..100}.csv` referenced via correct relative path to `Data/R/` — `PHASE3_DIR` resolves to `Phase 3 Economic Merge and MICE Imputation/Data/R/` (correct "and" spelling); `IMPUTED_PATHS` generated via `paste0("R_Imputed_Dataset_", seq_len(M), ".csv")` with M=100 ✓
+- [x] `R_Regression_Results.csv` written to `Data/R/` — `OUT_CSV <- file.path(OUT_DIR, "R_Regression_Results.csv")`; `OUT_DIR <- file.path(SCRIPT_DIR, "Data", "R")` resolves to `Phase 4 Econometric Modeling/Data/R/` ✓
+- [x] `R_model_results.rds` written to `Data/R/` — `MODEL_RDS <- file.path(OUT_DIR, "R_model_results.rds")` same `OUT_DIR` ✓
+- [x] File existence check on at least one sentinel input before loop starts — lines 60–66 check ALL 100 `IMPUTED_PATHS` at once; `stop()` on any missing ✓ (stronger than single-sentinel requirement)
 
 **Econometric Methodology**
-- [ ] Dependent variable is `log(Opportunity_Cost)` — confirm formula or column name in code
-- [ ] No `log(acreage)` string anywhere in the file
-- [ ] Independent variables: Holes, Urban County indicator (confirm variable names match imputed dataset columns)
-- [ ] `# [METHODOLOGY]` immediately above Rubin's Rules pooling block
-- [ ] Pooling uses M = 100 coefficient vectors (not a single merged dataset)
-- [ ] Between-imputation variance (`B`) computed correctly: variance of the M coefficient estimates
-- [ ] Within-imputation variance (`W`) computed correctly: mean of M squared standard errors
-- [ ] Total variance `T = W + (1 + 1/M) × B`
-- [ ] FMI (fraction of missing information) computed and stored in output CSV
+- [x] Dependent variable is `log(Opportunity_Cost)` — `FORMULA_STR <- "Log_Opportunity_Cost ~ Holes + factor(county_type)"`; `Log_Opportunity_Cost <- log1p(Total_Opportunity_Cost)` at line 99 ✓ (Note: `log1p` used — see Observation 2)
+- [x] No `log(acreage)` string anywhere in the file — confirmed ✓
+- [x] Independent variables: Holes, Urban County indicator — `Holes` and `factor(county_type)` match Phase 3 R imputed CSV columns ✓
+- [x] `# [METHODOLOGY]` immediately above Rubin's Rules pooling block — `# [METHODOLOGY] Rubin's Rules — Barnard & Rubin (1999) df approximation` at line 202 ✓; `# [METHODOLOGY] OLS` inline at line 115; `# [METHODOLOGY] HC1` two-line block at lines 117–118 ✓
+- [x] Pooling uses M = 100 coefficient vectors — fits 100 separate models, extracts `coef(model)` + `bse` per iteration, stores in `model_results[[i]]`; no merged-dataset pooling ✓
+- [x] Between-imputation variance (`B`) computed correctly — `v_b <- apply(coef_mat, 2, var, na.rm = TRUE)` at line 208 ✓
+- [x] Within-imputation variance (`W`) computed correctly — `v_w <- colMeans(var_mat)` where `var_mat[i,] = bse²` at line 185; mean of squared SEs ✓
+- [x] Total variance `T = W + (1 + 1/M) × B` — `v_t <- v_w + (1 + 1 / m_i) * v_b` at line 209 ✓
+- [x] FMI computed and stored in output CSV — `lambda_ <- (1 + 1/m_i) * v_b / v_t` at line 213; `FMI = lambda_` in `pooled_df` ✓
 
 **Memory**
-- [ ] Dataset-loading loop uses `rm(df); gc()` after fitting each model and extracting coefficients
-- [ ] Coefficients extracted to a list/vector before dataset is dropped
+- [x] Dataset-loading loop uses `rm(df); gc()` after fitting each model and extracting coefficients — **FIXED**: loop (lines 82–148) created `acreage_df`, `model`, `vcov_hc1` per iteration but never freed them. Added `rm(acreage_df, model, vcov_hc1); gc()` at end of loop body (after the `if (i == 1)` block)
+- [x] Coefficients extracted to a list/vector before dataset is dropped — `model_results[[i]] <- model_data` at line 137 captures all needed values before cleanup ✓
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+1. **Missing `rm(acreage_df, model, vcov_hc1); gc()` in model-fitting loop** — **FIXED**: The 100-iteration loop (lines 82–148) loaded `acreage_df` each iteration and created `model` and `vcov_hc1`, but none were freed before the next iteration. Same CLAUDE.md memory violation class as Phase_3.R Fix 1, Phase_3.jl Fix 3, Phase_3.py Fix 3. Added `rm(acreage_df, model, vcov_hc1); gc()` at the end of the loop body, after the `if (i == 1)` summary capture block.
+
+2. **Observation — `log1p` vs `log`**: Dependent variable is `log1p(Total_Opportunity_Cost)` (log(1 + x)) rather than `log(x)`. This guards against zero opportunity costs; `log1p ≈ log` for non-zero values. Phase 6 axis labels should say `log(1 + Opportunity_Cost)` for strict accuracy, though thesis framing as `log(Opportunity_Cost)` is standard. No fix needed; flag for Phase 6.
+
+3. **Observation — R parameter name `factor(county_type)Urban`**: R's `lm()` with `factor(county_type)` produces a parameter named `factor(county_type)Urban` in the output CSV. Julia produces `county_type: Urban`; Python produces `C(county_type)[T.Urban]`. Cross-language name divergence — flag for Part 4D.
 
 ---
 
 ### Part 4B — `Phase_4.jl`
 
 **Structural**
-- [ ] Four-section layout; all logic in `main()`
-- [ ] Two blank lines; `@__DIR__` paths; ALL_CAPS constants
-- [ ] No `Plasma.jl`
+- [x] Four-section layout; all logic in `main()` — headers at lines 8/25/42/59; all pipeline in `main()` (lines 61–295); entry guard `if abspath(PROGRAM_FILE) == @__FILE__` at lines 297–299 ✓. **FIXED**: removed `using Pkg` and `Pkg.add([...])` block (developer-flagged `# [OUTSTANDING ISSUE]`)
+- [x] Two blank lines; `@__DIR__` paths; ALL_CAPS constants — two blanks confirmed at all three section boundaries; `const SCRIPT_DIR = @__DIR__` at line 27; all seven constants (`PHASE3_DIR`, `OUT_DIR`, `JLS_PATH`, `OUT_CSV`, `FORMULA_STR`, `M`, `IMPUTED_PATHS`) `const` ALL_CAPS ✓. **FIXED**: removed unused `using CovarianceMatrices` (HC1 computed manually via sandwich formula — package never called)
+- [x] No `Plasma.jl` — no reference anywhere in the file ✓
 
 **Input / Output**
-- [ ] All 100 `Jl_Imputed_Dataset_{1..100}.csv` referenced via correct relative path to `Data/Julia/`
-- [ ] `Jl_Regression_Results.csv` + `Jl_model_results.jls` written to `Data/Julia/`
-- [ ] `isfile` check before loop starts
+- [x] All 100 `Jl_Imputed_Dataset_{1..100}.csv` via correct relative path — `PHASE3_DIR = joinpath(SCRIPT_DIR, "..", "Phase 3 Economic Merge and MICE Imputation", "Data", "Julia")`; `Jl_` prefix; M=100 ✓
+- [x] `Jl_Regression_Results.csv` + `Jl_model_results.jls` written to `Data/Julia/` — `JLS_PATH` and `OUT_CSV` both resolve to `joinpath(SCRIPT_DIR, "Data", "Julia")` ✓
+- [x] `isfile` check before loop — `filter(p -> !isfile(p), IMPUTED_PATHS)` checks all 100 before any CSV loaded; `exit(1)` on any missing ✓
 
 **Econometric Methodology**
-- [ ] Dependent variable is `log(Opportunity_Cost)`; no `log(acreage)` anywhere
-- [ ] Same independent variable set as Phase_4.R
-- [ ] `# [METHODOLOGY]` on Rubin's Rules block
-- [ ] M = 100; B, W, T variance components correct; FMI computed
-- [ ] `df = nothing; GC.gc()` after each model fit
+- [x] Dependent variable is `log(Opportunity_Cost)`; no `log(acreage)` — `Log_Opportunity_Cost = log1p.(Total_Opportunity_Cost)` at line 97; no `log(acreage)` string found ✓
+- [x] Same independent variables as Phase_4.R — Holes + county_type in both; `county_type` converted to String at line 110 so GLM.jl treats it as categorical with a dropped reference level ✓
+- [x] `# [METHODOLOGY]` on Rubin's Rules block — at line 211 ✓; OLS inline at line 112; HC1 two-line block at lines 114–115 ✓
+- [x] M = 100; B, W, T correct; FMI computed — `const M = 100`; B=`var(..., corrected=true)`, W=`mean(var_mat)`, T=`v_w + (1+1/m_i)*v_b`; Barnard & Rubin (1999) df approximation identical to Phase_4.R formula; FMI=`lambda_` stored in `pooled_df` ✓
+- [x] `df = nothing; GC.gc()` after each model fit — **FIXED**: `acreage_df` and `model` created each iteration with no cleanup. Added `acreage_df = nothing; model = nothing; GC.gc()` at end of loop body (after `if i == 1` block) ✓
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+1. **`Pkg.add()` on every execution** — **FIXED**: Lines 10–12 ran `Pkg.add([...])` on every script execution; developer explicitly flagged with `# [OUTSTANDING ISSUE] runs on every execution — remove once packages installed`. Removed `using Pkg` and the `Pkg.add()` call. Startup speed improvement; packages are installed in the project environment.
+
+2. **Unused `using CovarianceMatrices`** — **FIXED** (combined with Fix 1): Package imported at line 17 but never called; HC1 robust SEs computed manually via sandwich formula. Removed alongside the `Pkg.add` cleanup.
+
+3. **Missing `acreage_df = nothing; model = nothing; GC.gc()` in model-fitting loop** — **FIXED**: 100-iteration loop (lines 81–157 pre-fix) loaded `acreage_df` and created `model` each iteration with no cleanup. Same CLAUDE.md memory violation class as Phase_4.R Fix 1. Added cleanup at end of loop body after `if i == 1` block.
+
+4. **Observation — `FORMULA_STR` not used for model fitting**: `const FORMULA_STR` defined and printed but `lm()` uses a hard-coded `@formula(...)` macro. In Julia, `@formula` is compile-time and cannot accept runtime strings (unlike R's `as.formula()`). Correct Julia idiom — not a violation.
+
+5. **Observation — `county_type: Urban` parameter name**: Julia GLM.jl produces `county_type: Urban` in `Jl_Regression_Results.csv`. Confirms cross-language name divergence (R=`factor(county_type)Urban`, Julia=`county_type: Urban`, Python=`C(county_type)[T.Urban]`). Flagged for Part 4D.
 
 ---
 
 ### Part 4C — `Phase_4.py`
 
 **Structural**
-- [ ] Four-section layout; relative `__file__` paths; top-level constants
+- [x] Four-section layout; relative `__file__` paths; top-level constants — `# === 1. LIBRARIES ===` through `# === 4. EXECUTION ===` at lines 8, 18, 38, 49; two blank lines at all three section boundaries; `SCRIPT_DIR = pathlib.Path(__file__).parent` at line 20; all constants ALL_CAPS; `if __name__ == "__main__"` guard at lines 245-246 ✓
 
 **Input / Output**
-- [ ] All 100 `Py_Imputed_Dataset_{1..100}.csv` referenced via correct relative path to `Data/python/`
-- [ ] `Py_Regression_Results.csv` + `Py_model_results.pkl` written to `Data/python/`
-- [ ] File existence check before loop starts
+- [x] All 100 `Py_Imputed_Dataset_{1..100}.csv` referenced via correct relative path to `Data/python/` — `PHASE3_DIR = SCRIPT_DIR.parent / "Phase 3 Economic Merge and MICE Imputation" / "Data" / "Python"`; `IMPUTED_PATHS` list comprehension with M=100 ✓. **Observation**: path uses `"Python"` (capital P) while Phase_3.py writes to `"python"` (lowercase) — Windows-safe but inconsistent; see Findings
+- [x] `Py_Regression_Results.csv` + `Py_model_results.pkl` written to `Data/python/` — `OUT_CSV` and `PKL_PATH` both resolve to `OUT_DIR = SCRIPT_DIR / "Data" / "Python"` ✓
+- [x] File existence check before loop starts — `missing = [p for p in IMPUTED_PATHS if not p.is_file()]` checks all 100 before any CSV loaded; `raise SystemExit(1)` if any missing ✓ (stronger than single-sentinel requirement)
 
 **Econometric Methodology**
-- [ ] Dependent variable is `log(Opportunity_Cost)`; no `log(acreage)` anywhere
-- [ ] Same independent variable set as R and Julia
-- [ ] `# [METHODOLOGY]` on Rubin's Rules block
-- [ ] M = 100; B, W, T variance components correct; FMI computed
-- [ ] `del df; gc.collect()` after each model fit
+- [x] Dependent variable is `log(Opportunity_Cost)`; no `log(acreage)` anywhere — `Log_Opportunity_Cost = np.log1p(Total_Opportunity_Cost)` at lines 88-90; `FORMULA_STR = "Log_Opportunity_Cost ~ Holes + C(county_type)"`; no `log(acreage)` string found ✓
+- [x] Same independent variable set as R and Julia — Holes and C(county_type) match R's `factor(county_type)` and Julia's `county_type` as String; `C()` is statsmodels' categorical treatment operator ✓
+- [x] `# [METHODOLOGY]` on Rubin's Rules block — `# [METHODOLOGY] Rubin's Rules — Barnard & Rubin (1999) df approximation` at line 164 ✓; OLS inline at line 101; HC1 inline at line 102 ✓
+- [x] M = 100; B, W, T variance components correct; FMI computed — `M = 100` at line 32; `v_b = coef_df.var(ddof=1)` (between, corrected); `v_w = var_df.mean()` (within, mean of squared SEs); `v_t = v_w + (1+1/m_i)*v_b`; Barnard & Rubin (1999) df approximation identical to R and Julia; `lambda_` = FMI stored in `pooled_df` ✓; `p_val = 2 * stats.t.sf(|t|, df=df_adj)` equivalent to `2*pt(|t|, df, lower.tail=FALSE)` ✓
+- [x] `del df; gc.collect()` after each model fit — **FIXED**: `import gc` was missing (would have raised `NameError`); added. `del acreage_df, model, result; gc.collect()` added to end of model-fitting loop body. See Findings.
 
 **Findings & Fixes:**
-_(document any issues and fixes applied here)_
+
+1. **Missing `import gc`** — **FIXED**: `gc` module absent from Section 1; any `gc.collect()` call would have raised `NameError`. Added `import gc` alphabetically first in Section 1. Same class as Phase_3.py Fix 1.
+
+2. **Missing `del acreage_df, model, result; gc.collect()` in model-fitting loop** — **FIXED**: The 100-iteration loop (lines 74–117 pre-fix) created `acreage_df`, `model` (OLS object), and `result` (fitted model) each iteration and never freed them before the next iteration. Added `del acreage_df, model, result` + `gc.collect()` at end of loop body after the print statement. Same CLAUDE.md memory violation class as Phase_4.R Fix 1, Phase_4.jl Fix 3, Phase_3.py Fixes 2–4.
+
+3. **Observation — `"Python"` vs `"python"` in path strings**: `PHASE3_DIR` uses `"Data" / "Python"` (capital P, line 25) and `OUT_DIR` uses `"Data" / "Python"` (line 27), while Phase_3.py writes its output to `"Data" / "python"` (lowercase). On Windows (case-insensitive filesystem) this resolves to the same directory and causes no failure. Inconsistent with R/Julia conventions and with Phase_3.py itself — not a CLAUDE.md violation.
+
+4. **Observation — `stars()` lacks NaN guard**: R's `stars()` checks `is.na(x)` first; Julia's `get_stars()` checks `isnan(p)` first; Python's `stars()` goes directly to `< 0.001`. In Python, `NaN < 0.001` evaluates to `False` (not an exception), so the function correctly falls through and returns `""` for NaN inputs. Not a functional bug — no fix applied.
 
 ---
 
 ### Part 4D — Phase 4 Cross-Language Consistency
 
-- [ ] All three regression CSVs use the same parameter names (Intercept, Holes, Urban County)
-- [ ] Coefficient point estimates are in the same plausible range across languages (no order-of-magnitude divergence)
-- [ ] Standard errors and FMI columns present in all three result CSVs
-- [ ] `p_value` column is numeric (not a string) in all three CSVs
-- [ ] The three β̂ estimates for each parameter are the inputs to Phase 6's Grand Mean computation — confirm they are plausible basis for `$0.944T`
+- [x] All three regression CSVs use the same parameter names (Intercept, Holes, Urban County) — **NOT fully consistent**: Holes matches exactly in all three ✓; Intercept: R=`(Intercept)`, Julia=`(Intercept)`, Python=`Intercept` (Python drops parentheses — statsmodels convention); Urban: R=`factor(county_type)Urban`, Julia=`county_type: Urban`, Python=`C(county_type)[T.Urban]` — all three differ (confirmed from actual CSV reads). Row order also differs: Python=[Intercept, Urban, Holes]; R/Julia=[Intercept, Holes, Urban]. These are language-native naming conventions from each framework; Phase 6 `compute_grand_means()` must match by name, not by row position.
+- [x] Coefficient point estimates are in the same plausible range across languages (no order-of-magnitude divergence) — ✓ all within the same order of magnitude: Intercept 12.23–12.28 (0.4% spread); Holes 0.0474–0.0525 (10.3% spread — R elevated due to `final_acreage` vs `osm_acreage` base); Urban 4.001–4.172 (4.1% spread). No order-of-magnitude divergence.
+- [x] Standard errors and FMI columns present in all three result CSVs — ✓ `Std_Error` and `FMI` present in all three CSVs; V_within, V_between, V_total also present in all three ✓
+- [x] `p_value` column is numeric (not a string) in all three CSVs — ✓ all values are numeric floats (0.0 for p below float precision, or specific values e.g. 2.643e-84 for Holes in Python, 9.030e-86 for Holes in Julia, 2.801e-78 for Holes in R). All parameters significant at *** level in all three ✓
+- [x] The three β̂ estimates for each parameter are the inputs to Phase 6's Grand Mean computation — ✓ directionally consistent across all three and serve as valid Forest Plot inputs. Note: the $0.944T is a Phase 3 figure (aggregate national opportunity cost from Rubin's pooled sum), not derived from Phase 4 regression coefficients. Phase 4 coefficients feed Phase 6 Forest Plots (comparing β̂ per language). The item as written conflates the two.
 
 **Findings:**
-_(document any cross-language discrepancies here)_
+
+1. **Full parameter name divergence table (from actual CSV reads, 2026-05-09):**
+
+   | Parameter | R CSV | Julia CSV | Python CSV |
+   |-----------|-------|-----------|------------|
+   | Intercept | `(Intercept)` | `(Intercept)` | `Intercept` |
+   | Holes | `Holes` | `Holes` | `Holes` |
+   | Urban | `factor(county_type)Urban` | `county_type: Urban` | `C(county_type)[T.Urban]` |
+
+   Python's `Intercept` (no parentheses) is a third naming divergence not flagged in Parts 4A–4B. R and Julia are consistent for the intercept. Phase 6 `compute_grand_means()` must use language-specific name lookups, not a shared parameter name list.
+
+2. **Row order differs — Python orders rows as [Intercept, Urban, Holes]; R and Julia as [Intercept, Holes, Urban]**. Phase 6 scripts must join by parameter name, never by row index.
+
+3. **R Holes coefficient elevated ~10% vs Julia/Python** (R=0.05251, Julia=0.04764, Python=0.04740): Attributable to R using `final_acreage` (OSM + Tigris) while Julia/Python use `osm_acreage` (OSM-only). Different acreage distributions → different model fits. Not a code error; a documented data asymmetry from Phase 2D.
+
+4. **Urban FMI high in R (0.339) and Python (0.392), lower in Julia (0.095)**: Indicates substantially more between-imputation variance in the Urban County coefficient under R's Random Forest MICE and Python's LightGBM MICE than under Julia's MICE.jl backend. Consistent with different imputation backends affecting uncertainty propagation differently.
+
+5. **Urban `df_adj` very low in Python (25.9) and R (34.8) vs Julia (426.8)**: A consequence of the high Urban FMI — when between-imputation variance dominates, the Barnard–Rubin approximation gives very low adjusted df. Python's Urban p-value is 5.59e-42 (still *** but smaller t-statistic and wider CI than Julia's).
+
+6. **Canonical `Data/` output directories are empty** — all three regression CSVs exist only in `Bulk Tests/{R,Julia,python}/`, not in `Data/{R,Julia,python}/`. The master Phase 4 scripts (`Phase_4.R`, `Phase_4.jl`, `Phase_4.py`) write to `Data/` subdirectories; those subdirectories contain no CSV or model object files. Phase 6 scripts that read `Data/R/R_Regression_Results.csv` etc. will fail until the master Phase 4 scripts are executed. This is an operational gap — not a code violation.
+
+7. **No fixes applied.** This is a read-only consistency check. All divergences are either language-native conventions (parameter naming) or explainable data asymmetries (acreage column difference, MICE backend variance). The three β̂ sets are consistent and valid inputs for Phase 6 Forest Plots.
 
 ---
 
@@ -735,10 +777,10 @@ _(document any integration issues here)_
 | 3B    | Phase_3.jl         | `[x]`   | 5 fixes: header `{1..30}`→`{1..100}` + `m=30`→`m=100`; stale dev comment removed; `df=nothing;GC.gc()` added to Rubin's loop; `df=nothing;GC.gc()` added to Acreage loop; `[METHODOLOGY]` added above `pool_acreage()`. 2 obs: imputed CSVs full Phase 2 schema (vs R's 7-col); `ds1` freed on function return |
 | 3C    | Phase_3.py         | `[x]`   | 7 fixes: `import gc` added; `del completed,out;gc.collect()` in imputation save loop; `del df;gc.collect()` in Rubin's loop; `del df;gc.collect()` in Acreage loop; `[METHODOLOGY]` on Rubin's `q_bar` block; `[METHODOLOGY]` on `pool_acreage()`; stale "STEP 2" print removed from function body |
 | 3D    | Phase 3 Cross-Lang | `[x]`   | No fixes needed. 4 observations: Phase 4 parameter names not in Phase 3 CSVs (item 5 conflation); Julia scientific notation in Acreage CSV; Python NA-county groupby gap (4,402 acres absent from breakdown, present in national total); acreage totals R=2.303M/Jl=2.291M/Py=2.306M — 0.67% spread, consistent |
-| 4A    | Phase_4.R          | `[ ]`   |              |
-| 4B    | Phase_4.jl         | `[ ]`   |              |
-| 4C    | Phase_4.py         | `[ ]`   |              |
-| 4D    | Phase 4 Cross-Lang | `[ ]`   |              |
+| 4A    | Phase_4.R          | `[x]`   | 1 fix: `rm(acreage_df, model, vcov_hc1); gc()` added to model-fitting loop. 2 obs: `log1p` vs `log` (flag for Phase 6 labels); R param name `factor(county_type)Urban` differs from Julia/Python equivalents (flag for 4D) |
+| 4B    | Phase_4.jl         | `[x]`   | 3 fixes: `Pkg.add()` block removed (dev-flagged outstanding issue); `using CovarianceMatrices` removed (unused — HC1 computed manually); `acreage_df = nothing; model = nothing; GC.gc()` added to model-fitting loop. 2 obs: `FORMULA_STR` not used for actual `lm()` call (correct Julia idiom); `county_type: Urban` param name confirmed (flags for 4D) |
+| 4C    | Phase_4.py         | `[x]`   | 2 fixes: `import gc` added; `del acreage_df, model, result; gc.collect()` added to model-fitting loop. 2 obs: `"Python"` (capital P) in path strings while Phase_3.py uses `"python"` (Windows-safe); `stars()` lacks NaN guard (not a bug — Python NaN comparisons return False) |
+| 4D    | Phase 4 Cross-Lang | `[x]`   | No fixes. 7 findings: Intercept name diverges (Python=`Intercept` vs R/Julia=`(Intercept)`); Urban name all 3 differ; row order differs (Python Urban before Holes); R Holes ~10% higher (final_acreage vs osm_acreage); Urban FMI high in R(0.339)/Py(0.392) vs Jl(0.095); canonical Data/ dirs empty — only Bulk Tests have output CSVs; $0.944T is Phase 3 aggregate, not Phase 4 |
 | 5A    | Phase_5.R          | `[ ]`   |              |
 | 5B    | Phase_5.jl         | `[ ]`   |              |
 | 5C    | Phase_5.py         | `[ ]`   |              |
