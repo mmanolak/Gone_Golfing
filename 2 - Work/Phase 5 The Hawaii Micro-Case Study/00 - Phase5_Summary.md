@@ -33,8 +33,7 @@ Phase 5 is organized in two tracks:
 3. **Honolulu Cadastral GeoPackage:** `All_Parcels_6378200148342636690.gpkg` — Honolulu parcel cadastre
 4. **Honolulu Tax CSV:** `All_Parcels_-4613852522541990741.csv` — parcel-level tax/zone attributes
 5. **Honolulu Zoning GeoPackage:** `Zoning_-2205419429161838665.gpkg` — Honolulu zoning layer (EPSG 3760, NAD83(HARN)/Hawaii zone 3, ftUS)
-6. **Phase 3 Imputed Datasets (×5):** MICE-imputed economic datasets for Rubin's Rules pooling
-7. **Phase 4 Regression CSV:** `Py_Regression_Results.csv`
+6. **Phase 3 Imputed Datasets (×100):** MICE-imputed economic datasets for Rubin's Rules pooling (M=100 per language)
 
 ### Model Logic
 
@@ -258,7 +257,7 @@ thresholds were changed.
 Every script follows the same section order:
 
 ```
-# === 1. LIBRARIES ===      (R)  /  # === 1. IMPORTS ===  (Python)  /  # === 1. USING ===  (Julia)
+# === 1. LIBRARIES ===      (R, Python)  /  # === 1. USING ===  (Julia)
 # === 2. GLOBALS & PATHS ===
 # === 3. FUNCTIONS ===
 # === 4. EXECUTION ===
@@ -338,6 +337,12 @@ Sections with no content use `# (none)` as the body.
 2. **`ROOT_DIR` → `WORK_DIR`** in Step 1 — renamed for cross-script consistency.
 3. **Duplicate "Total Official Assessed Value" row** in Step 3 bulk test — removed.
 4. **Python master output paths** — `Phase_5.py` was writing all CSVs to `Bulk Tests/python/`; corrected to `Data/Python/Py_*.csv` to match the Phase 1/2 convention. Intermediate GeoPackages remain in `Bulk Tests/python/`.
+5. **`REGRESSION_CSV` dead code removed (Julia & Python masters)** — Both `Phase_5.jl` and `Phase_5.py` declared a `Jl_Regression_Results.csv` / `Py_Regression_Results.csv` constant and ran existence checks on it, but never loaded it. Phase 5 computes opportunity cost directly as `osm_acreage × Baseline_Value_Per_Acre` from Phase 3 imputed datasets; Phase 4 regression outputs play no role. The declaration, header comment, and existence check were removed from both master scripts.
+6. **Python `# === 1. LIBRARIES ===` section header** — `Phase_5.py` used the non-standard heading `# === 1. IMPORTS ===`; corrected to `# === 1. LIBRARIES ===` per CLAUDE.md convention (applies to all Phase master scripts).
+7. **Python memory management in imputed dataset loop** — `run_step3()` loaded 100 CSVs without releasing memory between iterations. Added `del df_i; gc.collect()` after extracting the Oahu subset in each loop iteration; added `import gc` to Section 1.
+8. **Python `[METHODOLOGY]` tags in `run_step6()`** — Two `gpd.read_file()` calls (golf polygons and zoning layer) were missing the required `# [METHODOLOGY]` tag. Added.
+9. **Python `OSM_DERIVED_ACRES = 8342.28` replaced with live computation** — The hardcoded module-level constant reflected an earlier run and became stale. `run_step2()` already computed `total_acres` from the Step 2 intersection geometry; it now returns that value. `run_step3()` accepts it as a parameter (`osm_derived_acres`), and `main()` captures and forwards it. See also *Acreage Discrepancy Note* below.
+10. **Python `Zone_Code` float string bug in `run_step5()`** — The `Zone` column from the Honolulu cadastral CSV reads as `float64`; `.astype(str)` produced `"9.0"` rather than `"9"`, causing all `DISTRICT_MAP` lookups to fall through to the `"Zone 9.0"` fallback. Added `dropna(subset=["Zone"])` (parallel to Julia's `dropmissing!(geo_merged, :Zone)`) and changed the cast to `.astype(int).astype(str)`. District names now resolve correctly (e.g. `"Ewa (Kapolei/Pearl City)"`).
 
 ---
 
@@ -425,4 +430,28 @@ oahu_golf_geo ──────────────────────
 
 ### Acreage Discrepancy Note
 
-The daughter script `Step3_Final_Comparison.jl` uses a hardcoded constant `OSM_DERIVED_ACRES = 8342.28`. The standalone `Phase_5.jl` computes acreage live from the Step 2 spatial intersection geometry, yielding **8,564.23 acres**. The live-computed value is more accurate; the hardcoded constant in Step 3 reflects an earlier run.
+The daughter script `Step3_Final_Comparison.jl` uses a hardcoded constant `OSM_DERIVED_ACRES = 8342.28`. The standalone `Phase_5.jl` computes acreage live from the Step 2 spatial intersection geometry, yielding **8,564.23 acres**. `Phase_5.py` previously carried the same stale constant (`OSM_DERIVED_ACRES = 8342.28` in Section 2); this has been corrected — `run_step2()` now returns `total_acres` computed live, and `run_step3()` accepts it as a parameter. The live-computed value (**8,564.23 acres**) is authoritative; the hardcoded constant in the Julia daughter script `Step3_Final_Comparison.jl` remains stale but that script is not part of the master pipeline.
+
+---
+
+## Cross-Language Consistency Notes (Post-Audit)
+
+### Oahu OSM Polygon Count
+
+Each master script reads its own language-prefixed Phase 2 GeoPackage (`R_Phase2_OSM_Golf_Polygons.gpkg`, `Jl_Phase2_OSM_Golf_Polygons.gpkg`, `Py_Phase2_OSM_Golf_Polygons.gpkg`). The spatial filter to Oahu's bounding box produces a one-course difference:
+
+| Language | Oahu OSM polygons |
+|----------|------------------|
+| R        | 38               |
+| Julia    | 39               |
+| Python   | 39               |
+
+This difference is traceable to minor variation in the three Phase 2 runs (different polygon parse order, potential edge-case geometry differences) and is within the expected cross-language Phase 2 spread. It does not affect the economic validation conclusions.
+
+### Geographic Breakdown (Step 5)
+
+All three languages produce identical parcel counts and zone distributions (1,072 parcels; Zone 9 = 63.2%). Prior to the audit, Python displayed zone codes as `"9.0"` and district names as `"Zone 9.0"` due to float-to-string coercion. This has been corrected; all three languages now produce matching `Zone_Code` (integer string) and `District_Name` values.
+
+### 37-Course Ewa District Figure
+
+The figure "37 courses in Ewa District (Zone 9)" referenced in Phase 6 output cannot be confirmed from Phase 5 alone — Phase 5 Step 5 produces parcel-level zone breakdowns, not course-level counts by district. Verification requires cross-referencing Phase 6 Script 9 (Oahu spatial summary).

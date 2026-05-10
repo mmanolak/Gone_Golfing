@@ -6,7 +6,6 @@
 #          00 - Data Sources/Honolulu/All_Parcels_-4613852522541990741.csv
 #          00 - Data Sources/Honolulu/Zoning_-2205419429161838665.gpkg
 #          Phase 3 Economic Merge and MICE Imputation/Data/Python/Py_Imputed_Dataset_{1..100}.csv
-#          Phase 4 Econometric Modeling/Data/Python/Py_Regression_Results.csv
 # Outputs: Bulk Tests/python/Target_Golf_Polygons.gpkg          (intermediate)
 #          Bulk Tests/python/Honolulu_Parcels_Reprojected.gpkg  (intermediate)
 #          Bulk Tests/python/Target_Golf_Parcels_List.csv       (intermediate)
@@ -16,8 +15,9 @@
 #          Data/Python/Py_Phase5_Step6_Zone_Golf_Penetration.csv
 # Note:    Run the R version first to generate the Geopackage File
 
-# === 1. IMPORTS ===
+# === 1. LIBRARIES ===
 
+import gc
 import pathlib
 import re
 import numpy as np
@@ -65,9 +65,6 @@ PHASE3_DATA_DIR = (
 IMPUTED_PATHS = [
     PHASE3_DATA_DIR / f"Py_Imputed_Dataset_{i}.csv" for i in range(1, 101)
 ]
-PHASE4_DATA_DIR = WORK_DIR / "Phase 4 Econometric Modeling" / "Data" / "Python"
-REGRESSION_CSV  = PHASE4_DATA_DIR / "Py_Regression_Results.csv"
-
 # --- Steps 4 & 5 inputs ---
 TAX_CSV_CANDIDATES = [
     HONOLULU_DATA_DIR / "All_Parcels_-4613852522541990741.csv",
@@ -78,7 +75,6 @@ ZONING_PCT_CSV       = DATA_PYTHON_DIR / "Py_Phase5_Step6_Zoning_Percentages.csv
 ZONE_PENETRATION_CSV = DATA_PYTHON_DIR / "Py_Phase5_Step6_Zone_Golf_Penetration.csv"
 
 # --- Constants ---
-OSM_DERIVED_ACRES = 8342.28
 M           = 100
 M2_PER_ACRE = 4046.856422
 OAHU_LAT_MIN, OAHU_LAT_MAX =  21.2,   21.9
@@ -249,9 +245,10 @@ def run_step2():
     print("-" * 60)
     print(f"[+] Exported TMK List (CSV) : {TMK_LIST_CSV.as_posix()}")
     print("\n[DONE] Step 2 Complete.")
+    return total_acres
 
 
-def run_step3():
+def run_step3(osm_derived_acres):
     print("\n" + "=" * 70)
     print("Phase 5 - Step 3: Economic Validation")
     print("=" * 70)
@@ -259,14 +256,12 @@ def run_step3():
     print(f"  Parcels GPKG  : {PARCELS_REPROJECTED}")
     print(f"  OSM Polygons  : {TARGET_GOLF_GPKG}")
     print(f"  Phase 3 dir   : {PHASE3_DATA_DIR}")
-    print(f"  Phase 4 dir   : {PHASE4_DATA_DIR}")
     print(f"  Output        : {COMPARISON_CSV}\n")
 
     required = {
         "TMK list (Step 2 output)"     : TMK_LIST_CSV,
         "Parcels GPKG (Step 1 output)" : PARCELS_REPROJECTED,
         "OSM Polygons (Step 1 output)" : TARGET_GOLF_GPKG,
-        "Phase 4 regression CSV"       : REGRESSION_CSV,
     }
     for label, path in required.items():
         if not path.exists():
@@ -322,7 +317,7 @@ def run_step3():
     else:
         official_area_acres = float("nan")
 
-    print(f"\n  OSM-derived legal footprint (Step 2 geometry): {OSM_DERIVED_ACRES:,.2f} acres")
+    print(f"\n  OSM-derived legal footprint (Step 2 geometry): {osm_derived_acres:,.2f} acres")
 
     print("-" * 70)
     print("[Step 3.3] Loading Phase 3 imputations & applying spatial deduplication...")
@@ -339,6 +334,7 @@ def run_step3():
         df_oahu["Total_Opportunity_Cost"] = df_oahu["osm_acreage"] * df_oahu["Baseline_Value_Per_Acre"]
         df_oahu["imputation"] = i
         oahu_estimates.append(df_oahu)
+        del df_i; gc.collect()
 
     oahu_all = pd.concat(oahu_estimates, ignore_index=True)
     sizes    = ", ".join(str(len(d)) for d in oahu_estimates)
@@ -446,7 +442,7 @@ def run_step3():
     add_row(rows, "Total Golf Courses (Oahu, OSM polygons)", len(osm_polys_geo))
     add_row(rows, "Total Unique TMKs (Step 2)",             f"{len(tmk_df):,}")
     add_row(rows, "TMKs Matched in Cadastre",               f"{len(matched_parcels):,}")
-    add_row(rows, "OSM-Derived Legal Footprint (acres)",    f"{OSM_DERIVED_ACRES:,.2f}")
+    add_row(rows, "OSM-Derived Legal Footprint (acres)",    f"{osm_derived_acres:,.2f}")
 
     for i, val in enumerate(oahu_agg_dedup, start=1):
         add_row(rows, f"Oahu Opportunity Cost - Imputation {i} ($B)", f"{val/1e9:.3f}")
@@ -586,8 +582,9 @@ def run_step5():
         tax_data["TMK_clean"] = tax_data["TMK_clean"] + "0"
 
     merged_data = tmk_df.merge(tax_data, on="TMK_clean", how="inner")
+    merged_data = merged_data.dropna(subset=["Zone"])
 
-    merged_data["Zone_Code"]    = merged_data["Zone"].astype(str)
+    merged_data["Zone_Code"]    = merged_data["Zone"].astype(int).astype(str)
     merged_data["District_Name"] = merged_data["Zone_Code"].map(DISTRICT_MAP).fillna(
         "Zone " + merged_data["Zone_Code"]
     )
@@ -630,7 +627,9 @@ def run_step6():
         raise SystemExit(1)
 
     print("[Step 1] Loading spatial datasets...")
+    # [METHODOLOGY] gpd.read_file — spatial read of Step 1 Oahu golf polygons for zoning overlay
     golf_gdf   = gpd.read_file(TARGET_GOLF_GPKG)
+    # [METHODOLOGY] gpd.read_file — spatial read of Honolulu zoning layer
     zoning_gdf = gpd.read_file(ZONING_GPKG)
     print(f"  Golf polygons:  {len(golf_gdf):,} features  (CRS: EPSG {golf_gdf.crs.to_epsg()})")
     print(f"  Zoning layer:   {len(zoning_gdf):,} features  (CRS: EPSG {zoning_gdf.crs.to_epsg()})")
@@ -697,8 +696,8 @@ def main():
     print("=" * 70)
 
     run_step1()
-    run_step2()
-    run_step3()
+    osm_derived_acres = run_step2()
+    run_step3(osm_derived_acres)
     run_step4()
     run_step5()
     run_step6()

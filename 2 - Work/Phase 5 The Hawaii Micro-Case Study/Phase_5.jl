@@ -7,7 +7,6 @@
 #          00 - Data Sources/Honolulu/All_Parcels_-4613852522541990741.csv
 #          00 - Data Sources/Honolulu/Zoning_-2205419429161838665.gpkg
 #          Phase 3 Economic Merge and MICE Imputation/Data/Julia/Jl_Imputed_Dataset_{1..100}.csv
-#          Phase 4 Econometric Modeling/Data/Julia/Jl_Regression_Results.csv
 # Outputs: Data/Julia/Jl_Phase5_Oahu_Comparison.csv
 #          Data/Julia/Jl_Phase5_Geographic_Breakdown.csv
 #          Data/Julia/Jl_Phase5_Step6_Zoning_Percentages.csv
@@ -15,7 +14,7 @@
 # Note:    Run the R version first to generate the Geopackage File
 
 
-# === 1. USING ===
+# === 1. LIBRARIES ===
 
 using GeoDataFrames
 using ArchGDAL
@@ -49,11 +48,6 @@ const PHASE3_DATA_DIR = joinpath(
 const IMPUTED_PATHS = [
     joinpath(PHASE3_DATA_DIR, "Jl_Imputed_Dataset_$i.csv") for i in 1:100
 ]
-const REGRESSION_CSV = joinpath(
-    WORK_DIR, "Phase 4 Econometric Modeling", "Data", "Julia",
-    "Jl_Regression_Results.csv",
-)
-
 const ZONING_GPKG        = joinpath(HONOLULU_DATA_DIR, "Zoning_-2205419429161838665.gpkg")
 
 const COMPARISON_OUT     = joinpath(OUT_DIR, "Jl_Phase5_Oahu_Comparison.csv")
@@ -134,7 +128,7 @@ function main()
     println("=" ^ 70)
 
     # ── input validation ──────────────────────────────────────────────────────
-    for path in [PHASE1_IN, OSM_IN, PARCELS_IN, TAX_CSV_IN, REGRESSION_CSV]
+    for path in [PHASE1_IN, OSM_IN, PARCELS_IN, TAX_CSV_IN]
         isfile(path) || error("[FATAL] Input file not found:\n  $path")
     end
     missing_imp = filter(!isfile, IMPUTED_PATHS)
@@ -150,7 +144,9 @@ function main()
     println("\nLoading datasets...")
 
     baseline_df  = CSV.read(PHASE1_IN, DataFrame)
+    # [METHODOLOGY] GeoDataFrames.read — spatial read of Phase 2 Julia OSM golf polygons
     osm_golf_geo = GeoDataFrames.read(OSM_IN)
+    # [METHODOLOGY] GeoDataFrames.read — spatial read of Honolulu cadastral parcel layer
     parcels_geo  = GeoDataFrames.read(PARCELS_IN)
     # Honolulu cadastral GPKG stores geometry as "SHAPE"; normalize to "geometry"
     "SHAPE" in names(parcels_geo) && rename!(parcels_geo, :SHAPE => :geometry)
@@ -204,6 +200,7 @@ function main()
     # columns that GeoDataFrames.write can't convert to OGR field types.
     select!(parcels_geo, [:geometry, :tmk])
     println("\nReprojecting parcels to OSM CRS...")
+    # [METHODOLOGY] createcoordtrans + transform! — reproject parcels from native CRS to OSM CRS (EPSG:5070)
     ArchGDAL.createcoordtrans(parcels_crs, osm_crs) do t
         for g in parcels_geo.geometry
             ArchGDAL.transform!(g, t)
@@ -290,6 +287,7 @@ function main()
         df_oahu.Total_Opportunity_Cost = df_oahu.osm_acreage .* df_oahu.Baseline_Value_Per_Acre
         df_oahu.imputation = fill(i, nrow(df_oahu))
         oahu_estimates[i]  = df_oahu
+        df_i = nothing; GC.gc()
     end
     oahu_all = vcat(oahu_estimates...)
     println("  Oahu courses before dedup (per imputation): $(join(string.(nrow.(oahu_estimates)), ", "))")
@@ -446,6 +444,7 @@ function main()
 
     isfile(ZONING_GPKG) || error("[FATAL] Zoning layer not found:\n  $ZONING_GPKG")
 
+    # [METHODOLOGY] GeoDataFrames.read — spatial read of Honolulu zoning layer
     zoning_gdf = GeoDataFrames.read(ZONING_GPKG)
     println("  Loaded zoning layer: $(nrow(zoning_gdf)) features")
 

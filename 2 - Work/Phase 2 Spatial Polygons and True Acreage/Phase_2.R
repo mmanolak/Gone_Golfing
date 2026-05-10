@@ -119,12 +119,21 @@ cat("\n[Step 0] Loading OSM golf course polygons...\n")
 # NOTE: GDAL's OGR driver cannot reliably parse this particular 11 GB PBF file
 # (crashes at ~byte 3,049,247,581 due to data corruption). The Python pipeline
 # used pyosmium (C++ streaming handler) which tolerates the corruption.
-# Primary path tries the PBF; on any failure falls back to the Python GPKG.
+# Priority: use the Python GPKG if it exists (fast, clean); only attempt the
+# PBF as a last resort when the GPKG is absent.
 
 osm_golf_sf <- NULL
 
-if (file.exists(PBF_FILE)) {
-  cat(sprintf("  Attempting PBF read: %s\n", PBF_FILE))
+if (file.exists(PY_GPKG)) {
+  cat(sprintf("  Reading Python GPKG: %s\n", PY_GPKG))
+  osm_golf_sf <- st_read(PY_GPKG, quiet = TRUE)  # [METHODOLOGY] st_read from pyosmium GPKG
+  cat(sprintf(
+    "  Loaded from GPKG: %s polygons\n",
+    formatC(nrow(osm_golf_sf), big.mark = ",")
+  ))
+} else if (file.exists(PBF_FILE)) {
+  cat(sprintf("  Python GPKG not found -- attempting PBF read: %s\n", PBF_FILE))
+  cat("  (Warning: GDAL may crash on this PBF; run Phase_2.py first if this hangs.)\n")
   tryCatch(
     {
       osm_golf_sf <- st_read(  # [METHODOLOGY] st_read from OSM PBF
@@ -139,29 +148,18 @@ if (file.exists(PBF_FILE)) {
       ))
     },
     error = function(e) {
-      cat(sprintf(
-        "  [WARN] PBF read failed (%s) -- falling back to Python GPKG.\n",
-        conditionMessage(e)
-      ))
+      cat(sprintf("  [ERROR] PBF read failed: %s\n", conditionMessage(e)))
     }
   )
 }
 
 if (is.null(osm_golf_sf)) {
-  if (!file.exists(PY_GPKG)) {
-    stop(
-      "OSM source not available.\n",
-      "  PBF not found or failed : ", PBF_FILE, "\n",
-      "  Python GPKG not found   : ", PY_GPKG,  "\n",
-      "  Run the Python pipeline first to produce the Python GPKG."
-    )
-  }
-  cat(sprintf("  Reading Python GPKG fallback: %s\n", PY_GPKG))
-  osm_golf_sf <- st_read(PY_GPKG, quiet = TRUE)  # [METHODOLOGY] st_read from pyosmium GPKG
-  cat(sprintf(
-    "  Loaded from GPKG: %s polygons\n",
-    formatC(nrow(osm_golf_sf), big.mark = ",")
-  ))
+  stop(
+    "OSM source not available.\n",
+    "  Python GPKG not found : ", PY_GPKG,  "\n",
+    "  PBF not found or failed: ", PBF_FILE, "\n",
+    "  Run Phase_2.py first to produce the Python GPKG."
+  )
 }
 
 osm_golf_sf <- st_make_valid(osm_golf_sf)

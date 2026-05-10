@@ -75,6 +75,44 @@ Full read of all ~2,280 lines across `compute_grand_means()` and seven `run_X_()
 
 All other structural requirements passed: `this.path::this.dir()` path resolution correct throughout, Rubin's Rules independent per language (M=100 each) in all pooling functions, Grand Mean used for all choropleth values, `rm()`/`gc()` inside every sequential dataset-loading loop, furrr parallel loops use pipeline pattern (no intermediate variables), only R_-prefixed CSVs read (Py_/Jl_ reads in master's tri-language aggregation context are correctly authorized), ObservedOnly variants present for Scripts 1, 2, 7, 9, Script 8 shows Py/R/Jl side-by-side, no `log(acreage)` anywhere, `[METHODOLOGY]` flags on all `st_read`/`st_transform`/`st_join`/pooling blocks, all constants in ALL_CAPS in Section 2.
 
+**Phase_6.R — Spot-Check May 9, 2026 (Checklist Part 6A)**  
+Targeted re-verification of all 9 items fixed or confirmed during Point 27. Zero regressions found.
+
+1. Four-section headers (`# === 1. LIBRARIES ===` through `# === 4. EXECUTION ===`) all present with two blank lines between — confirmed.
+2. `compute_grand_means()` and all seven `run_X_()` functions reside in the file-level Section 3 — confirmed.
+3. `grand_means <- compute_grand_means()` is at line 2274, inside the top-level `# === 4. EXECUTION ===` block — confirmed (not between function definitions).
+4. `plan(sequential)` is at line 2275, immediately after the grand_means assignment — confirmed.
+5. Script 1 Step 5 coverage calculation references `grand_means$state$GrandMean$pooled_opp_cost` (line 377) — confirmed, stale loop variable fix held.
+6. Script 2 Step 5 coverage calculation references `grand_means$county$GrandMean$pooled_opp_cost` (line 620) — confirmed, stale loop variable fix held.
+7. `# [METHODOLOGY]` tag on `pool_oahu_oc()` Rubin's q_bar block (line 1663) — confirmed.
+8. No `log(acreage)` string anywhere — grep confirmed.
+9. All `library()` calls in Section 1 only (lines 17–29) — grep confirmed, none elsewhere.
+
+Bonus closure: Script 9 `POLYGONS_GPKG` (line 1586) resolves to `Phase 5 The Hawaii Micro-Case Study/Data/R/Target_Golf_Polygons.gpkg`, matching Phase 5 R write target exactly. Phase 5 → Phase 6 Script 9 handoff confirmed intact (closes open 5D item).
+
+**Phase_6.jl — Spot-Check May 9, 2026 (Checklist Part 6B)**  
+Targeted re-verification of all 6 items fixed during Point 26. Zero regressions found.
+
+1. `"python"` (lowercase) confirmed at all 7 fixed path-string locations: Mod_5 line 143 (lang tuple dir_name), Mod_6 line 264 (Phase 4 py reg path), Mod_10 lines 306 and 322 (Phase 4 reg + Phase 3 MICE dir), Mod_11 line 639 (Phase 3 dir), Mod_12 line 970 (Phase 3 dir), Mod_13 line 1241 (Phase 3 dir). Mod_14 correct as before (lines 1506, 1677).
+2. No `# [METHODOLOGY] Spatial read` comment above any `CSV.read()` call — grep confirmed (both Mod_11 ~1151 and Mod_12 ~1428 removals held).
+3. `function main() ... end` present in all 7 modules (Mod_5 through Mod_14) and in the top-level dispatcher block. `main()` call confirmed at file line 1844.
+4. No `Plasma.jl` reference anywhere — grep confirmed.
+5. No `log(acreage)` string anywhere — grep confirmed.
+6. No M=300 single-pool anywhere — grep confirmed. All Rubin's Rules blocks pool independently at M=100 per language.
+
+Minor observation: file-level comment header (line 7) reads `Data/Python/` (capital P) while the actual runtime path uses `"python"` (lowercase). Comment-only discrepancy; no runtime impact.
+
+**Phase 6 Integration Check — May 9, 2026 (Checklist Part 6C)**  
+Cross-script integration audit: path routing, filename convention, output directory structure, and cross-language reads. 1 fix, 4 observations.
+
+1. **PASS — `compute_grand_means()` tri-language path routing** (Phase_6.R lines 55, 85, 112): `PHASE3_DIR` (R), `PHASE3_PY_DIR` (python), `PHASE3_JL_DIR` (Julia) all constructed via `file.path(WORK_DIR, ...)`. All three language directories read correctly. No hardcoded absolute paths.
+2. **OBS — Phase_6.jl reads from all three language directories by design**: Checklist item was overstated. Mod_11 (Lorenz, lines 1188/1194), Mod_13 (Counterfactual, lines 1454/1457), Mod_14 (Scatter, lines 1677–1678), and Mod_9 (Oahu OC, lines 878/894) all read from Py and R directories. All qualify as tri-language diagnostic visualization functions under the CLAUDE.md exception clause. Each language is processed independently; no cross-language statistical pooling occurs.
+3. **OBS — $0.944T plausibility unverifiable without execution**: Output directories are empty (scripts not yet run). Per 4D tracker, $0.944T is the Phase 3 MICE national aggregate (acreage × FHFA), computed by `compute_grand_means()`, not a Phase 4 regression coefficient. Checklist phrasing was imprecise.
+4. **OBS — Script 9 no per-language QA maps; Script 15 no ObservedOnly**: Script 9 (`run_9_Oahu_Opportunity_Cost_Map()`) produces only `9.141_GrandMean` and `9.101_ObservedOnly` — no `9.111_Julia`, `9.121_Python`, `9.131_R` QA variants. Script 15 produces two GrandMean maps (log + dollar) only — no ObservedOnly is possible without a separate observed-only regression pass.
+5. **PASS — No filename conflicts**: Phase_6.R holds prefixes 1–4, 7, 9, 15; Phase_6.jl holds 5–6, 10–14. Sets are disjoint; no collision risk.
+6. **FIX — `11_Lorenz_Curve_TriLanguage.png` violated 1.234 convention** (Phase_6.jl lines 19 and 979): renamed to `11.141_Lorenz_Curve_TriLanguage.png` in both the header comment and the `OUT_LORENZ` constant. All other Phase_6.jl output names follow the convention.
+7. **OBS — Phase_6.jl header comment stale**: Line 4 says "scripts 5, 6, and 10" but file handles Mod_5 through Mod_14 (scripts 5, 6, 10–14). Output file list (lines 11–19) omitted `12.141_`, `13.141_`, `14.141_` outputs. Comment-only; no runtime impact. Output file index in this document corrected to match actual script output names.
+
 ---
 
 ### Master Scripts (Completed & Refactored)
@@ -314,39 +352,48 @@ Both `Phase_6.R` and `Phase_6.jl` render their final consolidated outputs into t
 ```text
 output/
 ├── Final_Thesis_Figures/
-│   ├── 1.101_National_Opportunity_Cost_Map_ObservedOnly.png
-│   ├── 1.141_National_Opportunity_Cost_Map_GrandMean.png
-│   ├── 2.101_County_Opportunity_Cost_Map_ObservedOnly.png
-│   ├── 2.141_County_Opportunity_Cost_Map_GrandMean.png
-│   ├── 3.101_Oahu_TMK_Concentration_Map.png
-│   ├── 4.101_Oahu_Golf_Zoning_Map.png
-│   ├── 5.141_Forest_Plot_Combined.png
-│   ├── 5.241_MICE_Density_Combined.png
-│   ├── 6.141_Marginal_Effects_Dollar_Value_Combined.png
-│   ├── 6.241_MICE_Raincloud_Diagnostic_Combined.png
-│   ├── 7.101_Bivariate_Cost_vs_Density_Map_ObservedOnly.png
-│   ├── 7.141_Bivariate_Cost_vs_Density_Map_GrandMean.png
-│   ├── 8.141_Table1_Acreage.tex
-│   ├── 8.241_Table2_Regression.tex
-│   ├── 8.301_Table3_Hawaii_Geo.tex
-│   ├── 9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png
-│   ├── 10.141_Hawaii_Gap_Dumbbell.png
-│   ├── 11.141_Lorenz_Curve.png
-│   ├── 12.141_Zoning_Waffle_Chart.png
-│   ├── 13.141_Counterfactual_Area.png
-│   ├── 14.141_Urban_Rural_Scatter.png
-│   ├── 15.141_Residual_Map_Log.png
-│   └── 15.241_Residual_Map_Dollar.png
+│   ├── 1.101_National_Opportunity_Cost_Map_ObservedOnly.png        [Phase_6.R Script 1]
+│   ├── 1.141_National_Opportunity_Cost_Map_GrandMean.png           [Phase_6.R Script 1]
+│   ├── 2.101_County_Opportunity_Cost_Map_ObservedOnly.png          [Phase_6.R Script 2]
+│   ├── 2.141_County_Opportunity_Cost_Map_GrandMean.png             [Phase_6.R Script 2]
+│   ├── 3.101_Oahu_TMK_Concentration_Map.png                        [Phase_6.R Script 3]
+│   ├── 4.101_Oahu_Golf_Zoning_Map.png                              [Phase_6.R Script 4]
+│   ├── 5.141_Forest_Plot_Combined.png                              [Phase_6.jl Mod_5]
+│   ├── 5.241_MICE_Density_Combined_n020.png                        [Phase_6.jl Mod_5]
+│   ├── 5.242_MICE_Density_Combined_n040.png                        [Phase_6.jl Mod_5]
+│   ├── 5.243_MICE_Density_Combined_n060.png                        [Phase_6.jl Mod_5]
+│   ├── 5.244_MICE_Density_Combined_n080.png                        [Phase_6.jl Mod_5]
+│   ├── 5.245_MICE_Density_Combined_n100.png                        [Phase_6.jl Mod_5]
+│   ├── 6.141_Marginal_Effects_Dollar_Value_Combined.png            [Phase_6.jl Mod_6]
+│   ├── 6.241_MICE_Raincloud_Diagnostic_Combined.png                [Phase_6.jl Mod_6]
+│   ├── 7.101_Bivariate_Cost_vs_Density_Map_ObservedOnly.png        [Phase_6.R Script 7]
+│   ├── 7.141_Bivariate_Cost_vs_Density_Map_GrandMean.png           [Phase_6.R Script 7]
+│   ├── 8.141_Table1_Acreage.tex                                    [Phase_6.R Script 8]
+│   ├── 8.241_Table2_Regression.tex                                 [Phase_6.R Script 8]
+│   ├── 8.301_Table3_Hawaii_Geo.tex                                 [Phase_6.R Script 8]
+│   ├── 9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png            [Phase_6.R Script 9]
+│   ├── 9.141_Oahu_Opportunity_Cost_Map_GrandMean.png               [Phase_6.R Script 9]
+│   ├── 10.141_Hawaii_Gap_Dumbbell_TriLanguage.png                  [Phase_6.jl Mod_10]
+│   ├── 11.141_Lorenz_Curve_TriLanguage.png                         [Phase_6.jl Mod_11]
+│   ├── 12.141_Zoning_Waffle_Chart_TriLanguage.png                  [Phase_6.jl Mod_12]
+│   ├── 13.141_Counterfactual_Area_TriLanguage.png                  [Phase_6.jl Mod_13]
+│   ├── 14.141_Urban_Rural_Scatter_TriLanguage.png                  [Phase_6.jl Mod_14]
+│   ├── 15.141_Log_Residual_Map_GrandMean.png                       [Phase_6.R Script 15]
+│   └── 15.241_Dollar_Residual_Map_GrandMean.png                    [Phase_6.R Script 15]
 │
 └── QA_Verification/
-    ├── 1.111_National_Opportunity_Cost_Map_Julia.png
-    ├── 1.121_National_Opportunity_Cost_Map_Python.png
-    ├── 1.131_National_Opportunity_Cost_Map_R.png
-    ├── 2.111_County_Opportunity_Cost_Map_Julia.png
-    ├── 2.121_County_Opportunity_Cost_Map_Python.png
-    ├── 2.131_County_Opportunity_Cost_Map_R.png
-    ├── 7.111_Bivariate_Cost_vs_Density_Map_Julia.png
-    ├── 7.121_Bivariate_Cost_vs_Density_Map_Python.png
-    ├── 7.131_Bivariate_Cost_vs_Density_Map_R.png
-    └── 9.131_Oahu_Opportunity_Cost_Map_R.png
+    ├── 1.111_National_Opportunity_Cost_Map_Julia.png               [Phase_6.R Script 1]
+    ├── 1.121_National_Opportunity_Cost_Map_Python.png              [Phase_6.R Script 1]
+    ├── 1.131_National_Opportunity_Cost_Map_R.png                   [Phase_6.R Script 1]
+    ├── 2.111_County_Opportunity_Cost_Map_Julia.png                 [Phase_6.R Script 2]
+    ├── 2.121_County_Opportunity_Cost_Map_Python.png                [Phase_6.R Script 2]
+    ├── 2.131_County_Opportunity_Cost_Map_R.png                     [Phase_6.R Script 2]
+    ├── 5.211_MICE_Density_Jl_n020.png  …  5.215_MICE_Density_Jl_n100.png  (5 files)  [Phase_6.jl Mod_5]
+    ├── 5.221_MICE_Density_Py_n020.png  …  5.225_MICE_Density_Py_n100.png  (5 files)  [Phase_6.jl Mod_5]
+    ├── 5.231_MICE_Density_R_n020.png   …  5.235_MICE_Density_R_n100.png   (5 files)  [Phase_6.jl Mod_5]
+    ├── 7.111_Bivariate_Cost_vs_Density_Map_Julia.png               [Phase_6.R Script 7]
+    ├── 7.121_Bivariate_Cost_vs_Density_Map_Python.png              [Phase_6.R Script 7]
+    └── 7.131_Bivariate_Cost_vs_Density_Map_R.png                   [Phase_6.R Script 7]
 ```
+
+> **Note (6C audit):** Script 9 (Oahu OC Map) produces only GrandMean + ObservedOnly in `Final_Thesis_Figures/` — no per-language QA maps. Script 15 (Residual Maps) produces GrandMean only — no ObservedOnly variant by design (residuals require a fitted model).
