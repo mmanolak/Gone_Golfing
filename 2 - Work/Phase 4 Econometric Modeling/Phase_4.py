@@ -7,6 +7,7 @@
 
 # === 1. LIBRARIES ===
 
+import gc
 import pathlib
 import pickle
 import numpy as np
@@ -115,6 +116,9 @@ def main():
             f"       Done — R²={result.rsquared:.4f}, N={int(result.nobs):,}, "
             f"df_resid={int(result.df_resid):,}"
         )
+
+        del acreage_df, model, result
+        gc.collect()
 
     with open(PKL_PATH, "wb") as f:
         pickle.dump(model_results, f)

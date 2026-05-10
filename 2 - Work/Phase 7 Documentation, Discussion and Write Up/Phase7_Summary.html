@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.9.37">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>phase7_summary</title>
+<style>
+/* Default styles provided by pandoc.
+** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+*/
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="Phase7_Summary_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Phase7_Summary_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="Phase7_Summary_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="Phase7_Summary_files/libs/quarto-html/popper.min.js"></script>
+<script src="Phase7_Summary_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Phase7_Summary_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Phase7_Summary_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Phase7_Summary_files/libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Phase7_Summary_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Phase7_Summary_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Phase7_Summary_files/libs/bootstrap/bootstrap-efbb37e9afcc02144ebbc7afd12a776f.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="phase-7-cross-phase-synthesis" class="level1">
+<h1>Phase 7 — Cross-Phase Synthesis</h1>
+<p>Phase 7 is the meta-phase: it does not run new analyses or produce new outputs. Instead, it captures the arc that ties Phases 1 through 6 into a single coherent research project, and frames the work for readers landing on this repository for the first time.</p>
+<p>The thesis answers two coupled questions. The first is <strong>macroeconomic</strong>: what is the aggregate financial opportunity cost of U.S. golf courses when each course is valued at its Highest and Best Use (HBU) counterfactual instead of its current recreational use? The second is <strong>methodological</strong>: when that national-scale HBU model is validated against parcel-level municipal records in a single high-value coastal county, does the model’s estimate hold up, and what share of the modeled opportunity cost is actually unlockable under current zoning law? The answer to the first is approximately <strong>$944 billion</strong>, with an observed-only floor of <strong>$788 billion</strong>. The answer to the second is that the model exceeds municipal tax assessments by a factor of approximately <strong>1.33×</strong> in the Hawaii pilot, and that <strong>81.7% of Oahu’s golf footprint sits in Preservation or Federal/Military zones</strong> where redevelopment is currently statutorily prohibited.</p>
+<p>These two answers are the load-bearing findings of the thesis. Everything between them is a pipeline that produces them defensibly.</p>
+<section id="the-arc-across-the-six-computational-phases" class="level2">
+<h2 class="anchored" data-anchor-id="the-arc-across-the-six-computational-phases">The arc across the six computational phases</h2>
+<p><strong>Phase 1</strong> ingests a raw CSV of 16,297 U.S. golf courses with GPS coordinates and produces a per-course <code>Baseline_Value_Per_Acre</code> by spatially joining each course to its U.S. county and merging in two economic proxies — the FHFA Residential Land Price index for urban counties (RUCC 1–3) and the USDA Agricultural Land Value for rural counties (RUCC 4–9). This dual-proxy approach is the methodological foundation of the entire project: it is what allows the same HBU framework to apply to a Manhattan urban course and a rural Iowa course without nationally over- or under-stating opportunity cost.</p>
+<p><strong>Phase 2</strong> measures each course’s physical footprint by extracting golf course boundary polygons from an 11 GB OpenStreetMap PBF file and spatially matching them to the Phase 1 course list. A two-pass spatial join (direct intersect, then nearest-neighbor with a 500-meter cap) recovers acreage for 71.2% of the courses, leaving 28.8% flagged as imputation targets.</p>
+<p><strong>Phase 3</strong> closes the missing-data gap. Multiple Imputation by Chained Equations (MICE) with a Random Forest backend, run independently in three languages with <span class="math inline">\(M = 100\)</span> imputations per language and pooled via Rubin’s Rules, produces the headline national aggregate of approximately $944 billion. The cross-language spread of 1.6% on a $940B base, with overlapping 95% confidence intervals across all three implementations, is the robustness check that justifies trusting the figure.</p>
+<p><strong>Phase 4</strong> decomposes the per-course opportunity cost into its structural and geographic determinants via a logarithmic OLS regression with HC1 robust standard errors, fit on each of the 100 imputed datasets per language and pooled via Rubin’s Rules. The two-covariate model (Holes + Urban indicator) produces coefficients that are extraordinarily consistent across the three languages: the urban coefficient is approximately <span class="math inline">\(\beta_2 \approx 4.0\)</span>–<span class="math inline">\(4.2\)</span> in all three, implying that urban courses are valued at approximately 60× rural courses on a per-acre basis.</p>
+<p><strong>Phase 5</strong> is the empirical anchor. The Honolulu County micro-study integrates the national pipeline outputs with parcel-level cadastral, tax-roll, and zoning data published by the City and County of Honolulu, producing the 1.33× model-to-assessed ratio (the gross-vs-current-use anchor) and the 81.7% Preservation/Federal share (the legally-permissible HBU bound). The Phase 5b automated pipeline operates at parcel resolution across 1,072 unique TMK parcels and 33 deduplicated Oahu courses, producing an aggregate Oahu opportunity cost that aligns closely with what the national pipeline predicts for Honolulu County independently.</p>
+<p><strong>Phase 6</strong> transforms the numerical outputs into publication-ready figures, maps, and LaTeX table fragments. R produces the cartographic output (national choropleths, Oahu maps, bivariate maps); Julia produces the statistical charts (forest plot, density diagnostics, Hawaii Gap dumbbell, Preservation Paradox waffle, Lorenz curve) and the LaTeX table fragments that drop directly into the thesis source.</p>
+</section>
+<section id="why-the-design-is-shaped-this-way" class="level2">
+<h2 class="anchored" data-anchor-id="why-the-design-is-shaped-this-way">Why the design is shaped this way</h2>
+<p>Three structural choices distinguish this project from a more typical single-language land-use econometric study, and each is deliberate.</p>
+<p><strong>Tri-language implementation across Phases 1 through 5.</strong> Every step from data ingestion through the Hawaii micro-study is implemented independently in Python, R, and Julia. The point is robustness rather than redundancy: any divergence in aggregate estimates across the three languages signals a pipeline defect rather than a substantive empirical finding, and the cross-language convergence on $943B / $936B / $951B (with overlapping 95% CIs) is what gives the headline figure its defensibility against backend-specific implementation choices in MICE, OLS, or spatial join routines.</p>
+<p><strong>Explicit two-scale design.</strong> The national pipeline establishes breadth across 16,297 courses and 50 states; the Hawaii micro-study establishes depth at parcel resolution within a single county. Neither alone would carry the thesis: a national figure with no parcel-level anchoring would be a theoretical exercise, and a Hawaii-only study would be too small to support a national policy conclusion. The two scales are complementary, with the national pipeline’s geographic resolution validated by the Hawaii pipeline’s parcel-level checks.</p>
+<p><strong>Honest treatment of what the model does and does not measure.</strong> The national-scale figure is the <em>gross HBU counterfactual</em>, not the net opportunity cost. The current-use value <span class="math inline">\(V_{Current}\)</span> is not directly observable in federal land valuation datasets, so the headline figure is an upper bound until empirically anchored against the Hawaii tax-assessment data. Similarly, the unrestricted HBU is bounded by the legally-permissible HBU once zoning is taken into account, and the Preservation Paradox finding establishes that the unrestricted figure substantially overstates the realizable opportunity cost in at least one high-value market. The thesis carries both figures and is explicit about the gap between them.</p>
+</section>
+<section id="what-follows-from-these-findings" class="level2">
+<h2 class="anchored" data-anchor-id="what-follows-from-these-findings">What follows from these findings</h2>
+<p>Three directions for follow-on research are explicit in the thesis. First, the Phase 5b zoning intersection methodology should be replicated in other high-value coastal markets — the Bay Area, Los Angeles, southern Florida, the New York metro — to test whether the Preservation Paradox documented on Oahu generalizes. Second, <span class="math inline">\(V_{Current}\)</span> should be measured directly using transaction data from the National Golf Foundation or income-capitalization methods, refining the 1.33× Hawaii anchor into a market-specific net opportunity cost. Third, a renewable energy counterfactual (<span class="math inline">\(V_{Renewable}\)</span>) should be integrated formally into the HBU framework as a third candidate use, particularly relevant in arid urban environments where the ecological cost of maintaining turf is high.</p>
+<p>The dataset, the pipeline, and the validation logic are all structured to support these extensions without re-architecting the project.</p>
+</section>
+<section id="disclosure-of-generative-ai-tool-use" class="level2">
+<h2 class="anchored" data-anchor-id="disclosure-of-generative-ai-tool-use">Disclosure of generative AI tool use</h2>
+<p>For academic transparency, the following large language models contributed to this project at various points in its development. The models are organized into web-hosted agents (where queries traverse a third-party cloud provider) and locally-hosted agents (where inference runs on my own hardware), reflecting the different confidentiality and reproducibility implications of each.</p>
+<section id="web-hosted-agents" class="level3">
+<h3 class="anchored" data-anchor-id="web-hosted-agents">Web-hosted agents</h3>
+<ul>
+<li><strong>Claude Opus 4.7</strong> — Anthropic — accessed via the Claude web app on a Windows 11 PC. Used as a writing aid, redundancy checker, and structural reviewer; ideas and draft passages were exchanged with the model to surface critical flaws or productive next directions.</li>
+<li><strong>Claude Sonnet 4.6</strong> — Anthropic — accessed via the Claude web app on a Windows 11 PC. Used for code verification and bug-fixing across the Python, R, and Julia pipelines.</li>
+<li><strong>Gemini 2.5 Pro</strong> — Google — accessed via Google AI Studio web app on a Windows 11 PC. Used as a research-management assistant, primarily to track sources, document why each was used, and maintain a working index of the project’s reference material.</li>
+<li><strong>Gemini 3.1 Pro</strong> — Google — accessed via Google AI Studio web app on a Windows 11 PC. Used as a writing aid, redundancy checker, and structural reviewer; complementary to Claude Opus 4.7 to provide a second model’s perspective on draft passages and analytical decisions.</li>
+</ul>
+</section>
+<section id="locally-hosted-agents" class="level3">
+<h3 class="anchored" data-anchor-id="locally-hosted-agents">Locally-hosted agents</h3>
+<p>All locally-hosted models run on the FishTex Nimo PC system specified below, with inference handled by <code>llama.cpp</code> (Vulkan, ROCm, and CUDA backends) under Fedora 43 Server.</p>
+<ul>
+<li><a href="https://huggingface.co/unsloth/Kimi-Dev-72B-gguf"><strong>Kimi-Dev-72B (Q8_K_XL)</strong></a> — Moonshot AI, with quantization by unsloth. Used for code writing, scaffolding new functions, validation, and error correction.</li>
+<li><a href="https://huggingface.co/unsloth/Qwen3-Coder-Next-gguf"><strong>Qwen3-Coder-Next (UD Q8_K_XL)</strong></a> — Alibaba, with quantization by unsloth. Used for code writing, scaffolding, validation, and error correction; complementary to Kimi-Dev-72B as a second-opinion code generator.</li>
+<li><a href="https://huggingface.co/bartowski/kldzj_gpt-oss-120b-heretic-GGUF"><strong>GPT-OSS-120B Heretic (Q8_0)</strong></a> — OpenAI base <strong>weights</strong> with kldzj fine-tune, distributed via Bartowski. Used as a fully private personal assistant for thought processing and information tracking — the locally-hosted counterpart to the web-hosted Gemini 2.5 Pro role.</li>
+<li><a href="https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF"><strong>Qwen2.5-Coder-1.5B-Instruct (Q8_0)</strong></a> — Alibaba, with quantization by Bartowski. Used for in-editor text prediction and ghost-text autocomplete as a Copilot replacement; runs on the 3060ti via the Thunderbolt 4 eGPU dock for low-latency response.</li>
+<li><a href="https://huggingface.co/ibm-granite/granite-4.0-h-tiny-GGUF"><strong>Granite-4.0-H-Tiny (Q5_K_M)</strong></a> — IBM Research. Used for in-editor text prediction and ghost-text autocomplete as a Copilot replacement; complementary to Qwen2.5-Coder-1.5B and likewise runs on the 3060ti via the Thunderbolt 4 eGPU dock.</li>
+</ul>
+</section>
+<section id="hardware" class="level3">
+<h3 class="anchored" data-anchor-id="hardware">Hardware</h3>
+<p><strong>FishTex</strong> — <a href="https://www.nimopc.com/products/nimo-ai-mini-pc-amd-ryzen-ai-max-395-128gb-ram?variant=47848771846395">Nimo PC AMD Ryzen AI Max 395 system</a>; 128 GB LPDDR5 RAM at 8000 MHz; 2 × 2 TB NVMe SSDs (WD Black for OS, Crucial P3 for <code>.gguf</code> model storage); Fedora 43 Server; <code>llama.cpp</code> with Vulkan, ROCm, and CUDA backends; supporting software including Docker, OpenWebUI, and SSH; a Gigabyte 3060ti Vision 8 GB GPU connected via Thunderbolt 4 to a Razer Core X eGPU dock for the small autocomplete models.</p>
+<p>The remaining three machines below are my general work environments; they were used for thesis writing, code editing, and analytical work but did not host any local LLM inference.</p>
+<p><strong>PadTex</strong> — Lenovo P52; Xeon E2176M; 56 GB SODIMM DDR4 (3 × 16 GB + 8 GB); 500 GB Samsung MZVLB512HAJQ + Sabrent Rocket 4.0 2 TB; Quadro P2000; Intel AX210 Wi-Fi; Windows 11 25H2 with AtlasOS modifications.</p>
+<p><strong>ThinkTex</strong> — Lenovo L15; AMD Ryzen 5 PRO 4650U; 24 GB SODIMM DDR4 (16 GB + 8 GB); 512 GB Kioxia XG6 KXG60ZNV512G; Windows 11 25H2 with AtlasOS modifications.</p>
+<p><strong>MikTex</strong> — Custom tower PC; AMD Ryzen 9 3900XT; Gigabyte B550M Aorus Elite (Rev.&nbsp;1.3); DarkRock D360 liquid cooler; Lian Li A3 case; Montech Centru II 1050 W PSU; Quadro P2000 5 GB; 64 GB G.Skill Ripjaws V DDR4 (2 × 32 GB at 3600 MHz CL18); 1 TB Sabrent Rocket 4.0.</p>
+<p>The majority of the data processing and code authorship was conducted on <strong>MikTex</strong>, with lighter analytical work performed on <strong>PadTex</strong> as a portable alternative. <strong>ThinkTex</strong> served primarily as a portable client to SSH into the FishTex or MikTex systems for remote work.</p>
+</section>
+<section id="statement-of-authorial-responsibility" class="level3">
+<h3 class="anchored" data-anchor-id="statement-of-authorial-responsibility">Statement of authorial responsibility</h3>
+<p>Final responsibility for all analytical decisions, data interpretation, empirical claims, and prose authorship rests with me. The use of these tools is disclosed here in keeping with emerging academic norms around AI assistance. Citation formats for individual model contributions will be finalized in alignment with the requirements of the eventual publication venue.</p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -187,6 +187,10 @@ def match_osm_to_courses(osm_golf_geo):
     # 4. De-duplicate (a point inside overlapping polygons creates dupes)
     courses_geo = courses_geo[~courses_geo.index.duplicated(keep="first")]
 
+    courses_geo["acreage_source"] = courses_geo["osm_acreage"].apply(
+        lambda x: "MICE_Target" if pd.isna(x) else "OSM"
+    )
+
     # 5. Final counts
     total     = len(courses_geo)
     has_acre  = courses_geo["osm_acreage"].notna().sum()

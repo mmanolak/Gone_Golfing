@@ -145,6 +145,8 @@ for (i in seq_along(IMPUTED_PATHS)) {
     summ_robust         <- coeftest(model, vcov. = vcov_hc1)
     first_model_summary <- capture.output(print(summ_robust))
   }
+
+  rm(acreage_df, model, vcov_hc1); gc()
 }
 
 saveRDS(model_results, file = MODEL_RDS)

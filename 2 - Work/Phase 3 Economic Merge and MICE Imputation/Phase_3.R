@@ -163,6 +163,7 @@ for (i in 1:M) {
   within_vars[i] <- var(df$Total_Opportunity_Cost, na.rm = TRUE)
 
   cat(sprintf("  Dataset %d:  $%10.3f B\n", i, aggregates[i] / 1e9))
+  rm(df); gc()
 }
 
 # [METHODOLOGY] Rubin's Rules pooling — q_bar is the pooled national estimate;
@@ -241,8 +242,11 @@ for (i in seq_len(M)) {
     format(round(filter(acreage_by_type[[i]], county_type == "Urban")$acreage[1]), big.mark = ","),
     format(round(filter(acreage_by_type[[i]], county_type == "Rural")$acreage[1]), big.mark = ",")
   ))
+  rm(df_ac); gc()
 }
 
+# [METHODOLOGY] Rubin's Rules (acreage) — between-imputation variance only;
+#               within-variance is zero for a spatially fixed attribute
 nat_pool_ac   <- pool_acreage(acreage_totals)
 all_by_type_ac <- bind_rows(acreage_by_type)
 type_pool_ac  <- all_by_type_ac |>

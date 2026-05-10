@@ -87,10 +87,13 @@ cat(sprintf("  Output Dir : %s\n", OUTPUT_DIR))
 
 cat("\n--- Step 1: Geographic Boundary Extraction & Error Analysis ---\n")
 cat("  Loading datasets...\n")
+if (!file.exists(PHASE1_IN)) stop(paste("Input file not found:", PHASE1_IN))
 baseline_df <- read_csv(PHASE1_IN, show_col_types = FALSE)
 # [METHODOLOGY] st_read — spatial read of Phase 2 OSM golf polygons
+if (!file.exists(OSM_IN)) stop(paste("Input file not found:", OSM_IN))
 osm_golf_sf <- st_read(OSM_IN, quiet = TRUE)
 # [METHODOLOGY] st_read — spatial read of Honolulu cadastral parcel layer
+if (!file.exists(PARCELS_GPKG)) stop(paste("Input file not found:", PARCELS_GPKG))
 parcels_sf  <- st_read(PARCELS_GPKG, quiet = TRUE)
 
 cat("  Downloading Oahu boundary (Tigris)...\n")
@@ -180,6 +183,13 @@ cat(sprintf(
 
 cat("\n--- Step 3: Economic Validation & Spatial Deduplication ---\n")
 cat("  Loading Phase 3 imputed datasets...\n")
+missing_imputed <- IMPUTED_PATHS[!file.exists(IMPUTED_PATHS)]
+if (length(missing_imputed) > 0) {
+    stop(sprintf(
+        "[FATAL] %d imputed dataset(s) not found. Run Phase_3.R first.\n  First missing: %s",
+        length(missing_imputed), missing_imputed[1]
+    ))
+}
 oahu_estimates <- vector("list", M)
 
 for (i in seq_len(M)) {
@@ -193,6 +203,7 @@ for (i in seq_len(M)) {
             Total_Opportunity_Cost = final_acreage * Baseline_Value_Per_Acre,
             imputation = i
         )
+    rm(df_i); gc()
 }
 oahu_all <- bind_rows(oahu_estimates)
 
@@ -287,6 +298,7 @@ write_csv(comparison_df, COMPARISON_OUT)
 
 cat("\n--- Step 4: Geographic Concentration & Fragmentation Analysis ---\n")
 cat("  Loading Honolulu Cadastral CSV...\n")
+if (!file.exists(PARCELS_CSV)) stop(paste("Input file not found:", PARCELS_CSV))
 tax_data <- read_csv(PARCELS_CSV, show_col_types = FALSE)
 
 tmk_df$TMK_clean   <- str_remove_all(as.character(tmk_df$TMK), "[^0-9]")
@@ -362,6 +374,7 @@ if (!file.exists(ZONING_GPKG)) {
     stop(sprintf("[FATAL] Zoning layer not found:\n  %s", ZONING_GPKG))
 }
 
+# [METHODOLOGY] st_read — spatial read of Honolulu zoning layer
 zoning_sf <- st_read(ZONING_GPKG, quiet = TRUE)
 cat(sprintf("  Loaded zoning layer: %d features\n", nrow(zoning_sf)))
 

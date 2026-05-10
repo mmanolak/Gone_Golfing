@@ -2,11 +2,11 @@
 #          Rules pooling to produce a national land-value estimate with 95% CI.
 # Inputs:  Phase 2 Spatial Polygons and True Acreage/Data/Julia/
 #            Jl_Phase2_Acreage_Matched.csv
-# Outputs: Data/Julia/Jl_Imputed_Dataset_{1..30}.csv
+# Outputs: Data/Julia/Jl_Imputed_Dataset_{1..100}.csv
 #          Data/Julia/Jl_Rubins_Rules_Summary.csv
 #          Data/Julia/Jl_National_Acreage_Summary.csv
 #
-# Rubin's Rules formula summary (m = 30 imputations):
+# Rubin's Rules formula summary (m = 100 imputations):
 #   q_bar = mean(Q_i)           -- pooled point estimate
 #   v_w   = mean(Var_i)         -- within-imputation variance
 #   v_b   = var(Q_i, ddof=1)    -- between-imputation variance
@@ -32,8 +32,6 @@ const INPUT_CSV  = joinpath(
 const OUT_DIR = joinpath(SCRIPT_DIR, "Data", "Julia")
 const OUT_CSV         = joinpath(OUT_DIR, "Jl_Rubins_Rules_Summary.csv")
 const OUT_ACREAGE_CSV = joinpath(OUT_DIR, "Jl_National_Acreage_Summary.csv")
-# For testing purposes, run M=5, increase to 30 to see if it can be done on your
-# hardware, and 100 as a goal mark.
 const M             = 100
 const IMPUTE_COLS   = [:osm_acreage, :Baseline_Value_Per_Acre]
 const PREDICTOR_COLS = [:Holes, :Course_Type, :county_type, :Longitude, :Latitude]
@@ -133,6 +131,7 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
         push!(aggregates,  q_i)
         push!(within_vars, var_i)
 
+        df = nothing; GC.gc()
         @printf("  Dataset %d:  \$%10.3f B\n", i, q_i / 1e9)
     end
 
@@ -225,6 +224,7 @@ function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 
         type_sums.imputation = fill(i, nrow(type_sums))
         by_type_list[i] = type_sums
 
+        df = nothing; GC.gc()
         urban_acres = only(filter(r -> isequal(r.county_type, "Urban"), type_sums).acreage)
         rural_acres = only(filter(r -> isequal(r.county_type, "Rural"), type_sums).acreage)
         @printf("  Dataset %d:  %s acres  (%s Urban / %s Rural)\n",
@@ -233,6 +233,8 @@ function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 
 
     println("\n--- 2  Pooling across imputations ---\n")
 
+    # [METHODOLOGY] Rubin's Rules (acreage) — between-imputation variance only;
+    #               within-variance is zero for a spatially fixed attribute
     nat_pool    = pool_acreage(national_totals)
     all_by_type = vcat(by_type_list...)
     type_groups = groupby(all_by_type, :county_type)

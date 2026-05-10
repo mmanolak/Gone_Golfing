@@ -7,14 +7,9 @@
 
 # === 1. LIBRARIES ===
 
-using Pkg
-Pkg.add(["DataFrames", "CSV", "GLM", "CovarianceMatrices",
-         "Serialization", "Distributions"])  # [OUTSTANDING ISSUE] runs on every execution — remove once packages installed
-
 using DataFrames
 using CSV
 using GLM
-using CovarianceMatrices
 using Serialization
 using Statistics
 using LinearAlgebra
@@ -154,6 +149,10 @@ function main()
             show(io, MIME("text/plain"), coeftable(model))
             first_model_summary = String(take!(io))
         end
+
+        acreage_df = nothing
+        model = nothing
+        GC.gc()
     end
 
     serialize(JLS_PATH, model_results)

@@ -16,7 +16,7 @@ using Printf
 #          output/Final_Thesis_Figures/6.141_Marginal_Effects_Dollar_Value_Combined.png
 #          output/Final_Thesis_Figures/6.241_MICE_Raincloud_Diagnostic_Combined.png
 #          output/Final_Thesis_Figures/10.141_Hawaii_Gap_Dumbbell_TriLanguage.png
-#          output/Final_Thesis_Figures/11_Lorenz_Curve_TriLanguage.png
+#          output/Final_Thesis_Figures/11.141_Lorenz_Curve_TriLanguage.png
 #
 #          for running the script:
 #          julia --threads=auto .\Phase_6.jl
@@ -976,7 +976,7 @@ const M             = 100
 const GRID_N        = 1001          # Common x-grid for CI interpolation: 0.000, 0.001, …, 1.000
 const OUTPUT_DIR    = joinpath(SCRIPT_DIR, "output")
 const THESIS_DIR    = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
-const OUT_LORENZ    = joinpath(THESIS_DIR, "11_Lorenz_Curve_TriLanguage.png")
+const OUT_LORENZ    = joinpath(THESIS_DIR, "11.141_Lorenz_Curve_TriLanguage.png")
 
 const COL_PY = :green
 const COL_R  = :blue
