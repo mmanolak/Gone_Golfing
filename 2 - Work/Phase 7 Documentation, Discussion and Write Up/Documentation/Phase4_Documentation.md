@@ -1,8 +1,7 @@
 ---
 title: "Phase 4 Summary: Econometric Modeling"
 author: "Michael"
-date: "May 1, 2026"
-format: 
+format:
   pdf:
     toc: true
     number-sections: true

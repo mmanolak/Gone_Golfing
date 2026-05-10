@@ -1,8 +1,7 @@
 ---
 title: "Phase 6 Summary: Visualization"
 author: "Michael"
-date: "May 8, 2026"
-format: 
+format:
   pdf:
     toc: true
     number-sections: true

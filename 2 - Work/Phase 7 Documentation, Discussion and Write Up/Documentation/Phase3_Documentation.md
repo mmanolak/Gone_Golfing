@@ -1,7 +1,6 @@
 ---
 title: "Phase 3 Summary: MICE Imputation & Rubin's Rules Valuation"
 author: "Michael"
-date: "May 1, 2026"
 format:
   pdf:
     toc: true

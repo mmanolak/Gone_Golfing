@@ -1,15 +1,14 @@
 ---
 title: "Phase 2 Summary: OSM Polygon Extraction & Acreage Matching"
 author: "Michael"
-date: "April 27, 2026"
-format: 
+format:
   pdf:
     toc: true
     number-sections: true
     colorlinks: true
 ---
 
-**Date updated:** 
+**Date updated:**
 **Working directory:** `2 - Work/Phase 2 Spatial Polygons & True Acreage/`
 **Source data policy:** The 11 GB PBF file is read from `00 - Data Sources/Original Data - Backup/`
 

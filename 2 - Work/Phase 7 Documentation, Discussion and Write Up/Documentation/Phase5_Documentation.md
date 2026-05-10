@@ -1,8 +1,7 @@
 ---
 title: "Phase 5 Summary: Hawaii Micro-Case Study"
 author: "Michael"
-date: "May 1, 2026"
-format: 
+format:
   pdf:
     toc: true
     number-sections: true
