@@ -1,7 +1,7 @@
 ---
 title: "Phase 1 Summary: Spatial Parsing & Economic Baseline Valuation"
 author: "Michael"
-format: 
+format:
   pdf:
     toc: true
     number-sections: true
@@ -11,6 +11,8 @@ format:
 **Working directory:** `2 - Work/Phase 1 Parsing/`
 
 ---
+
+# "Phase 1 Summary: Spatial Parsing & Economic Baseline Valuation"
 
 ## Overview
 
