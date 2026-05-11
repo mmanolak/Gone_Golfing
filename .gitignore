@@ -38,3 +38,6 @@ Gone Golfing.Rproj
 *.toc
 *.lof
 *.lot
+*.bbl-SAVE-ERROR
+*.gz
+*.xml
