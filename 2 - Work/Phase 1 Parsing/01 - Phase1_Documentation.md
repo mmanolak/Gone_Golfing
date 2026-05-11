@@ -170,7 +170,7 @@ at the margins.
 
 ---
 
-## Code Standardization Pass (2026-04-30)
+## Code Standardization Pass
 
 Scope: formatting and naming consistency only. No logic, formulas, spatial parameters, or filter thresholds were changed.
 
@@ -220,7 +220,7 @@ The original `Phase_1.jl` orchestrated via `include()` + `run_parsing()`/`run_sp
 
 ---
 
-## CLAUDE.md Compliance Review (2026-05-08)
+## CLAUDE.md Compliance Review
 
 Scope: structural and methodological compliance review of all three master scripts against
 CLAUDE.md standards. One fix applied per script; observations noted for awareness.
@@ -248,7 +248,7 @@ consistent across languages.
 
 ---
 
-## Cross-Language Consistency Review (2026-05-08)
+## Cross-Language Consistency Review
 
 Scope: Part 1D of the master review checklist. Compared all three baseline output CSVs
 for schema consistency, formula equivalence, CRS parity, and course count alignment.

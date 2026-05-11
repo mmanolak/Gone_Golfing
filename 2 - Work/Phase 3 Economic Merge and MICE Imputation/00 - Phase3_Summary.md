@@ -12,14 +12,7 @@ All three languages converge on an aggregate national opportunity cost in the **
 
 The diagnostic that between-imputation variance ($V_B$) is two to three orders of magnitude larger than within-imputation variance ($V_W$) confirms the model is well-specified: uncertainty in the aggregate estimate is driven by the genuine ambiguity of the missing values, not by measurement noise within any single completed dataset.
 
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
+\newpage
 
 ## What was solved
 

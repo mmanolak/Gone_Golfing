@@ -400,7 +400,7 @@ and the Phase 3 standardization convention.
 
 ---
 
-## Phase 4C Script Review (2026-05-09)
+## Phase 4C Script Review
 
 **Script reviewed:** `Phase_4.py` (master script, 247 lines pre-fix, 250 lines post-fix)
 
@@ -457,7 +457,7 @@ Phase_3.py Fixes 2–4.
 
 ---
 
-## Phase 4D Cross-Language Consistency Review (2026-05-09)
+## Phase 4D Cross-Language Consistency Review
 
 **Source files read:** `Bulk Tests/R/R_Regression_Results.csv`, `Bulk Tests/Julia/Jl_Regression_Results.csv`, `Bulk Tests/python/Py_Regression_Results.csv`
 

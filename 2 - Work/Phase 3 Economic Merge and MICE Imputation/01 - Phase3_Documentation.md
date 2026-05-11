@@ -512,7 +512,7 @@ CI  = q_bar ± 1.96 × se
 
 ---
 
-## Phase 3A Structural Review — `Phase_3.R` (2026-05-08)
+## Phase 3A Structural Review — `Phase_3.R`
 
 Scope: Part 3A of the master review checklist. Full structural, I/O, MICE
 methodology, and memory compliance review of `Phase_3.R`.
@@ -558,7 +558,7 @@ methodology, and memory compliance review of `Phase_3.R`.
 
 ---
 
-## Phase 3B Structural Review — `Phase_3.jl` (2026-05-08)
+## Phase 3B Structural Review — `Phase_3.jl`
 
 Scope: Part 3B of the master review checklist. Full structural, I/O, MICE
 methodology, and memory compliance review of `Phase_3.jl`.
@@ -598,7 +598,7 @@ methodology, and memory compliance review of `Phase_3.jl`.
 
 ---
 
-## Phase 3C Structural Review — `Phase_3.py` (2026-05-08)
+## Phase 3C Structural Review — `Phase_3.py`
 
 Scope: Part 3C of the master review checklist. Full structural, I/O, MICE
 methodology, and memory compliance review of `Phase_3.py`.
@@ -640,7 +640,7 @@ methodology, and memory compliance review of `Phase_3.py`.
 
 ---
 
-## Phase 3D Cross-Language Consistency Review (2026-05-08)
+## Phase 3D Cross-Language Consistency Review
 
 Scope: Part 3D of the master review checklist. Cross-language consistency check
 comparing `Phase_3.R`, `Phase_3.jl`, and `Phase_3.py` for imputation targeting,

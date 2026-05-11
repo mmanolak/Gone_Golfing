@@ -151,7 +151,7 @@ The acreage gap is now clearly marked with `"MICE_Target"` in the `acreage_sourc
 
 ---
 
-## CLAUDE.md Compliance Review (2026-05-08)
+## CLAUDE.md Compliance Review
 
 Scope: structural and methodological compliance review of `Phase_2.R` and `Phase_2.jl`
 against CLAUDE.md standards.
@@ -203,7 +203,7 @@ One violation found. Fix applied.
 
 ---
 
-## Phase 2 Cross-Language Consistency Review (2026-05-08)
+## Phase 2 Cross-Language Consistency Review
 
 Scope: Part 2D of the master review checklist. Compared all three Phase 2 master scripts
 for `acreage_source` schema consistency, match distance thresholds, MICE-target count
@@ -253,7 +253,7 @@ alignment, output CSV column schemas, and GPKG CRS.
 
 ---
 
-## Code Standardization Pass (2026-04-30)
+## Code Standardization Pass
 
 Scope: formatting and naming consistency only. No logic, formulas, spatial parameters, or filter thresholds were changed.
 
