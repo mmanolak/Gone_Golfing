@@ -1,0 +1,21 @@
+\begin{table}[!h]
+\centering
+\caption{\label{tab:regression_results}MICE-Pooled OLS Regression Results (Rubin's Rules, $M = 100$). Dep.\ var.: $\log(\text{final acreage})$.}
+\centering
+\fontsize{10}{12}\selectfont
+\begin{threeparttable}
+\begin{tabular}[t]{llllllll}
+\toprule
+Parameter & Coef. & Std.\ Error & $t$-stat & $df_{adj}$ & $p$-value & Sig. & FMI\\
+\midrule
+Intercept & 12.225 & 0.042 & 292.182 & 13607.9 & $<$ 0.001 & *** & 0.031\\
+Holes & 0.053 & 0.003 & 20.108 & 15302.8 & $<$ 0.001 & *** & 0.017\\
+Urban County & 4.002 & 0.021 & 186.563 & 6179.4 & $<$ 0.001 & *** & 0.096\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item \textit{Note: } 
+\item Sig. codes: *** $p < 0.001$. FMI = Fraction of Missing Information from MICE imputation. Covariance terms omitted from delta-method prediction CIs.
+\end{tablenotes}
+\end{threeparttable}
+\end{table}

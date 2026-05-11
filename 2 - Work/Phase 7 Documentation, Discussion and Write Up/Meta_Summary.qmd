@@ -1,0 +1,42 @@
+---
+title: "Meta Summary - Gone Golfing"
+subtitle: "The Full Summary Statement for Each Phase"
+author: "Michael Manolakis"
+date: today
+date-format: "[Spring] YYYY"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: margin=1in
+---
+
+\newpage
+
+{{< include "../Phase 1 Parsing/00 - Phase1_Summary.md" >}}
+
+\newpage
+
+{{< include "../Phase 2 Spatial Polygons and True Acreage/00 - Phase2_Summary.md" >}}
+
+\newpage
+
+{{< include "../Phase 3 Economic Merge and MICE Imputation/00 - Phase3_Summary.md" >}}
+
+\newpage
+
+{{< include "../Phase 4 Econometric Modeling/00 - Phase4_Summary.md" >}}
+
+\newpage
+
+{{< include "../Phase 5 The Hawaii Micro-Case Study/00 - Phase5_Summary.md" >}}
+
+\newpage
+
+{{< include "../Phase 6 Visualization/00 - Phase6_Summary.md" >}}
+
+\newpage
+
+{{< include "../Phase 7 Documentation, Discussion and Write Up/other/Phase7_Summary.md" >}}

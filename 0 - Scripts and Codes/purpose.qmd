@@ -1,0 +1,163 @@
+---
+title: "Project Purpose & Methodological Framework"
+author: "Michael Manolakis"
+date: today
+date-format: "[Spring] YYYY"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: margin=0.75in
+---
+
+\newpage
+
+# Project Goals and Findings
+
+## Primary Research Question:
+What is the aggregate financial opportunity cost of U.S. golf courses when evaluated against their Highest and Best Use (HBU) counterfactuals of residential, urban, or agricultural development?
+
+## Data Sources:
+### National / Macro Case
+*   [FHFA Residential Land Value Data (2022) / file: 2022 - Full County Loan Limit List_hera-based_final_flat.xlsx](https://www.fhfa.gov/data/conforming-loan-limit)
+*   [FHFA House Price Index® Datasets - U.S. and Census Division (Seasonally Adjusted and Not Adjusted) January 1991 - Latest Month (2025) / file: 1991 - Seasonally Adjusted Pricing.xlsx](https://www.fhfa.gov/data/hpi/datasets?tab=monthly-data)
+*   [USDA Agricultural Land Value Data (2022/2023) file: Ruralurbancontinuumcodes2023.csv](https://www.ers.usda.gov/data-products/rural-urban-continuum-codes)
+*   [BEA Total Land Value Data / file: BEA-WP2023-4.pdf](https://www.bea.gov/sites/default/files/papers/BEA-WP2023-4.pdf)
+*   [USDA Rural-Urban Continuum Codes (RUCC 2023) / file: 2023 - Rural Urban Continuum Codes.csv](https://www.ers.usda.gov/media/5768/2023-rural-urban-continuum-codes.csv?v=74347)
+*   [OpenStreetMap for Region: North America - Sub Region: United States of America / file: us-260413.osm.pbf](https://download.geofabrik.de/north-america.html)
+*   [National Golf Foundation - NGF - Membership Page](https://www.ngf.org/membership/)
+*   [GolfLink Course Search - Sourced from NGF](https://www.golflink.com/golf-courses/course-directory.aspx)
+*   [POI Factory - Golf Courses in the USA - Soruced from GolfLink / file: Golf Courses-USA.csv](http://www.poi-factory.com/node/29395)
+*   [ Working Paper 19-01: The Price of Residential Land for Counties, ZIP codes, and Census Tracts in the United States / file: 2024 - FHFA June 20 Land Prices.xlsx](https://www.fhfa.gov/research/papers/wp1901)
+*   [USDA National Agricultural Statistics Service : Quick Stats / various Files, but File: 2025 - USDA State Data - Ag Use.csv](https://quickstats.nass.usda.gov/#1307CBCF-D07B-3A1E-BD7C-6074D5512B45)
+*   [Land Price Appreciation During the COVID-19 Pandemic / file: Printed as PDF](https://www.fhfa.gov/blog/statistics/land-price-appreciation-during-the-covid-19-pandemic)
+*   [  FHFA Files 2024-08 Land-Prices / file: 2024 - FHFA June 20 Land Prices.xlsx](https://www.fhfa.gov/sites/default/files/2024-08/Land-Prices_2024_20_June.xlsx)
+*   [FHFA Conforming Loan Limit Values Map / file: Conforming Loan Limits.pdf](https://www.fhfa.gov/data/dashboard/conforming-loan-limit-values-map)
+*   [Github User cwimpy - rurality / file: 2023-rural-urban-continuum-codes.csv](https://github.com/cwimpy/rurality/blob/main/data-raw/rucc2023.csv)
+
+### Honolulu / Micro Case 
+*   [Tax Plat Boundary / file: Tax_Plats_](https://honolulu-cchnl.opendata.arcgis.com/datasets/9096b8efec024f179dc569755fb3fdea_0/explore?location=21.484700%2C-157.973000%2C10)
+*   [Parcels - All : Honolulu Land Information System - HOLIS / file: All_Parcels_](https://honolulu-cchnl.opendata.arcgis.com/datasets/0066cc691254414991182cbda7de4721_0/explore?location=21.483294%2C-157.964011%2C10)
+*   [Parcels - Tax / file: Cadastral](https://honolulu-cchnl.opendata.arcgis.com/datasets/b07278fbf1844df4a0ffcf5cf809fdf6_0/explore?location=21.483294%2C-157.964011%2C10)
+*   [Zoning Honolulu Land Information System - HOLIS / file: Zoning_](https://honolulu-cchnl.opendata.arcgis.com/)
+*   [Additional Honolulu (County) Data and Information](https://honolulu-cchnl.opendata.arcgis.com/)
+
+\newpage
+
+## Core Framework:
+*   **Cross-Sectional Analysis:** A "snapshot in time" utilizing 2022/2023 data.
+*   **Highest and Best Use (HBU):** Estimating what the land would be worth if converted to its most likely, legally permissible alternative use, rather than its value as an operating golf business.
+*   **Hypothetical Condition:** The analysis assumes a frictionless legal environment (Coasian bargaining), hypothetically dissolving exclusionary zoning and private restrictive covenants to measure the *pure* economic opportunity cost of the land.
+
+## Data Strategy Breakdown (The Hybrid Model):
+*   **Urban/Suburban Courses (RUCC 1-3):** HBU is assumed to be residential development (valued via FHFA data).
+*   **Rural Courses (RUCC 4-9):** HBU is assumed to be agricultural use (valued via USDA data).
+
+## Primary Challenge & Resolution:
+*   *Challenge:* Land value is priced per acre, but acreage was missing for a significant portion of the 16,297 golf courses.
+*   *Resolution:* A spatial pipeline extracted true polygon acreage from OpenStreetMap (OSM). The remaining 28.8% missing acreage was rigorously estimated using Random Forest Multiple Imputation by Chained Equations (MICE), pooled via Rubin's Rules.
+
+\newpage
+
+# Data Sources - Exploration and Selection
+
+## Primary Data Sources (Selected):
+*   **FHFA Residential Land Value Data:** Experimental dataset estimating per-acre residential land value (excluding structures) at the county level. Used for Urban HBU.
+*   **USDA Agricultural Land Value Data:** Annual survey summarizing per-acre market value of agricultural land. Used for Rural HBU.
+*   **OpenStreetMap (OSM):** Crowd-sourced spatial polygons (`leisure=golf_course`) used to calculate the true physical footprint of courses.
+*   **Honolulu Cadastre & Zoning:** Parcel-level spatial and tax data used exclusively for the Phase 5 Micro-Case Study to validate land fragmentation, geographic concentration, and zoning restrictions.
+
+## Data Sources Considered but Not Used (and Why):
+*   **National County Tax Assessor Data:** No centralized national database exists. Scraping 3,000+ counties is unfeasible. (Used only for the Oahu micro-case study).
+*   **Commercial Real Estate Data (CoreLogic, Zillow ZTRAX):** Prohibitively expensive; project is restricted to publicly available data.
+*   **Fannie Mae / Freddie Mac Raw Data:** Proprietary and contains sensitive financial information.
+
+---
+
+# Data Cleaning, Harmonization, and Enrichment
+
+## Phase 1: Parsing & Baseline Valuation
+*   Parsed messy string data into discrete columns (Course Name, Holes, Type, Coordinates).
+*   Performed a spatial point-in-polygon join to assign 5-digit FIPS county codes (resolving zero-padding bugs).
+*   Merged FHFA and USDA economic proxies based on RUCC urban/rural classification.
+
+## Phase 2: Spatial Polygons & True Acreage
+*   Extracted OSM polygons and reprojected to EPSG:5070 (planar projection) to calculate true acreage.
+*   Matched Phase 1 points to OSM polygons via direct intersection, with a 500-meter nearest-neighbor fallback. Achieved a 71.2% match rate.
+
+## Phase 3: MICE Imputation & Rubin's Rules
+*   Addressed the 28.8% missing acreage and 6.7% missing baseline values.
+*   Utilized Random Forest MICE (m=5 datasets) to capture non-linear spatial relationships and prevent impossible negative acreage predictions.
+*   **National Acreage & Land Use Comparison:** Post-imputation, the model calculates the total physical footprint of U.S. golf courses (approx. 2.3 million acres). This aggregate footprint is benchmarked against national land-use totals (derived from BEA/NLUD data) to contextualize the scale of recreational land use versus residential and commercial zoning.
+*   **Cross-Language Validation:** Pipeline was independently executed across Python, R, and Julia, all converging on a robust aggregate valuation of **~$943 Billion**.
+
+---
+
+# Analytical Framework and Methodology
+
+## Phase 4: Econometric Modeling
+*   **Model:** `Log_Opportunity_Cost ~ Holes + county_type`
+*   Estimated using OLS with HC1 heteroskedasticity-robust standard errors across all 5 imputed datasets.
+*   **Findings:** Urban golf course land carries a massive premium (approx. 60x higher than rural), confirming the severe "zoning tax" in metropolitan statistical areas.
+
+## Phase 5: The Hawaii Micro-Case Study
+*   **Spatial Deduplication:** Fixed imputation variance bugs by intersecting coordinates against true OSM polygons, ensuring distinct courses were not artificially collapsed.
+*   **Parcel Intersection:** Intersected 38 Oahu golf courses against the Honolulu Cadastre, revealing massive land fragmentation (1,072 unique Tax Map Keys).
+*   **Geographic Concentration:** Proved that 63.2% of golf course parcels on Oahu are concentrated in the Ewa District (Zone 9)—the exact region facing the most acute housing shortage and urban sprawl.
+*   **Land Use & Zoning Percentages:** Intersected the true OSM golf course polygons for Oahu with the official Honolulu County Zoning layer to quantify the exact percentage of golf course land occupying specific zoning designations (e.g., P-2 Preservation, AG-1 Agriculture, Residential), demonstrating the legal paralysis of opportunity cost.
+
+\newpage
+
+# Data Visualization and Validation
+
+## Language Optimization Strategy:
+The visualization pipeline is bifurcated to leverage language-specific strengths. **R** (`sf`, `ggplot2`, `tigris`) is used exclusively for high-fidelity cartography and spatial mapping. **Julia** (`CairoMakie`) is used exclusively for statistical plotting and LaTeX table generation.
+
+## Macro-Level Visualizations (R):
+*   **National Choropleths:** State-level maps displaying pooled opportunity cost (MICE-pooled vs. Observed-only).
+*   **County Choropleths:** Log₁₀ scaled maps revealing the extreme right-skewed geographic spread of land value.
+*   **Bivariate Econometric Maps:** 3x3 quantile maps showing the joint distribution of total opportunity cost vs. total golf course holes.
+
+## Micro-Level Visualizations (R):
+*   **Oahu TMK Concentration Map:** High-resolution micro-map rendering all 1,072 golf course parcels, highlighting the Ewa District concentration.
+*   **Oahu Zoning Map:** Micro-map coloring the 1,072 parcels by their dominant municipal zoning classification.
+*   **Oahu Opportunity Cost Map:** Micro-map coloring individual OSM polygons by their imputed opportunity cost.
+
+## Econometric & Diagnostic Validation (Julia):
+*   **Forest Plots:** Visual display of Phase 4 regression coefficients (Intercept, Holes, Urban County) with 95% CIs.
+*   **MICE Density & Raincloud Plots:** Overlays the observed acreage distribution against the five independent MICE draws to visually validate the imputation methodology.
+*   **Marginal Effects Plots:** Translates log-scale regression coefficients into predicted dollar opportunity costs for average Rural vs. Urban courses.
+
+## Automated LaTeX Table Generation (Julia):
+*   Generates standalone `booktabs`-styled `.tex` files for direct `\input{}` inclusion in the thesis (Acreage Summaries, Regression Outputs, and Hawaii Geographic Breakdowns).
+
+\newpage
+
+# Discussion of Alternative Land Uses and Limitations
+
+## Institutional Frictions & Coasian Failure:
+While the model assumes a frictionless transition to HBU, the reality is that golf course land is paralyzed by a dual layer of regulation: public municipal zoning (e.g., P-2 Preservation) and private restrictive covenants enforced by HOAs. These frictions prevent market optimization and lock the $943B opportunity cost in place.
+
+## The Renewable Energy Imperative:
+Residential development is not the only counterfactual. As noted by Weinand et al. (2025), the spatial footprint of U.S. golf courses is approximately four times larger than the land currently dedicated to utility-scale solar. In arid urban environments, utility-scale renewables may represent a more ecologically viable HBU than residential housing.
+
+## The "Bulk Discount" Limitation:
+The FHFA data reflects the per-acre price of existing, subdivided residential lots. A developer acquiring a bulk 150-acre golf course would require a discount for subdivision costs, infrastructure development, and absorption risk. Even applying a conservative 25% bulk discount, the national opportunity cost still exceeds $700 billion, confirming the macroeconomic severity of the misallocation.
+
+## Environmental Externalities:
+The valuation is strictly economic. It does not subtract the negative externalities of golf courses (fertilizer runoff, water consumption) nor does it add the positive externalities (green space, carbon sequestration). A full social cost-benefit analysis is outside the scope of this thesis.
+
+---
+
+# VII) Project Checklist & Next Steps
+
+## Completed Milestones
+- [x] **Phase 1:** Spatial Parsing & Economic Baseline Valuation
+- [x] **Phase 2:** OSM Polygon Extraction & Acreage Matching
+- [x] **Phase 3:** MICE Imputation & Rubin's Rules Valuation
+- [x] **Phase 4:** Econometric Modeling (OLS + HC1)
+- [x] **Phase 5:** Hawaii Micro-Case Study (Cadastral Intersection, Geographic Breakdown, Zoning)
+- [x] **Phase 6 (Bulk):** Generation of all individual R spatial maps and Julia statistical plots/LaTeX tables.
+- [x] **Validation:** Tri-language parity achieved (Python, R, Julia).

@@ -1,0 +1,42 @@
+---
+title: "Meta Documentation - Gone Golfing"
+subtitle: "The Full Documentation Statement for Each Phase"
+author: "Michael Manolakis"
+date: today
+date-format: "[Spring] YYYY"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: margin=1in
+---
+
+\newpage
+
+{{< include "../Phase 1 Parsing/01 - Phase1_Documentation.md" >}}
+
+\newpage
+
+{{< include "../Phase 2 Spatial Polygons and True Acreage/01 - Phase2_Documentation.md" >}}
+
+\newpage
+
+{{< include "../Phase 3 Economic Merge and MICE Imputation/01 - Phase3_Documentation.md" >}}
+
+\newpage
+
+{{< include "../Phase 4 Econometric Modeling/01 - Phase4_Documentation.md" >}}
+
+\newpage
+
+{{< include "../Phase 5 The Hawaii Micro-Case Study/01 - Phase5_Documentation.md" >}}
+
+\newpage
+
+{{< include "../Phase 6 Visualization/01 - Phase6_Documentation.md" >}}
+
+\newpage
+
+{{< include "../Phase 7 Documentation, Discussion and Write Up/other/Phase7_Documentation.md" >}}

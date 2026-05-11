@@ -1,0 +1,192 @@
+# Purpose: Master pipeline — parse, spatial-join, proxy-merge, and classify
+#          baseline land values for all US golf courses (Phase 1).
+# Inputs:  00 - Data Sources/Original Data/Golf Courses-USA.csv
+#          00 - Data Sources/Original Data/2022 - USDA County Data - Ag Use.csv
+#          00 - Data Sources/Original Data/2024 - FHFA June 20 Land Prices.xlsx
+#          https://www.ers.usda.gov/media/5768/2023-rural-urban-continuum-codes.csv
+# Outputs: Phase 1 Parsing/Data/Python/Py_Phase1_Spatial_Joined_Golf_Courses.csv
+#          Phase 1 Parsing/Data/Python/Py_Phase1_Valuation_Joined_Golf_Courses.csv
+#          Phase 1 Parsing/Data/Python/Py_Phase1_Baseline_Golf_Valuation.csv
+
+
+# === 1. LIBRARIES ===
+
+import re
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import geopandas as gpd
+from pygris import counties
+
+
+# === 2. GLOBALS & PATHS ===
+
+SCRIPT_DIR = Path(__file__).parent
+ROOT_DIR   = SCRIPT_DIR.parent
+DATA_DIR   = ROOT_DIR / "00 - Data Sources" / "Original Data"
+OUTPUT_DIR = SCRIPT_DIR / "Data" / "Python"
+
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+RAW_CSV  = DATA_DIR / "Golf Courses-USA.csv"
+USDA_IN  = DATA_DIR / "2022 - USDA County Data - Ag Use.csv"
+FHFA_IN  = DATA_DIR / "2024 - FHFA June 20 Land Prices.xlsx"
+RUCC_URL = "https://www.ers.usda.gov/media/5768/2023-rural-urban-continuum-codes.csv?v=98246"
+
+OUT_SPATIAL  = OUTPUT_DIR / "Py_Phase1_Spatial_Joined_Golf_Courses.csv"
+OUT_VAL_JOIN = OUTPUT_DIR / "Py_Phase1_Valuation_Joined_Golf_Courses.csv"
+OUT_BASELINE = OUTPUT_DIR / "Py_Phase1_Baseline_Golf_Valuation.csv"
+
+
+# === 3. FUNCTIONS ===
+
+def extract_ownership(detail_str: str) -> str:
+    s = str(detail_str).lower()
+    for label in ("public", "private", "municipal", "military", "resort"):
+        if label in s:
+            return label.title()
+    return "Unknown"
+
+def extract_holes(detail_str: str) -> int:
+    m = re.search(r"\((\d+)\s*Holes?\)", str(detail_str), re.IGNORECASE)
+    return int(m.group(1)) if m else 18
+
+
+# === 4. EXECUTION ===
+
+def main():
+    for path in (RAW_CSV, USDA_IN, FHFA_IN):
+        if not path.exists():
+            raise FileNotFoundError(f"Input file not found: {path}")
+
+    print(" 1  Loading raw Golf Courses CSV")
+    courses_df = pd.read_csv(RAW_CSV, header=None,
+                             names=["Longitude", "Latitude", "Course_Name", "Details"])
+    print(f"    Rows loaded: {len(courses_df):,}")
+
+    print(" 2  Extracting Ownership_Type & Holes via regex")
+    courses_df["Ownership_Type"] = courses_df["Details"].apply(extract_ownership)
+    courses_df["Holes"]          = courses_df["Details"].apply(extract_holes)
+
+    print(" 3  Converting to GeoDataFrame (EPSG:4326)")
+    courses_df = courses_df.dropna(subset=["Longitude", "Latitude"])
+    courses_geo = gpd.GeoDataFrame(
+        courses_df,
+        geometry=gpd.points_from_xy(courses_df["Longitude"], courses_df["Latitude"]),
+        crs="EPSG:4326"
+    )
+
+    print(" 4  Downloading 2022 US County boundaries (pygris)")
+    # [METHODOLOGY] CRS: EPSG 4326 (WGS 84) — projects county boundaries to match golf course point CRS for spatial join
+    county_geo = counties(cb=True, year=2022, resolution="20m").to_crs("EPSG:4326")
+
+    print(" 5  Spatial point-in-polygon join")
+    courses_geo = gpd.sjoin(  # [METHODOLOGY]
+        courses_geo,
+        county_geo[["GEOID", "NAME", "STUSPS", "geometry"]],
+        how="left",
+        predicate="intersects"
+    )
+    courses_geo = courses_geo.rename(columns={
+        "GEOID": "FIPS", "NAME": "County_Name", "STUSPS": "Tigris_State_Abbr"
+    })
+    if "index_right" in courses_geo.columns:
+        courses_geo.drop(columns=["index_right"], inplace=True)
+
+    courses_df = pd.DataFrame(courses_geo.drop(columns=["geometry"]))
+    courses_df.to_csv(OUT_SPATIAL, index=False)
+    print(f"    [OK] Spatial data saved -> {OUT_SPATIAL}")
+
+    courses_df["FIPS"] = (courses_df["FIPS"].astype(str)
+                          .str.replace(r"\.0$", "", regex=True).str.zfill(5))
+
+    print(" 6  Processing USDA County Ag-Use data")
+    usda_df = pd.read_csv(USDA_IN)
+    usda_df = usda_df[
+        usda_df["Data Item"] == "AG LAND, INCL BUILDINGS - ASSET VALUE, MEASURED IN $ / ACRE"
+    ].copy()
+    usda_df["State ANSI"]  = (usda_df["State ANSI"].astype(str)
+                               .str.replace(r"\.0$", "", regex=True).str.zfill(2))
+    usda_df["County ANSI"] = (usda_df["County ANSI"].astype(str)
+                               .str.replace(r"\.0$", "", regex=True).str.zfill(3))
+    usda_df["FIPS"] = usda_df["State ANSI"] + usda_df["County ANSI"]
+    usda_df["USDA_Ag_Value_Per_Acre"] = pd.to_numeric(
+        usda_df["Value"].astype(str).str.replace(",", ""), errors="coerce"
+    )
+    usda_df = (usda_df[["FIPS", "USDA_Ag_Value_Per_Acre"]]
+               .dropna(subset=["USDA_Ag_Value_Per_Acre"])
+               .drop_duplicates(subset=["FIPS"]))
+
+    print(" 7  Processing FHFA Panel Counties data")
+    fhfa_df = pd.read_excel(FHFA_IN, sheet_name="Panel Counties", skiprows=1)
+    fhfa_df = fhfa_df[fhfa_df["Year"] == 2022].copy()
+    fhfa_df["FIPS"] = (fhfa_df["FIPS"].astype(str)
+                        .str.replace(r"\.0$", "", regex=True).str.zfill(5))
+    as_is_col = "Land Value\n(Per Acre, As-Is)"
+    fhfa_df = (fhfa_df[["FIPS", as_is_col]]
+               .rename(columns={as_is_col: "FHFA_Res_Value_Per_Acre"})
+               .drop_duplicates(subset=["FIPS"]))
+    fhfa_df["FHFA_Res_Value_Per_Acre"] = pd.to_numeric(
+        fhfa_df["FHFA_Res_Value_Per_Acre"], errors="coerce"
+    )
+
+    print(" 8  Left-joining proxies onto golf courses")
+    courses_df = (courses_df
+                  .merge(usda_df, on="FIPS", how="left")
+                  .merge(fhfa_df, on="FIPS", how="left"))
+    courses_df.to_csv(OUT_VAL_JOIN, index=False)
+    print(f"    [OK] Valuation data saved -> {OUT_VAL_JOIN}")
+
+    print(" 9  Fetching 2023 RUCC data from USDA ERS")
+    rucc_df = pd.read_csv(RUCC_URL, encoding="latin1")
+    rucc_df = rucc_df[rucc_df["Attribute"] == "RUCC_2023"].copy()
+    rucc_df["RUCC_2023"] = pd.to_numeric(rucc_df["Value"], errors="coerce")
+    rucc_df["FIPS"] = (rucc_df["FIPS"].astype(str)
+                       .str.replace(r"\.0$", "", regex=True).str.zfill(5))
+    rucc_df = rucc_df[["FIPS", "RUCC_2023"]].drop_duplicates(subset=["FIPS"])
+
+    print(" 10 Merging RUCC and Classifying Urban/Rural")
+    courses_df = courses_df.merge(rucc_df, on="FIPS", how="left")
+    courses_df["county_type"] = np.where(
+        courses_df["RUCC_2023"].isin([1, 2, 3]), "Urban",
+        np.where(courses_df["RUCC_2023"].between(4, 9), "Rural", None)
+    )
+
+    print(" 11 Building Baseline_Value_Per_Acre")
+    courses_df["Baseline_Value_Per_Acre"] = np.where(
+        courses_df["county_type"] == "Urban",  courses_df["FHFA_Res_Value_Per_Acre"],
+        np.where(courses_df["county_type"] == "Rural", courses_df["USDA_Ag_Value_Per_Acre"], np.nan)
+    )
+
+    n            = len(courses_df)
+    missing_fips = courses_df["FIPS"].replace("nan", np.nan).isna().sum()
+    usda_hit     = courses_df["USDA_Ag_Value_Per_Acre"].notna().sum()
+    fhfa_hit     = courses_df["FHFA_Res_Value_Per_Acre"].notna().sum()
+    urban        = (courses_df["county_type"] == "Urban").sum()
+    rural        = (courses_df["county_type"] == "Rural").sum()
+    unclassified = courses_df["county_type"].isna().sum()
+    missing_base = courses_df["Baseline_Value_Per_Acre"].isna().sum()
+    bv           = courses_df["Baseline_Value_Per_Acre"].dropna()
+
+    print("\n=== OUTPUT STATISTICS ===")
+    print(f"  Total golf courses:       {n:,}")
+    print(f"  Missing FIPS (no county): {missing_fips:,}")
+    print(f"  USDA match rate:          {usda_hit:,} / {n:,}  ({usda_hit/n:.2%})")
+    print(f"  FHFA match rate:          {fhfa_hit:,} / {n:,}  ({fhfa_hit/n:.2%})")
+    print(f"  Urban courses:            {urban:,}")
+    print(f"  Rural courses:            {rural:,}")
+    print(f"  Unclassified (no RUCC):   {unclassified:,}")
+    print(f"  Missing Baseline value:   {missing_base:,}  (MICE imputation target)")
+    print(f"\n  Baseline_Value_Per_Acre summary:")
+    print(f"    Min:    ${bv.min():>14,.2f}")
+    print(f"    Median: ${bv.median():>14,.2f}")
+    print(f"    Mean:   ${bv.mean():>14,.2f}")
+    print(f"    Max:    ${bv.max():>14,.2f}")
+
+    courses_df.to_csv(OUT_BASELINE, index=False)
+    print(f"\n  [OK] Final Baseline saved -> {OUT_BASELINE}")
+
+
+if __name__ == "__main__":
+    main()
