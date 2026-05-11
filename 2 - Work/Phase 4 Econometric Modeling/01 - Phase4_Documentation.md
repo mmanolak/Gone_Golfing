@@ -8,6 +8,8 @@ format:
     colorlinks: true
 ---
 
+# Phase 4 Summary: Econometric Modeling
+
 ## Overview
 
 Phase 4 implements the econometric modeling step of the golf course land valuation

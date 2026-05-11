@@ -8,13 +8,7 @@ format:
     colorlinks: true
 ---
 
-**Working directory:** `2 - Work/Phase 3 Economic Merge & MICE Imputation/`
-**Upstream inputs:**
-- `Phase 2 Spatial Polygons & True Acreage/Py_Phase2_Acreage_Matched.csv`
-- `Phase 2 Spatial Polygons & True Acreage/R_Phase2_Acreage_Matched.csv`
-- `Phase 2 Spatial Polygons & True Acreage/Jl_Phase2_Acreage_Matched.csv`
-
----
+# Phase 3 Summary: MICE Imputation & Rubin's Rules Valuation
 
 ## Overview
 

@@ -8,11 +8,7 @@ format:
     colorlinks: true
 ---
 
-**Date updated:**
-**Working directory:** `2 - Work/Phase 2 Spatial Polygons & True Acreage/`
-**Source data policy:** The 11 GB PBF file is read from `00 - Data Sources/Original Data - Backup/`
-
----
+# Phase 2 Summary: OSM Polygon Extraction & Acreage Matching
 
 ## Step 1 — OSM Golf Course Polygon Extraction
 

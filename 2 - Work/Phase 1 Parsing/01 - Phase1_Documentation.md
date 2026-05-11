@@ -8,9 +8,7 @@ format:
     colorlinks: true
 ---
 
-**Working directory:** `2 - Work/Phase 1 Parsing/`
-
----
+# Phase 1 Summary: Spatial Parsing & Economic Baseline Valuation
 
 ## Overview
 

@@ -114,7 +114,7 @@ Cross-script integration audit: path routing, filename convention, output direct
 
 ---
 
-### Master Scripts (Completed & Refactored)
+## Master Scripts (Completed & Refactored)
 
 The initial bulk scripts have been fully consolidated into two standalone master execution pipelines:
 
@@ -135,7 +135,7 @@ The master scripts (`Phase_6.R` and `Phase_6.jl`) automatically route outputs in
 
 ---
 
-# R Bulk Scripts
+## R Bulk Scripts
 
 Nine R scripts have been completed under `Bulk/R/`. All use `this.path::this.dir()` for script-relative path resolution. Scripts 1, 2, 7, and 9 produce two map variants each: a MICE-pooled version (`.1`) and an observed-acreage-only version (`.2`).
 
@@ -286,7 +286,7 @@ Bulk/R/output/
 
 ---
 
-# Julia Bulk Scripts
+## Julia Bulk Scripts
 
 Julia scripts live under `Bulk/Julia/` and cover all non-spatial outputs: statistical plots and LaTeX table generation. All scripts use `@__DIR__` for path resolution, read only `Jl_`-prefixed input files, and save PNGs at `px_per_unit = 3` (300 DPI equivalent). Scripts use `CairoMakie.jl` for all plotting.
 

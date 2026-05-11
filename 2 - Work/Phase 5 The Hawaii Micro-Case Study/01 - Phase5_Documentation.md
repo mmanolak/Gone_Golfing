@@ -8,9 +8,7 @@ format:
     colorlinks: true
 ---
 
-**Purpose:** Validate HBU valuation model against actual municipal tax assessment data for Hawaii golf courses
-
----
+# Phase 5 Summary: Hawaii Micro-Case Study
 
 ## Overview
 
