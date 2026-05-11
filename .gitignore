@@ -22,3 +22,13 @@ CLAUDE.md
 .claude
 Gone Golfing.Rproj
 .Rhistory
+*.aux
+*.bbl
+*.blg
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
