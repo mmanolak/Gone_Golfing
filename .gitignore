@@ -19,3 +19,5 @@ settings.local.json
 *.png
 Golfing Thesis Directory.txt
 CLAUDE.md
+*.Rproj
+.claude
