@@ -42,9 +42,11 @@ suppressPackageStartupMessages({
 compute_grand_means <- function() {
     cat("\n--- Grand Mean: Computing Tri-Language Grand Means ---\n")
     SCRIPT_DIR <- this.path::this.dir()
-    WORK_DIR   <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE1_CSV <- file.path(WORK_DIR, "Phase 1 Parsing", "Data", "R",
-                            "R_Phase1_Baseline_Golf_Valuation.csv")
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE1_CSV <- file.path(
+        WORK_DIR, "Phase 1 Parsing", "Data", "R",
+        "R_Phase1_Baseline_Golf_Valuation.csv"
+    )
     phase1_df <- read_csv(PHASE1_CSV, show_col_types = FALSE) |>
         mutate(FIPS = sprintf("%05d", as.integer(FIPS)))
 
@@ -52,7 +54,7 @@ compute_grand_means <- function() {
         select(Longitude, Latitude, FIPS, County_Name, State_Abbr) |>
         distinct()
 
-    PHASE3_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
+    PHASE3_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
     IMPUTED_PATHS <- file.path(PHASE3_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
 
     plan(multisession, workers = parallelly::availableCores() - 1)
@@ -60,7 +62,9 @@ compute_grand_means <- function() {
     cat("  Parallelizing M=100 R MICE loads with furrr...\n")
     # [METHODOLOGY] Rubin's Rules pooling — R language group, M=100; applied independently
     county_total_list <- future_map(seq_len(100), function(i) {
-        if (!file.exists(IMPUTED_PATHS[i])) return(NULL)
+        if (!file.exists(IMPUTED_PATHS[i])) {
+            return(NULL)
+        }
         read_csv(IMPUTED_PATHS[i], show_col_types = FALSE) |>
             mutate(total_opp_cost = final_acreage * Baseline_Value_Per_Acre) |>
             left_join(county_lookup, by = c("Longitude", "Latitude")) |>
@@ -80,15 +84,18 @@ compute_grand_means <- function() {
         group_by(FIPS, County_Name, State_Abbr) |>
         summarise(pooled_opp_cost = mean(total_opp_cost, na.rm = TRUE), .groups = "drop")
 
-    rm(county_total_list); gc()
+    rm(county_total_list)
+    gc()
 
-    PHASE3_PY_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "python")
+    PHASE3_PY_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "python")
     IMPUTED_PY_PATHS <- file.path(PHASE3_PY_DIR, paste0("Py_Imputed_Dataset_", 1:100, ".csv"))
 
     cat("  Parallelizing M=100 Python MICE loads with furrr...\n")
     # [METHODOLOGY] Rubin's Rules pooling — Python language group, M=100; applied independently
     py_county_list <- future_map(seq_len(100), function(i) {
-        if (!file.exists(IMPUTED_PY_PATHS[i])) return(NULL)
+        if (!file.exists(IMPUTED_PY_PATHS[i])) {
+            return(NULL)
+        }
         read_csv(IMPUTED_PY_PATHS[i], show_col_types = FALSE) |>
             mutate(total_opp_cost = osm_acreage * Baseline_Value_Per_Acre) |>
             select(-any_of(c("FIPS", "County_Name", "State_Abbr"))) |>
@@ -107,15 +114,18 @@ compute_grand_means <- function() {
             group_by(FIPS, County_Name, State_Abbr) |>
             summarise(pooled_opp_cost = mean(total_opp_cost, na.rm = TRUE), .groups = "drop")
     }
-    rm(py_county_list); gc()
+    rm(py_county_list)
+    gc()
 
-    PHASE3_JL_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "Julia")
+    PHASE3_JL_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "Julia")
     IMPUTED_JL_PATHS <- file.path(PHASE3_JL_DIR, paste0("Jl_Imputed_Dataset_", 1:100, ".csv"))
 
     cat("  Parallelizing M=100 Julia MICE loads with furrr...\n")
     # [METHODOLOGY] Rubin's Rules pooling — Julia language group, M=100; applied independently
     jl_county_list <- future_map(seq_len(100), function(i) {
-        if (!file.exists(IMPUTED_JL_PATHS[i])) return(NULL)
+        if (!file.exists(IMPUTED_JL_PATHS[i])) {
+            return(NULL)
+        }
         read_csv(IMPUTED_JL_PATHS[i], show_col_types = FALSE) |>
             mutate(total_opp_cost = osm_acreage * Baseline_Value_Per_Acre) |>
             select(-any_of(c("FIPS", "County_Name", "State_Abbr"))) |>
@@ -134,7 +144,8 @@ compute_grand_means <- function() {
             group_by(FIPS, County_Name, State_Abbr) |>
             summarise(pooled_opp_cost = mean(total_opp_cost, na.rm = TRUE), .groups = "drop")
     }
-    rm(jl_county_list); gc()
+    rm(jl_county_list)
+    gc()
 
     # [METHODOLOGY] Grand Mean = arithmetic mean of three independently Rubin-pooled
     #               estimates. Joined on FIPS to prevent positional mismatch when
@@ -156,16 +167,21 @@ compute_grand_means <- function() {
         arrange(desc(pooled_opp_cost))
 
     make_state <- function(df) {
-        df |> group_by(State_Abbr) |>
+        df |>
+            group_by(State_Abbr) |>
             summarise(pooled_opp_cost = sum(pooled_opp_cost, na.rm = TRUE), .groups = "drop") |>
             arrange(desc(pooled_opp_cost))
     }
 
     return(list(
-        county = list(GrandMean = grand_mean_county, Python = py_pooled,
-                      R = r_pooled, Julia = jl_pooled),
-        state  = list(GrandMean = make_state(grand_mean_county), Python = make_state(py_pooled),
-                      R = make_state(r_pooled), Julia = make_state(jl_pooled))
+        county = list(
+            GrandMean = grand_mean_county, Python = py_pooled,
+            R = r_pooled, Julia = jl_pooled
+        ),
+        state = list(
+            GrandMean = make_state(grand_mean_county), Python = make_state(py_pooled),
+            R = make_state(r_pooled), Julia = make_state(jl_pooled)
+        )
     ))
 }
 
@@ -174,23 +190,27 @@ compute_grand_means <- function() {
 run_1_Macro_Maps <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR    <- this.path::this.dir()
-    WORK_DIR      <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE1_CSV    <- file.path(WORK_DIR, "Phase 1 Parsing", "Data", "R",
-                               "R_Phase1_Baseline_Golf_Valuation.csv")
-    PHASE2_CSV    <- file.path(WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
-                               "R_Phase2_Acreage_Matched_v2.csv")
-    PHASE3_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE1_CSV <- file.path(
+        WORK_DIR, "Phase 1 Parsing", "Data", "R",
+        "R_Phase1_Baseline_Golf_Valuation.csv"
+    )
+    PHASE2_CSV <- file.path(
+        WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
+        "R_Phase2_Acreage_Matched_v2.csv"
+    )
+    PHASE3_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
     IMPUTED_PATHS <- file.path(PHASE3_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
-    OUTPUT_DIR    <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR    <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR        <- file.path(OUTPUT_DIR, "QA_Verification")
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG1      <- file.path(OUTPUT_DIR, "1.1X1_National_Opportunity_Cost_Map.png")
-    OUT_PNG2      <- file.path(THESIS_DIR, "1.101_National_Opportunity_Cost_Map_ObservedOnly.png")
+    OUT_PNG1 <- file.path(OUTPUT_DIR, "1.1X1_National_Opportunity_Cost_Map.png")
+    OUT_PNG2 <- file.path(THESIS_DIR, "1.101_National_Opportunity_Cost_Map_ObservedOnly.png")
 
-    M                 <- 100L
+    M <- 100L
     TERRITORY_EXCLUDE <- c("AS", "GU", "MP", "PR", "VI", "UM")
 
 
@@ -202,15 +222,15 @@ run_1_Macro_Maps <- function() {
         ggplot(states_joined) +
             geom_sf(
                 aes(fill = pooled_opp_cost / 1e9),
-                colour    = "white",
+                colour = "white",
                 linewidth = 0.25
             ) +
             scale_fill_viridis_c(
-                option   = "plasma",
+                option = "plasma",
                 na.value = "#d4d4d4",
-                name     = "Opportunity Cost",
-                labels   = label_dollar(suffix = "B", accuracy = 1),
-                guide    = guide_colorbar(
+                name = "Opportunity Cost",
+                labels = label_dollar(suffix = "B", accuracy = 1),
+                guide = guide_colorbar(
                     barwidth       = unit(14, "cm"),
                     barheight      = unit(0.45, "cm"),
                     title.position = "top",
@@ -225,19 +245,19 @@ run_1_Macro_Maps <- function() {
             ) +
             theme_void(base_size = 12) +
             theme(
-                plot.title      = element_text(
+                plot.title = element_text(
                     face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
                 ),
-                plot.subtitle   = element_text(
+                plot.subtitle = element_text(
                     size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
                 ),
-                plot.caption    = element_text(
+                plot.caption = element_text(
                     size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
                 ),
                 legend.position = "bottom",
-                legend.title    = element_text(size = 9, face = "bold"),
-                legend.text     = element_text(size = 8),
-                plot.margin     = margin(12, 24, 8, 24)
+                legend.title = element_text(size = 9, face = "bold"),
+                legend.text = element_text(size = 8),
+                plot.margin = margin(12, 24, 8, 24)
             )
     }
 
@@ -252,17 +272,17 @@ run_1_Macro_Maps <- function() {
     }
 
 
-    #  Step 1: Build state lookup 
+    #  Step 1: Build state lookup
 
     cat("[Step 1] Building state lookup from Phase 1 baseline...\n")
-    phase1_df    <- read_csv(PHASE1_CSV, show_col_types = FALSE)
+    phase1_df <- read_csv(PHASE1_CSV, show_col_types = FALSE)
     state_lookup <- phase1_df |>
         select(Longitude, Latitude, State_Abbr) |>
         distinct()
     cat(sprintf("  %d unique course coordinates loaded.\n", nrow(state_lookup)))
 
 
-    #  Step 2: Pool opportunity costs across M imputations 
+    #  Step 2: Pool opportunity costs across M imputations
     # [METHODOLOGY] Total_Opportunity_Cost = final_acreage * Baseline_Value_Per_Acre.
     #               State totals summed within each imputed dataset, then averaged
     #               across M = 100 datasets (Rubin's Rules q_bar at the state level).
@@ -288,7 +308,7 @@ run_1_Macro_Maps <- function() {
     }
 
 
-    #  Step 3: Download state boundaries (shared between both maps) 
+    #  Step 3: Download state boundaries (shared between both maps)
     # [METHODOLOGY] tigris::states(cb = TRUE) downloads the Census Bureau's cartographic
     #               boundary file (1:500k). Territories are excluded. shift_geometry()
     #               repositions Alaska and Hawaii as insets below the lower 48.
@@ -301,7 +321,7 @@ run_1_Macro_Maps <- function() {
     cat(sprintf("  %d states loaded with AK/HI insets (EPSG 5070).\n", nrow(states_sf)))
 
 
-    #  Step 4: Render + save Map 1.1 (MICE-pooled) 
+    #  Step 4: Render + save Map 1.1 (MICE-pooled)
 
     cat("\n[Step 4] Rendering Map 1.1: MICE-pooled state maps (4 variations)...\n")
 
@@ -314,7 +334,7 @@ run_1_Macro_Maps <- function() {
 
         map1 <- build_state_map(
             states_mice,
-            subtitle     = paste0(
+            subtitle = paste0(
                 model_name, " Pooled Estimate  —  ",
                 "Opportunity Cost = OSM Acreage × Baseline Land Value per Acre"
             ),
@@ -338,7 +358,7 @@ run_1_Macro_Maps <- function() {
         )
 
         lang_code <- c("GrandMean" = "4", "Python" = "2", "R" = "3", "Julia" = "1")[[model_name]]
-        sub_dir  <- if (lang_code %in% c("4", "0")) "Final_Thesis_Figures" else "QA_Verification"
+        sub_dir <- if (lang_code %in% c("4", "0")) "Final_Thesis_Figures" else "QA_Verification"
         out_file <- sub("X", lang_code, OUT_PNG1)
         out_file <- sub("\\.png$", paste0("_", model_name, ".png"), out_file)
         out_file <- sub("output", paste0("output/", sub_dir), out_file)
@@ -348,7 +368,7 @@ run_1_Macro_Maps <- function() {
     }
 
 
-    #  Step 5: Compute observed-only state totals 
+    #  Step 5: Compute observed-only state totals
     # [METHODOLOGY] Phase 2 records acreage_source for every course. Filtering to
     #               acreage_source != "MICE_Target" retains only courses with a directly
     #               measured OSM polygon area, eliminating all imputed contributions.
@@ -378,7 +398,7 @@ run_1_Macro_Maps <- function() {
     ))
 
 
-    #  Step 6: Render + save Map 1.2 (Observed-only) 
+    #  Step 6: Render + save Map 1.2 (Observed-only)
 
     cat("\n[Step 6] Rendering Map 1.2: Observed-only state map...\n")
 
@@ -387,7 +407,7 @@ run_1_Macro_Maps <- function() {
 
     map2 <- build_state_map(
         states_obs,
-        subtitle     = paste0(
+        subtitle = paste0(
             "Observed acreage only — no imputation  —  ",
             "Opportunity Cost = OSM Acreage × Baseline Land Value per Acre"
         ),
@@ -410,23 +430,27 @@ run_1_Macro_Maps <- function() {
 run_2_County_Map <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR        <- this.path::this.dir()
-    WORK_DIR          <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE1_CSV        <- file.path(WORK_DIR, "Phase 1 Parsing", "Data", "R",
-                                   "R_Phase1_Baseline_Golf_Valuation.csv")
-    PHASE2_CSV        <- file.path(WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
-                                   "R_Phase2_Acreage_Matched_v2.csv")
-    PHASE3_DIR        <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
-    IMPUTED_PATHS     <- file.path(PHASE3_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
-    OUTPUT_DIR        <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR        <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR            <- file.path(OUTPUT_DIR, "QA_Verification")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE1_CSV <- file.path(
+        WORK_DIR, "Phase 1 Parsing", "Data", "R",
+        "R_Phase1_Baseline_Golf_Valuation.csv"
+    )
+    PHASE2_CSV <- file.path(
+        WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
+        "R_Phase2_Acreage_Matched_v2.csv"
+    )
+    PHASE3_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
+    IMPUTED_PATHS <- file.path(PHASE3_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG1          <- file.path(OUTPUT_DIR, "2.1X1_County_Opportunity_Cost_Map.png")
-    OUT_PNG2          <- file.path(THESIS_DIR, "2.101_County_Opportunity_Cost_Map_ObservedOnly.png")
+    OUT_PNG1 <- file.path(OUTPUT_DIR, "2.1X1_County_Opportunity_Cost_Map.png")
+    OUT_PNG2 <- file.path(THESIS_DIR, "2.101_County_Opportunity_Cost_Map_ObservedOnly.png")
 
-    M                 <- 100L
+    M <- 100L
     TERRITORY_STATEFP <- c("60", "66", "69", "72", "74", "78")
 
 
@@ -438,17 +462,17 @@ run_2_County_Map <- function() {
         ggplot(counties_joined) +
             geom_sf(
                 aes(fill = pooled_opp_cost / 1e6),
-                colour    = "white",
+                colour = "white",
                 linewidth = 0.08
             ) +
             scale_fill_viridis_c(
-                option   = "plasma",
-                trans    = "log10",
+                option = "plasma",
+                trans = "log10",
                 na.value = "#d4d4d4",
-                name     = "Opportunity Cost",
-                breaks   = c(1, 10, 100, 1000, 10000),
-                labels   = c("$1M", "$10M", "$100M", "$1B", "$10B"),
-                guide    = guide_colorbar(
+                name = "Opportunity Cost",
+                breaks = c(1, 10, 100, 1000, 10000),
+                labels = c("$1M", "$10M", "$100M", "$1B", "$10B"),
+                guide = guide_colorbar(
                     barwidth       = unit(14, "cm"),
                     barheight      = unit(0.45, "cm"),
                     title.position = "top",
@@ -463,19 +487,19 @@ run_2_County_Map <- function() {
             ) +
             theme_void(base_size = 12) +
             theme(
-                plot.title      = element_text(
+                plot.title = element_text(
                     face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
                 ),
-                plot.subtitle   = element_text(
+                plot.subtitle = element_text(
                     size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
                 ),
-                plot.caption    = element_text(
+                plot.caption = element_text(
                     size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
                 ),
                 legend.position = "bottom",
-                legend.title    = element_text(size = 9, face = "bold"),
-                legend.text     = element_text(size = 8),
-                plot.margin     = margin(12, 24, 8, 24)
+                legend.title = element_text(size = 9, face = "bold"),
+                legend.text = element_text(size = 8),
+                plot.margin = margin(12, 24, 8, 24)
             )
     }
 
@@ -490,11 +514,11 @@ run_2_County_Map <- function() {
     }
 
 
-    #  Step 1: Build county lookup 
+    #  Step 1: Build county lookup
     # FIPS is zero-padded to 5 characters to match tigris GEOID format.
 
     cat("[Step 1] Building county lookup from Phase 1 baseline...\n")
-    phase1_df     <- read_csv(PHASE1_CSV, show_col_types = FALSE)
+    phase1_df <- read_csv(PHASE1_CSV, show_col_types = FALSE)
     county_lookup <- phase1_df |>
         select(Longitude, Latitude, FIPS, County_Name, State_Abbr) |>
         distinct() |>
@@ -502,7 +526,7 @@ run_2_County_Map <- function() {
     cat(sprintf("  %d unique course coordinates loaded.\n", nrow(county_lookup)))
 
 
-    #  Step 2: Pool opportunity costs across M imputations 
+    #  Step 2: Pool opportunity costs across M imputations
     # [METHODOLOGY] County totals summed within each imputed dataset, then averaged
     #               across M = 100 datasets (Rubin's Rules q_bar at the county level).
 
@@ -528,7 +552,7 @@ run_2_County_Map <- function() {
     }
 
 
-    #  Step 3: Download county and state boundaries (shared between both maps) 
+    #  Step 3: Download county and state boundaries (shared between both maps)
     # [METHODOLOGY] tigris::counties(cb = TRUE) downloads the 1:500k cartographic
     #               boundary file. Territories are excluded by STATEFP code.
     #               shift_geometry() repositions Alaska and Hawaii as insets.
@@ -541,7 +565,7 @@ run_2_County_Map <- function() {
     cat(sprintf("  %d counties loaded with AK/HI insets (EPSG 5070).\n", nrow(counties_sf)))
 
 
-    #  Step 4: Render + save Map 2.1 (MICE-pooled) 
+    #  Step 4: Render + save Map 2.1 (MICE-pooled)
 
     cat("\n[Step 4] Rendering Map 2.1: MICE-pooled county maps (4 variations)...\n")
 
@@ -554,7 +578,7 @@ run_2_County_Map <- function() {
 
         map1 <- build_county_map(
             counties_mice,
-            subtitle     = paste0(
+            subtitle = paste0(
                 model_name, " Pooled Estimate  —  ",
                 "Opportunity Cost = OSM Acreage × Baseline Land Value per Acre  —  ",
                 "Log₁₀ scale"
@@ -579,7 +603,7 @@ run_2_County_Map <- function() {
         )
 
         lang_code <- c("GrandMean" = "4", "Python" = "2", "R" = "3", "Julia" = "1")[[model_name]]
-        sub_dir  <- if (lang_code %in% c("4", "0")) "Final_Thesis_Figures" else "QA_Verification"
+        sub_dir <- if (lang_code %in% c("4", "0")) "Final_Thesis_Figures" else "QA_Verification"
         out_file <- sub("X", lang_code, OUT_PNG1)
         out_file <- sub("\\.png$", paste0("_", model_name, ".png"), out_file)
         out_file <- sub("output", paste0("output/", sub_dir), out_file)
@@ -589,7 +613,7 @@ run_2_County_Map <- function() {
     }
 
 
-    #  Step 5: Compute observed-only county totals 
+    #  Step 5: Compute observed-only county totals
     # [METHODOLOGY] Filtering Phase 2 to acreage_source != "MICE_Target" retains
     #               only courses with directly measured OSM polygon acreage. County
     #               totals are a simple sum — no pooling required.
@@ -621,7 +645,7 @@ run_2_County_Map <- function() {
     ))
 
 
-    #  Step 6: Render + save Map 2.2 (Observed-only) 
+    #  Step 6: Render + save Map 2.2 (Observed-only)
 
     cat("\n[Step 6] Rendering Map 2.2: Observed-only county map...\n")
 
@@ -630,7 +654,7 @@ run_2_County_Map <- function() {
 
     map2 <- build_county_map(
         counties_obs,
-        subtitle     = paste0(
+        subtitle = paste0(
             "Observed acreage only — no imputation  —  ",
             "Opportunity Cost = OSM Acreage × Baseline Land Value per Acre  —  ",
             "Log₁₀ scale"
@@ -655,33 +679,27 @@ run_2_County_Map <- function() {
 run_3_Oahu_TMK_Map <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR   <- this.path::this.dir()
-    WORK_DIR     <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE5_DATA  <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE5_DATA <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R")
     PARCELS_GPKG <- file.path(PHASE5_DATA, "Honolulu_Parcels_Reprojected.gpkg")
-    TMK_CSV      <- file.path(PHASE5_DATA, "Target_Golf_Parcels_List.csv")
-    GEO_CSV      <- file.path(PHASE5_DATA, "Phase5_Geographic_Breakdown.csv")
-    OUTPUT_DIR   <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR   <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR       <- file.path(OUTPUT_DIR, "QA_Verification")
+    TMK_CSV <- file.path(PHASE5_DATA, "Target_Golf_Parcels_List.csv")
+    GEO_CSV <- file.path(PHASE5_DATA, "Phase5_Geographic_Breakdown.csv")
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG      <- file.path(THESIS_DIR, "3.101_Oahu_TMK_Concentration_Map.png")
+    OUT_PNG <- file.path(THESIS_DIR, "3.101_Oahu_TMK_Concentration_Map.png")
 
-    OAHU_CRS  <- 32604L     # WGS 84 / UTM Zone 4N — correct local projection for Oahu
-    ZONE_EWA  <- "9"
-    COL_EWA   <- "#E05C14"  # bright orange-red — Ewa District (Zone 9)
-    COL_OTHER <- "#3a3a3a"  # dark gray — all other districts
-    COL_ISLAND <- "#e8e8e8"  # light gray — island base fill
-    COL_COAST  <- "#aaaaaa"  # medium gray — coastline border
+    OAHU_CRS <- 32604L # WGS 84 / UTM Zone 4N — correct local projection for Oahu
+    ZONE_EWA <- "9"
+    COL_EWA <- "#E05C14" # bright orange-red — Ewa District (Zone 9)
+    COL_OTHER <- "#3a3a3a" # dark gray — all other districts
+    COL_ISLAND <- "#e8e8e8" # light gray — island base fill
+    COL_COAST <- "#aaaaaa" # medium gray — coastline border
 
-
-    # === 3. FUNCTIONS ===
-
-    # (none)
-
-
-    # === 4. EXECUTION ===
+    # === 3. EXECUTION ===
 
     cat("\n--- Script 3: Oahu Golf Course TMK Concentration ---\n\n")
 
@@ -691,7 +709,7 @@ run_3_Oahu_TMK_Map <- function() {
 
     cat("[Step 1] Loading TMK list and geographic breakdown...\n")
     tmk_list <- read_csv(TMK_CSV, show_col_types = FALSE)
-    geo_df   <- read_csv(GEO_CSV, show_col_types = FALSE)
+    geo_df <- read_csv(GEO_CSV, show_col_types = FALSE)
 
     ewa_row <- geo_df |> filter(Zone_Code == as.integer(ZONE_EWA))
     cat(sprintf("  %d target TMKs loaded.\n", nrow(tmk_list)))
@@ -725,7 +743,7 @@ run_3_Oahu_TMK_Map <- function() {
             levels = c("Ewa District (Zone 9)", "Other Districts")
         ))
 
-    n_ewa   <- sum(golf_sf$zone == ZONE_EWA, na.rm = TRUE)
+    n_ewa <- sum(golf_sf$zone == ZONE_EWA, na.rm = TRUE)
     n_other <- nrow(golf_sf) - n_ewa
     cat(sprintf(
         "  %d golf TMKs: %d Ewa (Zone 9), %d across other districts.\n",
@@ -777,12 +795,12 @@ run_3_Oahu_TMK_Map <- function() {
             linewidth = 0.35
         ) +
         geom_sf(
-            data   = arrange(golf_sf, district == "Ewa District (Zone 9)"),
+            data = arrange(golf_sf, district == "Ewa District (Zone 9)"),
             aes(fill = district),
             colour = NA
         ) +
         scale_fill_manual(
-            name   = "Golf Course Parcels",
+            name = "Golf Course Parcels",
             values = c(
                 "Ewa District (Zone 9)" = COL_EWA,
                 "Other Districts"       = COL_OTHER
@@ -802,7 +820,7 @@ run_3_Oahu_TMK_Map <- function() {
             pad_y      = unit(0.5, "cm")
         ) +
         labs(
-            title    = "Golf Course Parcel Concentration — Oahu, Hawaiʻi",
+            title = "Golf Course Parcel Concentration — Oahu, Hawaiʻi",
             subtitle = sprintf(
                 "%d golf TMKs  |  Ewa District (Zone 9): %d parcels (%.1f%%)  |  %d zones represented",
                 nrow(golf_sf),
@@ -810,7 +828,7 @@ run_3_Oahu_TMK_Map <- function() {
                 ewa_row$Pct_of_Total_Parcels,
                 n_distinct(golf_sf$zone)
             ),
-            caption  = paste0(
+            caption = paste0(
                 "Source: City & County of Honolulu parcel data; OSM golf course polygons. ",
                 "CRS: WGS 84 / UTM Zone 4N (EPSG 32604).\n",
                 "TMK = Tax Map Key. Zone 9 corresponds to the Ewa District ",
@@ -819,24 +837,24 @@ run_3_Oahu_TMK_Map <- function() {
         ) +
         theme_void(base_size = 12) +
         theme(
-            plot.title        = element_text(
+            plot.title = element_text(
                 face = "bold", size = 16, hjust = 0.5, margin = margin(b = 4)
             ),
-            plot.subtitle     = element_text(
+            plot.subtitle = element_text(
                 size = 9, hjust = 0.5, colour = "grey35", margin = margin(b = 8)
             ),
-            plot.caption      = element_text(
+            plot.caption = element_text(
                 size = 7, colour = "grey50", hjust = 0, margin = margin(t = 10)
             ),
-            legend.position   = c(0.87, 0.22),
+            legend.position = c(0.87, 0.22),
             legend.background = element_rect(
                 fill = alpha("white", 0.88), colour = "grey75", linewidth = 0.3
             ),
-            legend.margin  = margin(5, 9, 5, 9),
-            legend.title   = element_text(size = 8, face = "bold"),
-            legend.text    = element_text(size = 8),
+            legend.margin = margin(5, 9, 5, 9),
+            legend.title = element_text(size = 8, face = "bold"),
+            legend.text = element_text(size = 8),
             plot.background = element_rect(fill = "white", colour = NA),
-            plot.margin    = margin(12, 16, 8, 16)
+            plot.margin = margin(12, 16, 8, 16)
         )
 
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
@@ -859,23 +877,25 @@ run_3_Oahu_TMK_Map <- function() {
 run_4_Oahu_Zoning_Map <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR   <- this.path::this.dir()
-    WORK_DIR     <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE5_DATA  <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE5_DATA <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R")
     PARCELS_GPKG <- file.path(PHASE5_DATA, "Honolulu_Parcels_Reprojected.gpkg")
-    TMK_CSV      <- file.path(PHASE5_DATA, "Target_Golf_Parcels_List.csv")
-    ZONING_GPKG  <- file.path(WORK_DIR, "00 - Data Sources", "Honolulu",
-                               "Zoning_-2205419429161838665.gpkg")
-    OUTPUT_DIR   <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR   <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR       <- file.path(OUTPUT_DIR, "QA_Verification")
+    TMK_CSV <- file.path(PHASE5_DATA, "Target_Golf_Parcels_List.csv")
+    ZONING_GPKG <- file.path(
+        WORK_DIR, "00 - Data Sources", "Honolulu",
+        "Zoning_-2205419429161838665.gpkg"
+    )
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG      <- file.path(THESIS_DIR, "4.101_Oahu_Golf_Zoning_Map.png")
+    OUT_PNG <- file.path(THESIS_DIR, "4.101_Oahu_Golf_Zoning_Map.png")
 
-    OAHU_CRS   <- 32604L   # WGS 84 / UTM Zone 4N
+    OAHU_CRS <- 32604L # WGS 84 / UTM Zone 4N
     COL_ISLAND <- "#e8e8e8"
-    COL_COAST  <- "#aaaaaa"
+    COL_COAST <- "#aaaaaa"
 
     # [METHODOLOGY] Colors are assigned semantically by zone type so that related
     #               land-use categories share a hue family, aiding interpretation.
@@ -905,13 +925,7 @@ run_4_Oahu_Zoning_Map <- function() {
         "IMX-1"  = "#90a4ae"
     )
 
-
-    # === 3. FUNCTIONS ===
-
-    # (none)
-
-
-    # === 4. EXECUTION ===
+    # === 3. EXECUTION ===
 
     cat("\n--- Script 4: Oahu Golf Parcels by Zoning Classification ---\n\n")
 
@@ -985,12 +999,12 @@ run_4_Oahu_Zoning_Map <- function() {
     cat("\n[Step 5] Building Oahu island outline (dissolving all parcels)...\n")
     # [METHODOLOGY] Spatial read of full parcel layer for st_union outline construction;
     #               reprojected to EPSG 32604 to match golf_sf CRS.
-    all_parcels_sf  <- st_read(PARCELS_GPKG, quiet = TRUE) |> st_transform(OAHU_CRS)
+    all_parcels_sf <- st_read(PARCELS_GPKG, quiet = TRUE) |> st_transform(OAHU_CRS)
     oahu_outline_sf <- st_sf(geometry = st_union(all_parcels_sf))
     cat("  Island outline complete.\n")
 
-    observed_zones    <- sort(unique(golf_zoned_sf$zone_class))
-    zone_colors_used  <- ZONE_COLORS[names(ZONE_COLORS) %in% observed_zones]
+    observed_zones <- sort(unique(golf_zoned_sf$zone_class))
+    zone_colors_used <- ZONE_COLORS[names(ZONE_COLORS) %in% observed_zones]
     if ("Unzoned" %in% observed_zones) {
         zone_colors_used <- c(zone_colors_used, Unzoned = "#d4d4d4")
     }
@@ -1016,15 +1030,15 @@ run_4_Oahu_Zoning_Map <- function() {
             linewidth = 0.3
         ) +
         geom_sf(
-            data   = golf_zoned_sf,
+            data = golf_zoned_sf,
             aes(fill = zone_class),
             colour = NA
         ) +
         scale_fill_manual(
-            name   = "Dominant Zoning Classification",
+            name = "Dominant Zoning Classification",
             values = zone_colors_used,
             labels = zone_labels,
-            guide  = guide_legend(
+            guide = guide_legend(
                 ncol         = 1,
                 override.aes = list(colour = NA),
                 keywidth     = unit(0.55, "cm"),
@@ -1040,13 +1054,13 @@ run_4_Oahu_Zoning_Map <- function() {
             pad_y      = unit(0.5, "cm")
         ) +
         labs(
-            title    = "Golf Course Parcels by Dominant Zoning Class — Oahu, Hawaiʻi",
+            title = "Golf Course Parcels by Dominant Zoning Class — Oahu, Hawaiʻi",
             subtitle = sprintf(
                 "%d golf TMKs  |  %d unique zone classes  |  Each parcel colored by largest-overlap zoning assignment",
                 nrow(golf_zoned_sf),
                 n_distinct(golf_zoned_sf$zone_class)
             ),
-            caption  = paste0(
+            caption = paste0(
                 "Source: City & County of Honolulu parcel & zoning data; OSM golf course polygons. ",
                 "CRS: WGS 84 / UTM Zone 4N (EPSG 32604).\n",
                 "Dominant zone assigned via largest intersection area (st_join, largest = TRUE). ",
@@ -1057,22 +1071,22 @@ run_4_Oahu_Zoning_Map <- function() {
         ) +
         theme_void(base_size = 11) +
         theme(
-            plot.title       = element_text(
+            plot.title = element_text(
                 face = "bold", size = 15, hjust = 0.5, margin = margin(b = 4)
             ),
-            plot.subtitle    = element_text(
+            plot.subtitle = element_text(
                 size = 8.5, hjust = 0.5, colour = "grey35", margin = margin(b = 6)
             ),
-            plot.caption     = element_text(
+            plot.caption = element_text(
                 size = 6.5, colour = "grey50", hjust = 0, margin = margin(t = 8)
             ),
-            legend.position      = "right",
-            legend.title         = element_text(size = 8, face = "bold", margin = margin(b = 4)),
-            legend.text          = element_text(size = 7.5),
-            legend.margin        = margin(0, 6, 0, 6),
+            legend.position = "right",
+            legend.title = element_text(size = 8, face = "bold", margin = margin(b = 4)),
+            legend.text = element_text(size = 7.5),
+            legend.margin = margin(0, 6, 0, 6),
             legend.key.spacing.y = unit(1, "pt"),
-            plot.background      = element_rect(fill = "white", colour = NA),
-            plot.margin          = margin(12, 4, 8, 12)
+            plot.background = element_rect(fill = "white", colour = NA),
+            plot.margin = margin(12, 4, 8, 12)
         )
 
     dir.create(OUTPUT_DIR, recursive = TRUE, showWarnings = FALSE)
@@ -1095,23 +1109,27 @@ run_4_Oahu_Zoning_Map <- function() {
 run_7_Bivariate_Econometric_Map <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR    <- this.path::this.dir()
-    WORK_DIR      <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE1_CSV    <- file.path(WORK_DIR, "Phase 1 Parsing", "Data", "R",
-                               "R_Phase1_Baseline_Golf_Valuation.csv")
-    PHASE2_CSV    <- file.path(WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
-                               "R_Phase2_Acreage_Matched_v2.csv")
-    PHASE3_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE1_CSV <- file.path(
+        WORK_DIR, "Phase 1 Parsing", "Data", "R",
+        "R_Phase1_Baseline_Golf_Valuation.csv"
+    )
+    PHASE2_CSV <- file.path(
+        WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
+        "R_Phase2_Acreage_Matched_v2.csv"
+    )
+    PHASE3_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
     IMPUTED_PATHS <- file.path(PHASE3_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
-    OUTPUT_DIR    <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR    <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR        <- file.path(OUTPUT_DIR, "QA_Verification")
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG1      <- file.path(OUTPUT_DIR, "7.1X1_Bivariate_Cost_vs_Density_Map.png")
-    OUT_PNG2      <- file.path(THESIS_DIR, "7.101_Bivariate_Cost_vs_Density_Map_ObservedOnly.png")
+    OUT_PNG1 <- file.path(OUTPUT_DIR, "7.1X1_Bivariate_Cost_vs_Density_Map.png")
+    OUT_PNG2 <- file.path(THESIS_DIR, "7.101_Bivariate_Cost_vs_Density_Map_ObservedOnly.png")
 
-    M                    <- 100L
+    M <- 100L
     TERRITORY_EXCLUDE_FP <- c("60", "66", "69", "72", "74", "78")
 
 
@@ -1157,7 +1175,7 @@ run_7_Bivariate_Econometric_Map <- function() {
             ) +
             geom_sf(
                 data        = counties_bi,
-                aes(fill    = bi_class),
+                aes(fill = bi_class),
                 colour      = NA,
                 show.legend = FALSE
             ) +
@@ -1169,22 +1187,28 @@ run_7_Bivariate_Econometric_Map <- function() {
                 linewidth = 0.30
             ) +
             labs(
-                title    = paste0(
+                title = paste0(
                     "Golf Course Opportunity Cost vs. Course Density",
                     " — U.S. Counties"
                 ),
                 subtitle = subtitle,
-                caption  = caption_text
+                caption = caption_text
             ) +
             theme_void(base_size = 12) +
             theme(
-                plot.title    = element_text(face = "bold", size = 16, hjust = 0.5,
-                                             margin = margin(b = 5)),
-                plot.subtitle = element_text(size = 10, hjust = 0.5, colour = "grey35",
-                                             margin = margin(b = 10)),
-                plot.caption  = element_text(size = 7.5, colour = "grey50", hjust = 0,
-                                             margin = margin(t = 10)),
-                plot.margin   = margin(12, 24, 8, 24)
+                plot.title = element_text(
+                    face = "bold", size = 16, hjust = 0.5,
+                    margin = margin(b = 5)
+                ),
+                plot.subtitle = element_text(
+                    size = 10, hjust = 0.5, colour = "grey35",
+                    margin = margin(b = 10)
+                ),
+                plot.caption = element_text(
+                    size = 7.5, colour = "grey50", hjust = 0,
+                    margin = margin(t = 10)
+                ),
+                plot.margin = margin(12, 24, 8, 24)
             )
 
         legend_plot <- bi_legend(
@@ -1196,7 +1220,7 @@ run_7_Bivariate_Econometric_Map <- function() {
         )
 
         ggdraw() +
-            draw_plot(map_plot,    x = 0,    y = 0,    width = 1,    height = 1) +
+            draw_plot(map_plot, x = 0, y = 0, width = 1, height = 1) +
             draw_plot(legend_plot, x = 0.72, y = 0.04, width = 0.24, height = 0.24)
     }
 
@@ -1211,10 +1235,10 @@ run_7_Bivariate_Econometric_Map <- function() {
     }
 
 
-    #  Step 1: Build county lookup 
+    #  Step 1: Build county lookup
 
     cat("[Step 1] Building county lookup from Phase 1 baseline...\n")
-    phase1_df     <- read_csv(PHASE1_CSV, show_col_types = FALSE)
+    phase1_df <- read_csv(PHASE1_CSV, show_col_types = FALSE)
     county_lookup <- phase1_df |>
         select(Longitude, Latitude, FIPS, County_Name, State_Abbr) |>
         distinct() |>
@@ -1222,7 +1246,7 @@ run_7_Bivariate_Econometric_Map <- function() {
     cat(sprintf("  %d unique course coordinates loaded.\n", nrow(county_lookup)))
 
 
-    #  Step 2: Pool opportunity costs across M imputations 
+    #  Step 2: Pool opportunity costs across M imputations
 
     cat("[Step 2] Using global Tri-Language Grand Means for County.\n")
     pooled_county <- grand_means$county$GrandMean
@@ -1234,7 +1258,7 @@ run_7_Bivariate_Econometric_Map <- function() {
     ))
 
 
-    #  Step 3: Total holes per county from imputation 1 
+    #  Step 3: Total holes per county from imputation 1
     # Holes is not a MICE-imputed variable; all 100 draws are identical.
 
     cat("\n[Step 3] Computing total holes per county (imputation 1)...\n")
@@ -1247,12 +1271,13 @@ run_7_Bivariate_Econometric_Map <- function() {
     county_data_list <- list()
     for (model_name in names(grand_means$county)) {
         county_data_list[[model_name]] <- inner_join(
-            grand_means$county[[model_name]], county_holes_mice, by = "FIPS"
+            grand_means$county[[model_name]], county_holes_mice,
+            by = "FIPS"
         )
     }
 
 
-    #  Step 4: Download county and state boundaries (shared between both maps) 
+    #  Step 4: Download county and state boundaries (shared between both maps)
 
     cat("\n[Step 4] Downloading county and state boundaries via tigris...\n")
     # [METHODOLOGY] shift_geometry() repositions AK and HI as insets; st_transform
@@ -1271,17 +1296,17 @@ run_7_Bivariate_Econometric_Map <- function() {
     cat(sprintf("  %d states loaded with AK/HI insets.\n", nrow(states_sf)))
 
 
-    #  Step 5: Render + save Map 7.1 (MICE-pooled) 
+    #  Step 5: Render + save Map 7.1 (MICE-pooled)
 
     cat("\n[Step 5] Rendering Map 7.1: MICE-pooled bivariate maps (4 variations)...\n")
 
     for (model_name in names(county_data_list)) {
         cat(sprintf("  -> Rendering %s bivariate map...\n", model_name))
         final_plot1 <- build_bivariate_map(
-            counties_sf  = counties_sf,
-            states_sf    = states_sf,
-            county_data  = county_data_list[[model_name]],
-            subtitle     = paste0(
+            counties_sf = counties_sf,
+            states_sf = states_sf,
+            county_data = county_data_list[[model_name]],
+            subtitle = paste0(
                 "Bivariate map (", model_name, ")  │  X: total OC  ",
                 "│  Y: total holes  │  AK and HI shown as insets"
             ),
@@ -1293,7 +1318,7 @@ run_7_Bivariate_Econometric_Map <- function() {
             )
         )
         lang_code <- c("GrandMean" = "4", "Python" = "2", "R" = "3", "Julia" = "1")[[model_name]]
-        sub_dir  <- if (lang_code %in% c("4", "0")) "Final_Thesis_Figures" else "QA_Verification"
+        sub_dir <- if (lang_code %in% c("4", "0")) "Final_Thesis_Figures" else "QA_Verification"
         out_file <- sub("X", lang_code, OUT_PNG1)
         out_file <- sub("\\.png$", paste0("_", model_name, ".png"), out_file)
         out_file <- sub("output", paste0("output/", sub_dir), out_file)
@@ -1323,8 +1348,8 @@ run_7_Bivariate_Econometric_Map <- function() {
         filter(!is.na(FIPS)) |>
         group_by(FIPS, County_Name, State_Abbr) |>
         summarise(
-            pooled_opp_cost = sum(opp_cost,  na.rm = TRUE),
-            total_holes     = sum(Holes,     na.rm = TRUE),
+            pooled_opp_cost = sum(opp_cost, na.rm = TRUE),
+            total_holes = sum(Holes, na.rm = TRUE),
             .groups = "drop"
         )
 
@@ -1340,15 +1365,15 @@ run_7_Bivariate_Econometric_Map <- function() {
     ))
 
 
-    #  Step 7: Render + save Map 7.2 (Observed-only) 
+    #  Step 7: Render + save Map 7.2 (Observed-only)
 
     cat("\n[Step 7] Rendering Map 7.2: Observed-only bivariate map...\n")
 
     final_plot2 <- build_bivariate_map(
-        counties_sf  = counties_sf,
-        states_sf    = states_sf,
-        county_data  = obs_county_data,
-        subtitle     = paste0(
+        counties_sf = counties_sf,
+        states_sf = states_sf,
+        county_data = obs_county_data,
+        subtitle = paste0(
             "Bivariate map  │  X: total OC (observed acreage only)  ",
             "│  Y: total holes  │  AK and HI shown as insets"
         ),
@@ -1371,26 +1396,36 @@ run_7_Bivariate_Econometric_Map <- function() {
 run_8_LaTeX_Tables <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR     <- this.path::this.dir()
-    WORK_DIR       <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    ACREAGE_CSV       <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
-                                   "Data", "R", "R_National_Acreage_Summary.csv")
-    REGRESSION_R_CSV  <- file.path(WORK_DIR, "Phase 4 Econometric Modeling", "Data", "R",
-                                   "R_Regression_Results.csv")
-    REGRESSION_PY_CSV <- file.path(WORK_DIR, "Phase 4 Econometric Modeling", "Data", "python",
-                                   "Py_Regression_Results.csv")
-    REGRESSION_JL_CSV <- file.path(WORK_DIR, "Phase 4 Econometric Modeling", "Data", "Julia",
-                                   "Jl_Regression_Results.csv")
-    HAWAII_CSV     <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R",
-                                "Phase5_Geographic_Breakdown.csv")
-    OUTPUT_DIR     <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR     <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR         <- file.path(OUTPUT_DIR, "QA_Verification")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    ACREAGE_CSV <- file.path(
+        WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
+        "Data", "R", "R_National_Acreage_Summary.csv"
+    )
+    REGRESSION_R_CSV <- file.path(
+        WORK_DIR, "Phase 4 Econometric Modeling", "Data", "R",
+        "R_Regression_Results.csv"
+    )
+    REGRESSION_PY_CSV <- file.path(
+        WORK_DIR, "Phase 4 Econometric Modeling", "Data", "python",
+        "Py_Regression_Results.csv"
+    )
+    REGRESSION_JL_CSV <- file.path(
+        WORK_DIR, "Phase 4 Econometric Modeling", "Data", "Julia",
+        "Jl_Regression_Results.csv"
+    )
+    HAWAII_CSV <- file.path(
+        WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R",
+        "Phase5_Geographic_Breakdown.csv"
+    )
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_TEX1       <- file.path(THESIS_DIR, "8.141_Table1_Acreage.tex")
-    OUT_TEX2       <- file.path(THESIS_DIR, "8.241_Table2_Regression.tex")
-    OUT_TEX3       <- file.path(THESIS_DIR, "8.301_Table3_Hawaii_Geo.tex")
+    OUT_TEX1 <- file.path(THESIS_DIR, "8.141_Table1_Acreage.tex")
+    OUT_TEX2 <- file.path(THESIS_DIR, "8.241_Table2_Regression.tex")
+    OUT_TEX3 <- file.path(THESIS_DIR, "8.301_Table3_Hawaii_Geo.tex")
 
 
     # === 3. FUNCTIONS ===
@@ -1399,14 +1434,14 @@ run_8_LaTeX_Tables <- function() {
     # Backslash is processed first to avoid double-escaping characters introduced
     # by the subsequent substitutions.
     latex_escape <- function(x) {
-        x <- gsub("\\\\",  "\\\\textbackslash{}", x)
-        x <- gsub("%",     "\\\\%",               x, fixed = TRUE)
-        x <- gsub("\\$",   "\\\\$",               x)
-        x <- gsub("_",     "\\\\_",               x, fixed = TRUE)
-        x <- gsub("&",     "\\\\&",               x, fixed = TRUE)
-        x <- gsub("#",     "\\\\#",               x, fixed = TRUE)
-        x <- gsub("\\^",   "\\\\^{}",             x)
-        x <- gsub("~",     "\\\\~{}",             x, fixed = TRUE)
+        x <- gsub("\\\\", "\\\\textbackslash{}", x)
+        x <- gsub("%", "\\\\%", x, fixed = TRUE)
+        x <- gsub("\\$", "\\\\$", x)
+        x <- gsub("_", "\\\\_", x, fixed = TRUE)
+        x <- gsub("&", "\\\\&", x, fixed = TRUE)
+        x <- gsub("#", "\\\\#", x, fixed = TRUE)
+        x <- gsub("\\^", "\\\\^{}", x)
+        x <- gsub("~", "\\\\~{}", x, fixed = TRUE)
         x
     }
 
@@ -1422,13 +1457,15 @@ run_8_LaTeX_Tables <- function() {
     cat("\n--- Script 8: LaTeX Table Generation ---\n\n")
     dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-    for (f in c(ACREAGE_CSV, REGRESSION_R_CSV, REGRESSION_PY_CSV,
-                REGRESSION_JL_CSV, HAWAII_CSV)) {
+    for (f in c(
+        ACREAGE_CSV, REGRESSION_R_CSV, REGRESSION_PY_CSV,
+        REGRESSION_JL_CSV, HAWAII_CSV
+    )) {
         if (!file.exists(f)) stop(sprintf("[FATAL] Input not found:\n  %s", f))
     }
 
 
-    #  4.1  Table 1: National Acreage Summary 
+    #  4.1  Table 1: National Acreage Summary
 
     cat("[Table 1] Formatting national acreage summary...\n")
 
@@ -1437,20 +1474,21 @@ run_8_LaTeX_Tables <- function() {
 
     acreage_tbl <- acreage_raw |>
         mutate(
-            Category    = latex_escape(Category),
+            Category = latex_escape(Category),
             County_Type = latex_escape(County_Type),
             across(where(is.numeric), ~ format(
-                round(.x, 1), big.mark = ",", nsmall = 1, trim = TRUE
+                round(.x, 1),
+                big.mark = ",", nsmall = 1, trim = TRUE
             ))
         )
 
     tbl1 <- kable(
         acreage_tbl,
-        format    = "latex",
-        booktabs  = TRUE,
-        escape    = FALSE,
-        caption   = "National Golf Course Acreage Summary (MICE-Pooled, $M = 100$)",
-        label     = "acreage_summary",
+        format = "latex",
+        booktabs = TRUE,
+        escape = FALSE,
+        caption = "National Golf Course Acreage Summary (MICE-Pooled, $M = 100$)",
+        label = "acreage_summary",
         col.names = c(
             "Category", "County Type",
             "Pooled Acres", "SD (Between)",
@@ -1471,20 +1509,20 @@ run_8_LaTeX_Tables <- function() {
         read_csv(path, show_col_types = FALSE) |>
             mutate(
                 Parameter = case_when(
-                    Parameter == "(Intercept)"              ~ "Intercept",
-                    Parameter == "Holes"                    ~ "Holes",
+                    Parameter == "(Intercept)" ~ "Intercept",
+                    Parameter == "Holes" ~ "Holes",
                     Parameter == "factor(county_type)Urban" ~ "Urban County",
-                    TRUE                                    ~ latex_escape(Parameter)
+                    TRUE ~ latex_escape(Parameter)
                 ),
                 Coef = sprintf("%.3f", Coef),
-                SE   = sprintf("%.3f", Std_Error),
-                p    = fmt_pval(p_value)
+                SE = sprintf("%.3f", Std_Error),
+                p = fmt_pval(p_value)
             ) |>
             select(Parameter, Coef, SE, p, Sig)
     }
 
     reg_py <- prep_reg(REGRESSION_PY_CSV)
-    reg_r  <- prep_reg(REGRESSION_R_CSV)
+    reg_r <- prep_reg(REGRESSION_R_CSV)
     reg_jl <- prep_reg(REGRESSION_JL_CSV)
     cat(sprintf(
         "  Parameters loaded — Py: %d  R: %d  Jl: %d\n",
@@ -1494,7 +1532,7 @@ run_8_LaTeX_Tables <- function() {
     reg_tri <- reg_py |>
         rename(Coef_Py = Coef, SE_Py = SE, p_Py = p, Sig_Py = Sig) |>
         inner_join(
-            reg_r  |> rename(Coef_R  = Coef, SE_R  = SE, p_R  = p, Sig_R  = Sig),
+            reg_r |> rename(Coef_R = Coef, SE_R = SE, p_R = p, Sig_R = Sig),
             by = "Parameter"
         ) |>
         inner_join(
@@ -1507,15 +1545,15 @@ run_8_LaTeX_Tables <- function() {
 
     tbl2 <- kable(
         reg_tri,
-        format    = "latex",
-        booktabs  = TRUE,
-        escape    = FALSE,
-        caption   = paste0(
+        format = "latex",
+        booktabs = TRUE,
+        escape = FALSE,
+        caption = paste0(
             "MICE-Pooled OLS Regression Results (Rubin's Rules, $M = 300$: ",
             "100 Python, 100 R, 100 Julia). ",
             "Dep.\\ var.: $\\log(\\text{Opportunity\\_Cost})$."
         ),
-        label     = "regression_results",
+        label = "regression_results",
         col.names = c(
             "Parameter",
             "Coef.", "SE", "$p$", "Sig.",
@@ -1534,8 +1572,8 @@ run_8_LaTeX_Tables <- function() {
                 "Rubin's Rules applied independently per language group ($M = 100$ each). ",
                 "Grand Mean = arithmetic mean of three independently pooled estimates."
             ),
-            general_title  = "Note: ",
-            escape         = FALSE,
+            general_title = "Note: ",
+            escape = FALSE,
             threeparttable = TRUE
         )
 
@@ -1543,7 +1581,7 @@ run_8_LaTeX_Tables <- function() {
     cat(sprintf("  Saved: %s\n\n", basename(OUT_TEX2)))
 
 
-    #  4.3  Table 3: Hawaii Geographic Breakdown 
+    #  4.3  Table 3: Hawaii Geographic Breakdown
 
     cat("[Table 3] Formatting Hawaii geographic breakdown...\n")
 
@@ -1580,34 +1618,36 @@ run_8_LaTeX_Tables <- function() {
 run_9_Oahu_Opportunity_Cost_Map <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR       <- this.path::this.dir()
-    WORK_DIR         <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE5_DATA      <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R")
-    POLYGONS_GPKG    <- file.path(PHASE5_DATA, "Target_Golf_Polygons.gpkg")
-    PARCELS_GPKG     <- file.path(PHASE5_DATA, "Honolulu_Parcels_Reprojected.gpkg")
-    PHASE2_CSV       <- file.path(WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
-                                  "R_Phase2_Acreage_Matched_v2.csv")
-    PHASE3_R_DIR     <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
-    PHASE3_PY_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "python")
-    PHASE3_JL_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "Julia")
-    R_IMPUTED_PATHS  <- file.path(PHASE3_R_DIR,  paste0("R_Imputed_Dataset_",  1:100, ".csv"))
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE5_DATA <- file.path(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study", "Data", "R")
+    POLYGONS_GPKG <- file.path(PHASE5_DATA, "Target_Golf_Polygons.gpkg")
+    PARCELS_GPKG <- file.path(PHASE5_DATA, "Honolulu_Parcels_Reprojected.gpkg")
+    PHASE2_CSV <- file.path(
+        WORK_DIR, "Phase 2 Spatial Polygons and True Acreage", "Data", "R",
+        "R_Phase2_Acreage_Matched_v2.csv"
+    )
+    PHASE3_R_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
+    PHASE3_PY_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "python")
+    PHASE3_JL_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "Julia")
+    R_IMPUTED_PATHS <- file.path(PHASE3_R_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
     PY_IMPUTED_PATHS <- file.path(PHASE3_PY_DIR, paste0("Py_Imputed_Dataset_", 1:100, ".csv"))
     JL_IMPUTED_PATHS <- file.path(PHASE3_JL_DIR, paste0("Jl_Imputed_Dataset_", 1:100, ".csv"))
-    OUTPUT_DIR       <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR       <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR           <- file.path(OUTPUT_DIR, "QA_Verification")
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG1         <- file.path(THESIS_DIR, "9.141_Oahu_Opportunity_Cost_Map_GrandMean.png")
-    OUT_PNG2         <- file.path(THESIS_DIR, "9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png")
+    OUT_PNG1 <- file.path(THESIS_DIR, "9.141_Oahu_Opportunity_Cost_Map_GrandMean.png")
+    OUT_PNG2 <- file.path(THESIS_DIR, "9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png")
 
-    M             <- 100L
-    OAHU_CRS      <- 32604L  # WGS 84 / UTM Zone 4N
+    M <- 100L
+    OAHU_CRS <- 32604L # WGS 84 / UTM Zone 4N
 
-    OAHU_LAT_MIN  <- 21.2
-    OAHU_LAT_MAX  <- 21.9
-    OAHU_LON_MIN  <- -158.5
-    OAHU_LON_MAX  <- -157.6
+    OAHU_LAT_MIN <- 21.2
+    OAHU_LAT_MAX <- 21.9
+    OAHU_LON_MIN <- -158.5
+    OAHU_LON_MAX <- -157.6
 
     JOIN_DIST_CAP <- 500L
 
@@ -1617,22 +1657,31 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
     # Auto-scale dollar labels: $B if >= 1B, else $M.
     label_oc <- function(x) {
         if_else(x >= 1e9,
-                sprintf("$%.1fB", x / 1e9),
-                sprintf("$%.0fM", x / 1e6))
+            sprintf("$%.1fB", x / 1e9),
+            sprintf("$%.0fM", x / 1e6)
+        )
+    }
+
+    # Column-agnostic acreage extractor: returns the correct acreage vector from a
+    # data frame regardless of which column name the language group uses.
+    # R datasets use final_acreage; Python/Julia datasets use osm_acreage.
+    # Called via pick(everything()) inside mutate() so the full data frame is available.
+    get_acreage <- function(df) {
+        if ("osm_acreage" %in% names(df)) df[["osm_acreage"]] else df[["final_acreage"]]
     }
 
     # Nearest-feature spatial join: attach pooled_opp_cost from a point sf object
     # to a polygon sf object, discarding matches beyond JOIN_DIST_CAP metres.
     # Returns the polygon sf with added columns pooled_opp_cost and join_dist_m.
     join_oc_to_polygons <- function(polygons_sf, pts_sf, oc_vals) {
-        nn_idx    <- st_nearest_feature(polygons_sf, pts_sf)
+        nn_idx <- st_nearest_feature(polygons_sf, pts_sf)
         join_dist <- as.numeric(
             st_distance(polygons_sf, pts_sf[nn_idx, ], by_element = TRUE)
         )
         polygons_sf |>
             mutate(
                 pooled_opp_cost = oc_vals[nn_idx],
-                join_dist_m     = join_dist,
+                join_dist_m = join_dist,
                 pooled_opp_cost = if_else(
                     join_dist_m > JOIN_DIST_CAP, NA_real_, pooled_opp_cost
                 )
@@ -1647,10 +1696,13 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
         for (i in seq_len(M)) {
             df <- read_csv(paths[i], show_col_types = FALSE) |>
                 filter(
-                    Latitude  >= OAHU_LAT_MIN, Latitude  <= OAHU_LAT_MAX,
+                    Latitude >= OAHU_LAT_MIN, Latitude <= OAHU_LAT_MAX,
                     Longitude >= OAHU_LON_MIN, Longitude <= OAHU_LON_MAX
                 ) |>
-                mutate(opp_cost = final_acreage * Baseline_Value_Per_Acre)
+                mutate(
+                    acreage  = get_acreage(pick(everything())),
+                    opp_cost = acreage * Baseline_Value_Per_Acre
+                )
             total_list[[i]] <- df |>
                 group_by(Longitude, Latitude) |>
                 summarise(
@@ -1658,7 +1710,8 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
                     .groups        = "drop"
                 ) |>
                 mutate(imputation = i)
-            rm(df); gc()
+            rm(df)
+            gc()
         }
         # [METHODOLOGY] Rubin's Rules q_bar: mean of per-imputation course-level OC
         #               values across M = 100 imputations for this language group.
@@ -1672,7 +1725,7 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
 
     # Render Oahu OC micro-map and return the ggplot object.
     build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
-                                   n_matched, subtitle, caption_text) {
+                                  n_matched, subtitle, caption_text) {
         ggplot() +
             geom_sf(
                 data      = oahu_outline_sf,
@@ -1681,16 +1734,16 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
                 linewidth = 0.35
             ) +
             geom_sf(
-                data  = golf_oc_sf,
+                data = golf_oc_sf,
                 aes(fill = pooled_opp_cost),
                 colour = NA
             ) +
             scale_fill_viridis_c(
-                option   = "plasma",
+                option = "plasma",
                 na.value = "#cccccc",
-                name     = "Opportunity Cost",
-                labels   = label_oc,
-                guide    = guide_colorbar(
+                name = "Opportunity Cost",
+                labels = label_oc,
+                guide = guide_colorbar(
                     barwidth       = unit(8, "cm"),
                     barheight      = unit(0.45, "cm"),
                     title.position = "top",
@@ -1707,11 +1760,11 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
                 pad_y      = unit(0.5, "cm")
             ) +
             annotation_north_arrow(
-                location    = "tr",
+                location = "tr",
                 which_north = "true",
-                pad_x       = unit(0.5, "cm"),
-                pad_y       = unit(0.5, "cm"),
-                style       = north_arrow_fancy_orienteering(
+                pad_x = unit(0.5, "cm"),
+                pad_y = unit(0.5, "cm"),
+                style = north_arrow_fancy_orienteering(
                     fill      = c("white", "#444444"),
                     line_col  = "#444444",
                     text_col  = "#444444",
@@ -1725,20 +1778,20 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
             ) +
             theme_void(base_size = 12) +
             theme(
-                plot.title      = element_text(
+                plot.title = element_text(
                     face = "bold", size = 16, hjust = 0.5, margin = margin(b = 4)
                 ),
-                plot.subtitle   = element_text(
+                plot.subtitle = element_text(
                     size = 9, hjust = 0.5, colour = "grey35", margin = margin(b = 8)
                 ),
-                plot.caption    = element_text(
+                plot.caption = element_text(
                     size = 7, colour = "grey50", hjust = 0, margin = margin(t = 10)
                 ),
                 legend.position = "bottom",
-                legend.title    = element_text(size = 9, face = "bold"),
-                legend.text     = element_text(size = 8),
+                legend.title = element_text(size = 9, face = "bold"),
+                legend.text = element_text(size = 8),
                 plot.background = element_rect(fill = "white", colour = NA),
-                plot.margin     = margin(12, 16, 8, 16)
+                plot.margin = margin(12, 16, 8, 16)
             )
     }
 
@@ -1748,8 +1801,10 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
     cat("\n--- Script 9: Oahu Golf Course Opportunity Cost ---\n\n")
     dir.create(OUTPUT_DIR, showWarnings = FALSE, recursive = TRUE)
 
-    for (f in c(POLYGONS_GPKG, PARCELS_GPKG, PHASE2_CSV,
-                R_IMPUTED_PATHS, PY_IMPUTED_PATHS, JL_IMPUTED_PATHS)) {
+    for (f in c(
+        POLYGONS_GPKG, PARCELS_GPKG, PHASE2_CSV,
+        R_IMPUTED_PATHS, PY_IMPUTED_PATHS, JL_IMPUTED_PATHS
+    )) {
         if (!file.exists(f)) stop(sprintf("[FATAL] Input not found:\n  %s", f))
     }
 
@@ -1757,15 +1812,15 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
     #  Step 1: Filter imputed datasets to Oahu and pool OC per language; compute Grand Mean
 
     cat("[Step 1] Filtering imputed datasets to Oahu and pooling OC (tri-language)...\n")
-    pooled_r  <- pool_oahu_oc(R_IMPUTED_PATHS,  "R")
+    pooled_r <- pool_oahu_oc(R_IMPUTED_PATHS, "R")
     pooled_py <- pool_oahu_oc(PY_IMPUTED_PATHS, "Py")
     pooled_jl <- pool_oahu_oc(JL_IMPUTED_PATHS, "Jl")
 
     # [METHODOLOGY] Grand Mean = arithmetic mean of three independently Rubin-pooled
     #               OC vectors (M=100 each). full_join on coordinate key preserves all
     #               courses regardless of which language-dataset covers them.
-    pooled_oahu <- pooled_r  |>
-        rename(oc_r  = pooled_opp_cost) |>
+    pooled_oahu <- pooled_r |>
+        rename(oc_r = pooled_opp_cost) |>
         full_join(
             pooled_py |> rename(oc_py = pooled_opp_cost),
             by = c("Longitude", "Latitude")
@@ -1822,8 +1877,8 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
         golf_polygons_sf, oahu_pts_mice, pooled_oahu$pooled_opp_cost
     )
 
-    n_matched_mice   <- sum(!is.na(golf_oc_mice$pooled_opp_cost))
-    n_unmatched_mice <- sum( is.na(golf_oc_mice$pooled_opp_cost))
+    n_matched_mice <- sum(!is.na(golf_oc_mice$pooled_opp_cost))
+    n_unmatched_mice <- sum(is.na(golf_oc_mice$pooled_opp_cost))
     cat(sprintf(
         "  %d matched within %d m  |  %d exceeded cap (gray).\n",
         n_matched_mice, JOIN_DIST_CAP, n_unmatched_mice
@@ -1849,20 +1904,22 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
     cat("  Island outline complete.\n")
 
 
-    #  Step 5: Render + save Map 9.1 (MICE-pooled) 
+    #  Step 5: Render + save Map 9.1 (MICE-pooled)
 
     cat("\n[Step 5] Rendering Map 9.1: MICE-pooled Oahu map...\n")
 
     map1 <- build_oahu_oc_map(
-        golf_oc_sf      = golf_oc_mice,
+        golf_oc_sf = golf_oc_mice,
         oahu_outline_sf = oahu_outline_sf,
-        n_matched       = n_matched_mice,
-        subtitle        = sprintf(
-            paste0("%d courses  │  Grand Mean of Py/R/Jl Rubin-pooled estimates",
-                   " (M = 300: 100 each)  │  OSM polygon boundaries"),
+        n_matched = n_matched_mice,
+        subtitle = sprintf(
+            paste0(
+                "%d courses  │  Grand Mean of Py/R/Jl Rubin-pooled estimates",
+                " (M = 300: 100 each)  │  OSM polygon boundaries"
+            ),
             n_matched_mice
         ),
-        caption_text    = paste0(
+        caption_text = paste0(
             "Opportunity Cost = Grand Mean of three independently Rubin-pooled OC estimates ",
             "(100 Python, 100 R, 100 Julia MICE imputations). ",
             "Polygon-to-point assignment via nearest-feature spatial join (cap: 500 m).\n",
@@ -1874,7 +1931,7 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
     cat(sprintf("  Saved: output/%s\n", basename(OUT_PNG1)))
 
 
-    #  Step 6: Observed-only Oahu OC from Phase 2 
+    #  Step 6: Observed-only Oahu OC from Phase 2
     # [METHODOLOGY] Phase 2 acreage_source identifies directly measured courses.
     #               Filtering to acreage_source != "MICE_Target" and the Oahu
     #               bounding box yields observed-only OC values with no imputation.
@@ -1885,7 +1942,7 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
     obs_oahu <- read_csv(PHASE2_CSV, show_col_types = FALSE) |>
         filter(
             acreage_source != "MICE_Target",
-            Latitude  >= OAHU_LAT_MIN, Latitude  <= OAHU_LAT_MAX,
+            Latitude >= OAHU_LAT_MIN, Latitude <= OAHU_LAT_MAX,
             Longitude >= OAHU_LON_MIN, Longitude <= OAHU_LON_MAX
         ) |>
         mutate(opp_cost = final_acreage * Baseline_Value_Per_Acre) |>
@@ -1923,27 +1980,27 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
         golf_polygons_sf, oahu_pts_obs, obs_oahu$pooled_opp_cost
     )
 
-    n_matched_obs   <- sum(!is.na(golf_oc_obs$pooled_opp_cost))
-    n_unmatched_obs <- sum( is.na(golf_oc_obs$pooled_opp_cost))
+    n_matched_obs <- sum(!is.na(golf_oc_obs$pooled_opp_cost))
+    n_unmatched_obs <- sum(is.na(golf_oc_obs$pooled_opp_cost))
     cat(sprintf(
         "  %d matched within %d m  |  %d exceeded cap or no observed data (gray).\n",
         n_matched_obs, JOIN_DIST_CAP, n_unmatched_obs
     ))
 
 
-    #  Step 8: Render + save Map 9.2 (Observed-only) 
+    #  Step 8: Render + save Map 9.2 (Observed-only)
 
     cat("\n[Step 8] Rendering Map 9.2: Observed-only Oahu map...\n")
 
     map2 <- build_oahu_oc_map(
-        golf_oc_sf      = golf_oc_obs,
+        golf_oc_sf = golf_oc_obs,
         oahu_outline_sf = oahu_outline_sf,
-        n_matched       = n_matched_obs,
-        subtitle        = sprintf(
+        n_matched = n_matched_obs,
+        subtitle = sprintf(
             "%d courses  │  Observed acreage only — no imputation  │  OSM polygon boundaries",
             n_matched_obs
         ),
-        caption_text    = paste0(
+        caption_text = paste0(
             "Opportunity Cost = directly measured OSM acreage × baseline land value per acre. ",
             "Restricted to courses with acreage_source ≠ MICE_Target. ",
             "Polygon-to-point assignment via nearest-feature spatial join (cap: 500 m).\n",
@@ -1963,27 +2020,35 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
 run_15_Residual_Map <- function() {
     # === 2. GLOBALS & PATHS ===
 
-    SCRIPT_DIR    <- this.path::this.dir()
-    WORK_DIR      <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
-    PHASE1_CSV    <- file.path(WORK_DIR, "Phase 1 Parsing", "Data", "R",
-                               "R_Phase1_Baseline_Golf_Valuation.csv")
-    PHASE3_DIR    <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
-    REG_R_CSV     <- file.path(WORK_DIR, "Phase 4 Econometric Modeling", "Data", "R",
-                               "R_Regression_Results.csv")
-    REG_PY_CSV    <- file.path(WORK_DIR, "Phase 4 Econometric Modeling", "Data", "python",
-                               "Py_Regression_Results.csv")
-    REG_JL_CSV    <- file.path(WORK_DIR, "Phase 4 Econometric Modeling", "Data", "Julia",
-                               "Jl_Regression_Results.csv")
+    SCRIPT_DIR <- this.path::this.dir()
+    WORK_DIR <- normalizePath(file.path(SCRIPT_DIR, ".."), mustWork = FALSE)
+    PHASE1_CSV <- file.path(
+        WORK_DIR, "Phase 1 Parsing", "Data", "R",
+        "R_Phase1_Baseline_Golf_Valuation.csv"
+    )
+    PHASE3_DIR <- file.path(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data", "R")
+    REG_R_CSV <- file.path(
+        WORK_DIR, "Phase 4 Econometric Modeling", "Data", "R",
+        "R_Regression_Results.csv"
+    )
+    REG_PY_CSV <- file.path(
+        WORK_DIR, "Phase 4 Econometric Modeling", "Data", "python",
+        "Py_Regression_Results.csv"
+    )
+    REG_JL_CSV <- file.path(
+        WORK_DIR, "Phase 4 Econometric Modeling", "Data", "Julia",
+        "Jl_Regression_Results.csv"
+    )
     IMPUTED_PATHS <- file.path(PHASE3_DIR, paste0("R_Imputed_Dataset_", 1:100, ".csv"))
-    OUTPUT_DIR    <- file.path(SCRIPT_DIR, "output")
-    THESIS_DIR    <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
-    QA_DIR        <- file.path(OUTPUT_DIR, "QA_Verification")
+    OUTPUT_DIR <- file.path(SCRIPT_DIR, "output")
+    THESIS_DIR <- file.path(OUTPUT_DIR, "Final_Thesis_Figures")
+    QA_DIR <- file.path(OUTPUT_DIR, "QA_Verification")
     dir.create(THESIS_DIR, showWarnings = FALSE, recursive = TRUE)
     dir.create(QA_DIR, showWarnings = FALSE, recursive = TRUE)
-    OUT_PNG1      <- file.path(THESIS_DIR, "15.141_Log_Residual_Map_GrandMean.png")
-    OUT_PNG2      <- file.path(THESIS_DIR, "15.241_Dollar_Residual_Map_GrandMean.png")
+    OUT_PNG1 <- file.path(THESIS_DIR, "15.141_Log_Residual_Map_GrandMean.png")
+    OUT_PNG2 <- file.path(THESIS_DIR, "15.241_Dollar_Residual_Map_GrandMean.png")
 
-    M                 <- 100L
+    M <- 100L
     TERRITORY_STATEFP <- c("60", "66", "69", "72", "74", "78")
 
 
@@ -1993,21 +2058,21 @@ run_15_Residual_Map <- function() {
     # Mean_Log_Residual; map_type = "dollar" applies a signed square-root
     # compression to handle the fat-tailed dollar distribution (LA, NYC outliers).
     build_residual_map <- function(counties_joined, fill_col, title, subtitle,
-                                    caption_text, map_type = c("log", "dollar")) {
+                                   caption_text, map_type = c("log", "dollar")) {
         map_type <- match.arg(map_type)
 
         if (map_type == "log") {
             lim <- max(abs(counties_joined[[fill_col]]), na.rm = TRUE)
 
             fill_scale <- scale_fill_gradient2(
-                low      = "#4575b4",   # blue  = over-predict  (negative residual)
-                mid      = "white",
-                high     = "#d73027",   # red   = under-predict (positive residual)
+                low = "#4575b4", # blue  = over-predict  (negative residual)
+                mid = "white",
+                high = "#d73027", # red   = under-predict (positive residual)
                 midpoint = 0,
-                limits   = c(-lim, lim),
+                limits = c(-lim, lim),
                 na.value = "#d4d4d4",
-                name     = "Mean Log-Residual",
-                guide    = guide_colorbar(
+                name = "Mean Log-Residual",
+                guide = guide_colorbar(
                     barwidth       = unit(14, "cm"),
                     barheight      = unit(0.45, "cm"),
                     title.position = "top",
@@ -2015,7 +2080,6 @@ run_15_Residual_Map <- function() {
                     ticks.colour   = "grey40"
                 )
             )
-
         } else {
             # [METHODOLOGY] Signed square-root: plot_fill = sign(x) * sqrt(|x| / 1e6).
             # Preserves sign (direction) and compresses outlier magnitude symmetrically
@@ -2026,28 +2090,33 @@ run_15_Residual_Map <- function() {
                         sqrt(abs(.data[[fill_col]]) / 1e6)
                 )
             fill_col <- "plot_fill"
-            lim      <- max(abs(counties_joined$plot_fill), na.rm = TRUE)
+            lim <- max(abs(counties_joined$plot_fill), na.rm = TRUE)
 
-            sqrt_breaks   <- pretty(c(-lim, lim), n = 6)
+            sqrt_breaks <- pretty(c(-lim, lim), n = 6)
             dollar_labels <- sapply(sqrt_breaks, function(s) {
-                d <- sign(s) * s^2 * 1e6  # inverse transform
-                if      (abs(d) >= 1e9) sprintf("$%.1fB", d / 1e9)
-                else if (abs(d) >= 1e6) sprintf("$%.0fM", d / 1e6)
-                else if (abs(d) >= 1e3) sprintf("$%.0fK", d / 1e3)
-                else                    sprintf("$%.0f",  d)
+                d <- sign(s) * s^2 * 1e6 # inverse transform
+                if (abs(d) >= 1e9) {
+                    sprintf("$%.1fB", d / 1e9)
+                } else if (abs(d) >= 1e6) {
+                    sprintf("$%.0fM", d / 1e6)
+                } else if (abs(d) >= 1e3) {
+                    sprintf("$%.0fK", d / 1e3)
+                } else {
+                    sprintf("$%.0f", d)
+                }
             })
 
             fill_scale <- scale_fill_gradient2(
-                low      = "#4575b4",
-                mid      = "white",
-                high     = "#d73027",
+                low = "#4575b4",
+                mid = "white",
+                high = "#d73027",
                 midpoint = 0,
-                limits   = c(-lim, lim),
-                breaks   = sqrt_breaks,
-                labels   = dollar_labels,
+                limits = c(-lim, lim),
+                breaks = sqrt_breaks,
+                labels = dollar_labels,
                 na.value = "#d4d4d4",
-                name     = "Dollar Residual",
-                guide    = guide_colorbar(
+                name = "Dollar Residual",
+                guide = guide_colorbar(
                     barwidth       = unit(14, "cm"),
                     barheight      = unit(0.45, "cm"),
                     title.position = "top",
@@ -2060,26 +2129,26 @@ run_15_Residual_Map <- function() {
         ggplot(counties_joined) +
             geom_sf(
                 aes(fill = .data[[fill_col]]),
-                colour    = "white",
+                colour = "white",
                 linewidth = 0.08
             ) +
             fill_scale +
             labs(title = title, subtitle = subtitle, caption = caption_text) +
             theme_void(base_size = 12) +
             theme(
-                plot.title    = element_text(
+                plot.title = element_text(
                     face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
                 ),
                 plot.subtitle = element_text(
                     size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
                 ),
-                plot.caption  = element_text(
+                plot.caption = element_text(
                     size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
                 ),
                 legend.position = "bottom",
-                legend.title    = element_text(size = 9, face = "bold"),
-                legend.text     = element_text(size = 8),
-                plot.margin     = margin(12, 24, 8, 24)
+                legend.title = element_text(size = 9, face = "bold"),
+                legend.text = element_text(size = 8),
+                plot.margin = margin(12, 24, 8, 24)
             )
     }
 
@@ -2094,7 +2163,7 @@ run_15_Residual_Map <- function() {
     }
 
 
-    #  Step 1: Load Phase 4 regression coefficients 
+    #  Step 1: Load Phase 4 regression coefficients
 
     cat("[Step 1] Loading Phase 4 regression coefficients (tri-language Grand Mean)...\n")
     get_coef <- function(df, param) df$Coef[df$Parameter == param]
@@ -2102,19 +2171,25 @@ run_15_Residual_Map <- function() {
     # [METHODOLOGY] Grand Mean β̂ = arithmetic mean of three independently Rubin-pooled
     #               coefficient vectors (M = 100 each: Python, R, Julia). Applied uniformly
     #               to all imputed datasets for ŷ prediction in Step 3.
-    reg_r  <- read_csv(REG_R_CSV,  show_col_types = FALSE)
+    reg_r <- read_csv(REG_R_CSV, show_col_types = FALSE)
     reg_py <- read_csv(REG_PY_CSV, show_col_types = FALSE)
     reg_jl <- read_csv(REG_JL_CSV, show_col_types = FALSE)
 
-    b0      <- mean(c(get_coef(reg_r,  "(Intercept)"),
-                      get_coef(reg_py, "(Intercept)"),
-                      get_coef(reg_jl, "(Intercept)")))
-    b_holes <- mean(c(get_coef(reg_r,  "Holes"),
-                      get_coef(reg_py, "Holes"),
-                      get_coef(reg_jl, "Holes")))
-    b_urban <- mean(c(get_coef(reg_r,  "factor(county_type)Urban"),
-                      get_coef(reg_py, "factor(county_type)Urban"),
-                      get_coef(reg_jl, "factor(county_type)Urban")))
+    b0 <- mean(c(
+        get_coef(reg_r, "(Intercept)"),
+        get_coef(reg_py, "(Intercept)"),
+        get_coef(reg_jl, "(Intercept)")
+    ))
+    b_holes <- mean(c(
+        get_coef(reg_r, "Holes"),
+        get_coef(reg_py, "Holes"),
+        get_coef(reg_jl, "Holes")
+    ))
+    b_urban <- mean(c(
+        get_coef(reg_r, "factor(county_type)Urban"),
+        get_coef(reg_py, "factor(county_type)Urban"),
+        get_coef(reg_jl, "factor(county_type)Urban")
+    ))
 
     cat(sprintf(
         "  Grand Mean: b0 = %.5f  |  b_holes = %.5f  |  b_urban = %.5f\n",
@@ -2125,7 +2200,7 @@ run_15_Residual_Map <- function() {
     #  Step 2: Build county FIPS lookup from Phase 1
 
     cat("\n[Step 2] Building county FIPS lookup from Phase 1...\n")
-    phase1_df     <- read_csv(PHASE1_CSV, show_col_types = FALSE)
+    phase1_df <- read_csv(PHASE1_CSV, show_col_types = FALSE)
     county_lookup <- phase1_df |>
         select(Longitude, Latitude, FIPS, County_Name, State_Abbr) |>
         distinct() |>
@@ -2158,13 +2233,14 @@ run_15_Residual_Map <- function() {
         resid_list[[i]] <- imp_df |>
             group_by(FIPS, County_Name, State_Abbr) |>
             summarise(
-                mean_log_residual   = mean(log_residual, na.rm = TRUE),
-                sum_dollar_residual = sum(dollar_resid,  na.rm = TRUE),
+                mean_log_residual = mean(log_residual, na.rm = TRUE),
+                sum_dollar_residual = sum(dollar_resid, na.rm = TRUE),
                 .groups = "drop"
             ) |>
             mutate(imputation = i)
 
-        rm(imp_df); gc()
+        rm(imp_df)
+        gc()
     }
 
     # [METHODOLOGY] Rubin's Rules q_bar: mean of per-imputation county summary vectors
@@ -2173,7 +2249,7 @@ run_15_Residual_Map <- function() {
     pooled_resid <- bind_rows(resid_list) |>
         group_by(FIPS, County_Name, State_Abbr) |>
         summarise(
-            Mean_Log_Residual   = mean(mean_log_residual,   na.rm = TRUE),
+            Mean_Log_Residual = mean(mean_log_residual, na.rm = TRUE),
             Sum_Dollar_Residual = mean(sum_dollar_residual, na.rm = TRUE),
             .groups = "drop"
         )
@@ -2191,7 +2267,7 @@ run_15_Residual_Map <- function() {
     ))
 
 
-    #  Step 4: Download county boundaries 
+    #  Step 4: Download county boundaries
 
     cat("\n[Step 4] Downloading county boundaries via tigris...\n")
     # [METHODOLOGY] shift_geometry() repositions AK and HI as insets; st_transform
@@ -2212,15 +2288,15 @@ run_15_Residual_Map <- function() {
     ))
 
 
-    #  Step 5: Render + save Map 15.1 (Log-Residual) 
+    #  Step 5: Render + save Map 15.1 (Log-Residual)
 
     cat("\n[Step 5] Rendering Map 15.1: Mean log-residual by county...\n")
 
     map1 <- build_residual_map(
         counties_joined,
-        fill_col     = "Mean_Log_Residual",
-        title        = "OLS Spatial Diagnostics: Mean Log-Residuals by County",
-        subtitle     = paste0(
+        fill_col = "Mean_Log_Residual",
+        title = "OLS Spatial Diagnostics: Mean Log-Residuals by County",
+        subtitle = paste0(
             "log(Opportunity_Cost) − log(Predicted Opportunity_Cost)  │  ",
             "Red = model under-predicts  │  Blue = model over-predicts  │  ",
             "Grand Mean β̂ of Py/R/Jl Rubin-pooled estimates (M = 300: 100 each)"
@@ -2239,15 +2315,15 @@ run_15_Residual_Map <- function() {
     cat(sprintf("  Saved: output/%s\n", basename(OUT_PNG1)))
 
 
-    #  Step 6: Render + save Map 15.2 (Dollar-Residual) 
+    #  Step 6: Render + save Map 15.2 (Dollar-Residual)
 
     cat("\n[Step 6] Rendering Map 15.2: Sum dollar-residual by county...\n")
 
     map2 <- build_residual_map(
         counties_joined,
-        fill_col     = "Sum_Dollar_Residual",
-        title        = "Uncaptured Latent Value: Total Dollar Residuals by County",
-        subtitle     = paste0(
+        fill_col = "Sum_Dollar_Residual",
+        title = "Uncaptured Latent Value: Total Dollar Residuals by County",
+        subtitle = paste0(
             "Σ (Actual OC − Predicted OC) per county  │  ",
             "Red = model under-predicts (latent value)  │  Blue = model over-predicts  │  ",
             "Signed √ scale (compresses outliers)"
