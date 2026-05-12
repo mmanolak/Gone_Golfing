@@ -1,4 +1,4 @@
-# Phase 7 — Cross-Phase Synthesis
+# Phase 7 - Cross-Phase Synthesis
 
 Phase 7 is the meta-phase: it does not run new analyses or produce new outputs. Instead, it captures the arc that ties Phases 1 through 6 into a single coherent research project, and frames the work for readers landing on this repository for the first time.
 
@@ -8,7 +8,7 @@ These two answers are the load-bearing findings of the thesis. Everything betwee
 
 ## The arc across the six computational phases
 
-**Phase 1** ingests a raw CSV of 16,297 U.S. golf courses with GPS coordinates and produces a per-course `Baseline_Value_Per_Acre` by spatially joining each course to its U.S. county and merging in two economic proxies — the FHFA Residential Land Price index for urban counties (RUCC 1–3) and the USDA Agricultural Land Value for rural counties (RUCC 4–9). This dual-proxy approach is the methodological foundation of the entire project: it is what allows the same HBU framework to apply to a Manhattan urban course and a rural Iowa course without nationally over- or under-stating opportunity cost.
+**Phase 1** ingests a raw CSV of 16,297 U.S. golf courses with GPS coordinates and produces a per-course `Baseline_Value_Per_Acre` by spatially joining each course to its U.S. county and merging in two economic proxies - the FHFA Residential Land Price index for urban counties (RUCC 1–3) and the USDA Agricultural Land Value for rural counties (RUCC 4–9). This dual-proxy approach is the methodological foundation of the entire project: it is what allows the same HBU framework to apply to a Manhattan urban course and a rural Iowa course without nationally over- or under-stating opportunity cost.
 
 **Phase 2** measures each course's physical footprint by extracting golf course boundary polygons from an 11 GB OpenStreetMap PBF file and spatially matching them to the Phase 1 course list. A two-pass spatial join (direct intersect, then nearest-neighbor with a 500-meter cap) recovers acreage for 71.2% of the courses, leaving 28.8% flagged as imputation targets.
 
@@ -32,9 +32,9 @@ Three structural choices distinguish this project from a more typical single-lan
 
 ## What follows from these findings
 
-Three directions for follow-on research are explicit in the thesis. First, the Phase 5b zoning intersection methodology should be replicated in other high-value coastal markets — the Bay Area, Los Angeles, southern Florida, the New York metro — to test whether the Preservation Paradox documented on Oahu generalizes. Second, $V_{Current}$ should be measured directly using transaction data from the National Golf Foundation or income-capitalization methods, refining the 1.33× Hawaii anchor into a market-specific net opportunity cost. Third, a renewable energy counterfactual ($V_{Renewable}$) should be integrated formally into the HBU framework as a third candidate use, particularly relevant in arid urban environments where the ecological cost of maintaining turf is high.
+Three directions for follow-on research are explicit in the thesis. First, the Phase 5b zoning intersection methodology should be replicated in other high-value coastal markets - the Bay Area, Los Angeles, southern Florida, the New York metro - to test whether the Preservation Paradox documented on Oahu generalizes. Second, $V_{Current}$ should be measured directly using transaction data from the National Golf Foundation or income-capitalization methods, refining the 1.33× Hawaii anchor into a market-specific net opportunity cost. Third, a renewable energy counterfactual ($V_{Renewable}$) should be integrated formally into the HBU framework as a third candidate use, particularly relevant in arid urban environments where the ecological cost of maintaining turf is high.
 
-Two further extensions are worth flagging. A reasonable critique of the present framework is that in many rural markets characterized by agricultural saturation, the current recreational use of a golf course may itself represent the local Highest and Best Use — particularly where surrounding agricultural land already exceeds regional demand. A rural-HBU inversion analysis would partition the dataset by regional ag-land saturation indices and recompute the aggregate excluding courses where rural HBU is plausibly already met by current use. Separately, the present analysis is anchored to 2022 FHFA residential land prices to maintain temporal consistency; a targeted sensitivity check using 2025 FHFA data for the urban subset would test whether the headline figure is robust to recent residential land price movements.
+Two further extensions are worth flagging. A reasonable critique of the present framework is that in many rural markets characterized by agricultural saturation, the current recreational use of a golf course may itself represent the local Highest and Best Use - particularly where surrounding agricultural land already exceeds regional demand. A rural-HBU inversion analysis would partition the dataset by regional ag-land saturation indices and recompute the aggregate excluding courses where rural HBU is plausibly already met by current use. Separately, the present analysis is anchored to 2022 FHFA residential land prices to maintain temporal consistency; a targeted sensitivity check using 2025 FHFA data for the urban subset would test whether the headline figure is robust to recent residential land price movements.
 
 The dataset, the pipeline, and the validation logic are all structured to support these extensions without re-architecting the project.
 
@@ -44,32 +44,32 @@ For academic transparency, the following large language models contributed to th
 
 ### Web-hosted agents
 
-- **Claude Opus 4.7** — Anthropic — accessed via the Claude web app on a Windows 11 PC. Used as a writing aid, redundancy checker, and structural reviewer; ideas and draft passages were exchanged with the model to surface critical flaws or productive next directions.
-- **Claude Sonnet 4.6** — Anthropic — accessed via the Claude web app on a Windows 11 PC. Used for code verification and bug-fixing across the Python, R, and Julia pipelines.
-- **Gemini 2.5 Pro** — Google — accessed via Google AI Studio web app on a Windows 11 PC. Used as a research-management assistant, primarily to track sources, document why each was used, and maintain a working index of the project's reference material.
-- **Gemini 3.1 Pro** — Google — accessed via Google AI Studio web app on a Windows 11 PC. Used as a writing aid, redundancy checker, and structural reviewer; complementary to Claude Opus 4.7 to provide a second model's perspective on draft passages and analytical decisions.
+- **Claude Opus 4.7** - Anthropic - accessed via the Claude web app on a Windows 11 PC. Used as a writing aid, redundancy checker, and structural reviewer; ideas and draft passages were exchanged with the model to surface critical flaws or productive next directions.
+- **Claude Sonnet 4.6** - Anthropic - accessed via the Claude web app on a Windows 11 PC. Used for code verification and bug-fixing across the Python, R, and Julia pipelines.
+- **Gemini 2.5 Pro** - Google - accessed via Google AI Studio web app on a Windows 11 PC. Used as a research-management assistant, primarily to track sources, document why each was used, and maintain a working index of the project's reference material.
+- **Gemini 3.1 Pro** - Google - accessed via Google AI Studio web app on a Windows 11 PC. Used as a writing aid, redundancy checker, and structural reviewer; complementary to Claude Opus 4.7 to provide a second model's perspective on draft passages and analytical decisions.
 
 ### Locally-hosted agents
 
 All locally-hosted models run on the FishTex Nimo PC system specified below, with inference handled by `llama.cpp` (Vulkan, ROCm, and CUDA backends) under Fedora 43 Server.
 
-- **Kimi-Dev-72B (Q8_K_XL)** — Moonshot AI, with quantization by unsloth (`https://huggingface.co/unsloth/Kimi-Dev-72B-gguf`). Used for code writing, scaffolding new functions, validation, and error correction.
-- **Qwen3-Coder-Next (UD Q8_K_XL)** — Alibaba, with quantization by unsloth (`https://huggingface.co/unsloth/Qwen3-Coder-Next-gguf`). Used for code writing, scaffolding, validation, and error correction; complementary to Kimi-Dev-72B as a second-opinion code generator.
-- **GPT-OSS-120B Heretic (Q8_0)** — OpenAI base weights with kldzj fine-tune, distributed via Bartowski (`https://huggingface.co/bartowski/kldzj_gpt-oss-120b-heretic-GGUF`). Used as a fully private personal assistant for thought processing and information tracking — the locally-hosted counterpart to the web-hosted Gemini 2.5 Pro role.
-- **Qwen2.5-Coder-1.5B-Instruct (Q8_0)** — Alibaba, with quantization by Bartowski (`https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF`). Used for in-editor text prediction and ghost-text autocomplete as a Copilot replacement; runs on the 3060ti via the Thunderbolt 4 eGPU dock for low-latency response.
-- **Granite-4.0-H-Tiny (Q5_K_M)** — IBM Research (`https://huggingface.co/ibm-granite/granite-4.0-h-tiny-GGUF`). Used for in-editor text prediction and ghost-text autocomplete as a Copilot replacement; complementary to Qwen2.5-Coder-1.5B and likewise runs on the 3060ti via the Thunderbolt 4 eGPU dock.
+- **Kimi-Dev-72B (Q8_K_XL)** - Moonshot AI, with quantization by unsloth (`https://huggingface.co/unsloth/Kimi-Dev-72B-gguf`). Used for code writing, scaffolding new functions, validation, and error correction.
+- **Qwen3-Coder-Next (UD Q8_K_XL)** - Alibaba, with quantization by unsloth (`https://huggingface.co/unsloth/Qwen3-Coder-Next-gguf`). Used for code writing, scaffolding, validation, and error correction; complementary to Kimi-Dev-72B as a second-opinion code generator.
+- **GPT-OSS-120B Heretic (Q8_0)** - OpenAI base weights with kldzj fine-tune, distributed via Bartowski (`https://huggingface.co/bartowski/kldzj_gpt-oss-120b-heretic-GGUF`). Used as a fully private personal assistant for thought processing and information tracking - the locally-hosted counterpart to the web-hosted Gemini 2.5 Pro role.
+- **Qwen2.5-Coder-1.5B-Instruct (Q8_0)** - Alibaba, with quantization by Bartowski (`https://huggingface.co/bartowski/Qwen2.5-Coder-1.5B-Instruct-GGUF`). Used for in-editor text prediction and ghost-text autocomplete as a Copilot replacement; runs on the 3060ti via the Thunderbolt 4 eGPU dock for low-latency response.
+- **Granite-4.0-H-Tiny (Q5_K_M)** - IBM Research (`https://huggingface.co/ibm-granite/granite-4.0-h-tiny-GGUF`). Used for in-editor text prediction and ghost-text autocomplete as a Copilot replacement; complementary to Qwen2.5-Coder-1.5B and likewise runs on the 3060ti via the Thunderbolt 4 eGPU dock.
 
 ### Hardware
 
-**FishTex** — Nimo PC AMD Ryzen AI Max 395 system (`https://www.nimopc.com/products/nimo-ai-mini-pc-amd-ryzen-ai-max-395-128gb-ram?variant=47848771846395`); 128 GB LPDDR5 RAM at 8000 MHz; 2 × 2 TB NVMe SSDs (WD Black for OS, Crucial P3 for `.gguf` model storage); Fedora 43 Server; `llama.cpp` with Vulkan, ROCm, and CUDA backends; supporting software including Docker, OpenWebUI, and SSH; a Gigabyte 3060ti Vision 8 GB GPU connected via Thunderbolt 4 to a Razer Core X eGPU dock for the small autocomplete models.
+**FishTex** - Nimo PC AMD Ryzen AI Max 395 system (`https://www.nimopc.com/products/nimo-ai-mini-pc-amd-ryzen-ai-max-395-128gb-ram?variant=47848771846395`); 128 GB LPDDR5 RAM at 8000 MHz; 2 × 2 TB NVMe SSDs (WD Black for OS, Crucial P3 for `.gguf` model storage); Fedora 43 Server; `llama.cpp` with Vulkan, ROCm, and CUDA backends; supporting software including Docker, OpenWebUI, and SSH; a Gigabyte 3060ti Vision 8 GB GPU connected via Thunderbolt 4 to a Razer Core X eGPU dock for the small autocomplete models.
 
 The remaining three machines below are my general work environments; they were used for thesis writing, code editing, and analytical work but did not host any local LLM inference.
 
-**PadTex** — Lenovo P52; Xeon E2176M; 56 GB SODIMM DDR4 (3 × 16 GB + 8 GB); 500 GB Samsung MZVLB512HAJQ + Sabrent Rocket 4.0 2 TB; Quadro P2000; Intel AX210 Wi-Fi; Windows 11 25H2 with AtlasOS modifications.
+**PadTex** - Lenovo P52; Xeon E2176M; 56 GB SODIMM DDR4 (3 × 16 GB + 8 GB); 500 GB Samsung MZVLB512HAJQ + Sabrent Rocket 4.0 2 TB; Quadro P2000; Intel AX210 Wi-Fi; Windows 11 25H2 with AtlasOS modifications.
 
-**ThinkTex** — Lenovo L15; AMD Ryzen 5 PRO 4650U; 24 GB SODIMM DDR4 (16 GB + 8 GB); 512 GB Kioxia XG6 KXG60ZNV512G; Windows 11 25H2 with AtlasOS modifications.
+**ThinkTex** - Lenovo L15; AMD Ryzen 5 PRO 4650U; 24 GB SODIMM DDR4 (16 GB + 8 GB); 512 GB Kioxia XG6 KXG60ZNV512G; Windows 11 25H2 with AtlasOS modifications.
 
-**MikTex** — Custom tower PC; AMD Ryzen 9 3900XT; Gigabyte B550M Aorus Elite (Rev. 1.3); DarkRock D360 liquid cooler; Lian Li A3 case; Montech Centru II 1050 W PSU; Quadro P2000 5 GB; 64 GB G.Skill Ripjaws V DDR4 (2 × 32 GB at 3600 MHz CL18); 1 TB Sabrent Rocket 4.0.
+**MikTex** - Custom tower PC; AMD Ryzen 9 3900XT; Gigabyte B550M Aorus Elite (Rev. 1.3); DarkRock D360 liquid cooler; Lian Li A3 case; Montech Centru II 1050 W PSU; Quadro P2000 5 GB; 64 GB G.Skill Ripjaws V DDR4 (2 × 32 GB at 3600 MHz CL18); 1 TB Sabrent Rocket 4.0.
 
 The majority of the data processing and code authorship was conducted on **MikTex**, with lighter analytical work performed on **PadTex** as a portable alternative. **ThinkTex** served primarily as a portable client to SSH into the FishTex or MikTex systems for remote work.
 
