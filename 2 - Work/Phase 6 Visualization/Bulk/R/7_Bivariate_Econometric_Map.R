@@ -132,7 +132,7 @@ build_bivariate_map <- function(counties_sf, states_sf, county_data,
 
     ggdraw() +
         draw_plot(map_plot,    x = 0,    y = 0,    width = 1,    height = 1) +
-        draw_plot(legend_plot, x = 0.72, y = 0.04, width = 0.24, height = 0.24)
+        draw_plot(legend_plot, x = 0.58, y = 0.05, width = 0.205, height = 0.205)
 }
 
 
