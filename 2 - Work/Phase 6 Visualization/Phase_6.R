@@ -376,16 +376,16 @@ run_1_Macro_Maps <- function() {
                     "Pooled across 300 MICE imputations (100 Python, 100 R, 100 Julia). ",
                     "Grand Mean = arithmetic mean of three independently Rubin-pooled estimates.\n",
                     "Sources: OpenStreetMap golf course polygons; FHFA residential land price index ",
-                    "(urban counties, RUCC 1–3); USDA agricultural land values (rural counties, ",
-                    "RUCC 4–9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
+                    "(urban counties, RUCC 1-3); USDA agricultural land values (rural counties, ",
+                    "RUCC 4-9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
                 )
             } else {
                 paste0(
                     "Pooled across 100 ", model_name, " MICE imputations (Rubin's Rules q_bar). ",
                     "QA verification map.\n",
                     "Sources: OpenStreetMap golf course polygons; FHFA residential land price index ",
-                    "(urban counties, RUCC 1–3); USDA agricultural land values (rural counties, ",
-                    "RUCC 4–9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
+                    "(urban counties, RUCC 1-3); USDA agricultural land values (rural counties, ",
+                    "RUCC 4-9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
                 )
             }
         )
@@ -622,16 +622,16 @@ run_2_County_Map <- function() {
                     "Pooled across 300 MICE imputations (100 Python, 100 R, 100 Julia). ",
                     "Grand Mean = arithmetic mean of three independently Rubin-pooled estimates.\n",
                     "Sources: OpenStreetMap golf course polygons; FHFA residential land price index ",
-                    "(urban counties, RUCC 1–3); USDA agricultural land values (rural counties, ",
-                    "RUCC 4–9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
+                    "(urban counties, RUCC 1-3); USDA agricultural land values (rural counties, ",
+                    "RUCC 4-9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
                 )
             } else {
                 paste0(
                     "Pooled across 100 ", model_name, " MICE imputations (Rubin's Rules q_bar). ",
                     "QA verification map.\n",
                     "Sources: OpenStreetMap golf course polygons; FHFA residential land price index ",
-                    "(urban counties, RUCC 1–3); USDA agricultural land values (rural counties, ",
-                    "RUCC 4–9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
+                    "(urban counties, RUCC 1-3); USDA agricultural land values (rural counties, ",
+                    "RUCC 4-9). CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
                 )
             }
         )
@@ -1875,7 +1875,7 @@ run_9_Oahu_Opportunity_Cost_Map <- function() {
         nrow(pooled_oahu)
     ))
     cat(sprintf(
-        "  OC range: $%.1fM – $%.1fM\n",
+        "  OC range: $%.1fM - $%.1fM\n",
         min(pooled_oahu$pooled_opp_cost, na.rm = TRUE) / 1e6,
         max(pooled_oahu$pooled_opp_cost, na.rm = TRUE) / 1e6
     ))
