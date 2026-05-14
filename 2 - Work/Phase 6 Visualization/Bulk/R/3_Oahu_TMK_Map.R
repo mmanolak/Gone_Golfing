@@ -34,7 +34,7 @@ OUT_PNG      <- file.path(OUTPUT_DIR, "3_Oahu_TMK_Concentration_Map.png")
 
 OAHU_CRS    <- 32604L     # WGS 84 / UTM Zone 4N — correct local projection for Oahu
 ZONE_EWA    <- "9"
-COL_EWA     <- "#E05C14"  # bright orange-red — Ewa District (Zone 9)
+COL_EWA     <- "#E3002C"  # bright orange-red — Ewa District (Zone 9)
 COL_OTHER   <- "#3a3a3a"  # dark gray — all other districts
 COL_ISLAND  <- "#e8e8e8"  # light gray — island base fill
 COL_COAST   <- "#aaaaaa"  # medium gray — coastline border
@@ -192,18 +192,18 @@ oahu_map <- ggplot() +
             face = "bold", size = 16, hjust = 0.5, margin = margin(b = 4)
         ),
         plot.subtitle    = element_text(
-            size = 9, hjust = 0.5, colour = "grey35", margin = margin(b = 8)
+            size = 10, hjust = 0.5, colour = "#024731", margin = margin(b = 8)
         ),
         plot.caption     = element_text(
-            size = 7, colour = "grey50", hjust = 0, margin = margin(t = 10)
+            size = 10, colour = "#024731", hjust = 0, margin = margin(t = 10)
         ),
-        legend.position  = c(0.87, 0.22),
+        legend.position  = c(0.87, 0.87),
         legend.background = element_rect(
             fill = alpha("white", 0.88), colour = "grey75", linewidth = 0.3
         ),
         legend.margin    = margin(5, 9, 5, 9),
-        legend.title     = element_text(size = 8, face = "bold"),
-        legend.text      = element_text(size = 8),
+        legend.title     = element_text(size = 11, face = "bold"),
+        legend.text      = element_text(size = 9),
         plot.background  = element_rect(fill = "white", colour = NA),
         plot.margin      = margin(12, 16, 8, 16)
     )

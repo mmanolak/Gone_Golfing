@@ -55,16 +55,16 @@ build_state_map <- function(states_joined, subtitle, caption_text) {
     ggplot(states_joined) +
         geom_sf(
             aes(fill = pooled_opp_cost / 1e9),
-            colour    = "white",
+            colour = "white",
             linewidth = 0.25
         ) +
         scale_fill_viridis_c(
-            option   = "plasma",
+            option = "magma",
             na.value = "#d4d4d4",
-            name     = "Opportunity Cost",
-            labels   = label_dollar(suffix = "B", accuracy = 1),
-            guide    = guide_colorbar(
-                barwidth       = unit(14, "cm"),
+            name = "Opportunity Cost",
+            labels = label_dollar(suffix = "B", accuracy = 1),
+            guide = guide_colorbar(
+                barwidth       = unit(21, "cm"),
                 barheight      = unit(0.45, "cm"),
                 title.position = "top",
                 title.hjust    = 0.5,
@@ -74,23 +74,24 @@ build_state_map <- function(states_joined, subtitle, caption_text) {
         labs(
             title    = "Golf Course Opportunity Cost by State",
             subtitle = subtitle,
-            caption  = caption_text
+            caption  = stringr::str_wrap(caption_text, width = 192)
         ) +
         theme_void(base_size = 12) +
         theme(
-            plot.title      = element_text(
+            plot.title = element_text(
                 face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
             ),
-            plot.subtitle   = element_text(
-                size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
+            plot.subtitle = element_text(
+                size = 10, hjust = 0.5, colour = "#024731", margin = margin(b = 0)
             ),
-            plot.caption    = element_text(
-                size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
+            plot.caption = element_text(
+                size = 10, colour = "#024731", hjust = 0, margin = margin(t = 6), lineheight = 0.9
             ),
+            plot.caption.position = "plot",
             legend.position = "bottom",
-            legend.title    = element_text(size = 9, face = "bold"),
-            legend.text     = element_text(size = 8),
-            plot.margin     = margin(12, 24, 8, 24)
+            legend.title = element_text(size = 14, face = "bold"),
+            legend.text = element_text(size = 12),
+            plot.margin = margin(12, 24, 8, 24)
         )
 }
 

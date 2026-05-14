@@ -93,7 +93,7 @@ build_bivariate_map <- function(counties_sf, states_sf, county_data,
         geom_sf(
             data        = counties_bi,
             aes(fill    = bi_class),
-            colour      = NA,
+            colour      = "#bdbdbd",
             show.legend = FALSE
         ) +
         bi_scale_fill(pal = "DkViolet", dim = 3) +
@@ -109,16 +109,17 @@ build_bivariate_map <- function(counties_sf, states_sf, county_data,
                 " — U.S. Counties"
             ),
             subtitle = subtitle,
-            caption  = caption_text
+            caption  = stringr::str_wrap(caption_text, width = 192)
         ) +
         theme_void(base_size = 12) +
         theme(
             plot.title    = element_text(face = "bold", size = 16, hjust = 0.5,
-                                         margin = margin(b = 5)),
-            plot.subtitle = element_text(size = 10, hjust = 0.5, colour = "grey35",
-                                         margin = margin(b = 10)),
-            plot.caption  = element_text(size = 7.5, colour = "grey50", hjust = 0,
-                                         margin = margin(t = 10)),
+                                        margin = margin(b = 5)),
+            plot.subtitle = element_text(size = 11, hjust = 0.5, colour = "#024731",
+                                        margin = margin(b = 10)),
+            plot.caption  = element_text(size = 10, colour = "#024731", hjust = 0,
+                                        margin = margin(t = 10)),
+            plot.caption.position = "plot",
             plot.margin   = margin(12, 24, 8, 24)
         )
 
@@ -132,7 +133,7 @@ build_bivariate_map <- function(counties_sf, states_sf, county_data,
 
     ggdraw() +
         draw_plot(map_plot,    x = 0,    y = 0,    width = 1,    height = 1) +
-        draw_plot(legend_plot, x = 0.72, y = 0.04, width = 0.24, height = 0.24)
+        draw_plot(legend_plot, x = 0.58, y = 0.08, width = 0.18, height = 0.18)
 }
 
 

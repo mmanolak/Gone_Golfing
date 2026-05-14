@@ -52,21 +52,21 @@ TERRITORY_STATEFP <- c("60", "66", "69", "72", "74", "78")
 # Render national county choropleth (log10 fill) and return the ggplot object.
 # Expects a column named `pooled_opp_cost` in counties_joined (millions if /1e6).
 build_county_map <- function(counties_joined, subtitle, caption_text) {
-    ggplot(counties_joined) +
+ggplot(counties_joined) +
         geom_sf(
             aes(fill = pooled_opp_cost / 1e6),
             colour    = "white",
             linewidth = 0.08
         ) +
         scale_fill_viridis_c(
-            option   = "plasma",
+            option   = "magma",
             trans    = "log10",
-            na.value = "#d4d4d4",
+            na.value = "#8f8f8f",
             name     = "Opportunity Cost",
             breaks   = c(1, 10, 100, 1000, 10000),
             labels   = c("$1M", "$10M", "$100M", "$1B", "$10B"),
             guide    = guide_colorbar(
-                barwidth       = unit(14, "cm"),
+                barwidth       = unit(21, "cm"),
                 barheight      = unit(0.45, "cm"),
                 title.position = "top",
                 title.hjust    = 0.5,
@@ -76,7 +76,7 @@ build_county_map <- function(counties_joined, subtitle, caption_text) {
         labs(
             title    = "Golf Course Opportunity Cost by County",
             subtitle = subtitle,
-            caption  = caption_text
+            caption  = stringr::str_wrap(caption_text, width = 192)
         ) +
         theme_void(base_size = 12) +
         theme(
@@ -84,14 +84,15 @@ build_county_map <- function(counties_joined, subtitle, caption_text) {
                 face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
             ),
             plot.subtitle   = element_text(
-                size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
+                size = 10, hjust = 0.5, colour = "#024731", margin = margin(b = 0)
             ),
             plot.caption    = element_text(
-                size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
+                size = 10, colour = "#024731", hjust = 0, margin = margin(t = 6), lineheight = 0.9
             ),
+            plot.caption.position = "plot",
             legend.position = "bottom",
-            legend.title    = element_text(size = 9, face = "bold"),
-            legend.text     = element_text(size = 8),
+            legend.title    = element_text(size = 14, face = "bold"),
+            legend.text     = element_text(size = 12),
             plot.margin     = margin(12, 24, 8, 24)
         )
 }

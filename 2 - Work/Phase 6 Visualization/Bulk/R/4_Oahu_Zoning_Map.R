@@ -68,6 +68,7 @@ ZONE_COLORS <- c(
     "IMX-1"  = "#90a4ae"
 )
 
+UHM_SILVER <- "#B2B2B2"
 
 # === 3. FUNCTIONS ===
 
@@ -191,7 +192,7 @@ oahu_zoning_map <- ggplot() +
     geom_sf(
         data   = golf_zoned_sf,
         aes(fill = zone_class),
-        colour = NA
+        colour = UHM_SILVER
     ) +
     scale_fill_manual(
         name   = "Dominant Zoning Classification",
@@ -234,10 +235,10 @@ oahu_zoning_map <- ggplot() +
             face = "bold", size = 15, hjust = 0.5, margin = margin(b = 4)
         ),
         plot.subtitle   = element_text(
-            size = 8.5, hjust = 0.5, colour = "grey35", margin = margin(b = 6)
+            size = 11, hjust = 0.5, colour = "#024731", margin = margin(b = 6)
         ),
         plot.caption    = element_text(
-            size = 6.5, colour = "grey50", hjust = 0, margin = margin(t = 8)
+            size = 9, colour = "#024731", hjust = 0, margin = margin(t = 8)
         ),
         legend.position  = "right",
         legend.title     = element_text(size = 8, face = "bold", margin = margin(b = 4)),

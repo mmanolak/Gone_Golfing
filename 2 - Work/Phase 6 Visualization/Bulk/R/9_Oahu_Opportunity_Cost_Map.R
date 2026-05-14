@@ -1,7 +1,7 @@
 # Purpose: Generate two high-resolution micro-maps of Oahu coloring individual
 #          OSM golf course polygons by their Opportunity Cost:
-#            9.1 — MICE-pooled estimate (M = 100 imputations, Rubin's Rules q_bar)
-#            9.2 — Observed-acreage-only estimate (no imputation)
+#            9.1 - MICE-pooled estimate (M = 100 imputations, Rubin's Rules q_bar)
+#            9.2 - Observed-acreage-only estimate (no imputation)
 # Inputs:  Phase 5 The Hawaii Micro-Case Study/Data/R/Target_Golf_Polygons.gpkg
 #          Phase 3 Economic Merge and MICE Imputation/Data/R/R_Imputed_Dataset_{1..5}.csv
 #          Phase 5 The Hawaii Micro-Case Study/Data/R/Honolulu_Parcels_Reprojected.gpkg
@@ -84,7 +84,7 @@ join_oc_to_polygons <- function(polygons_sf, pts_sf, oc_vals) {
 
 # Render Oahu OC micro-map and return the ggplot object.
 build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
-                               n_matched, subtitle, caption_text) {
+                            n_matched, subtitle, caption_text) {
     ggplot() +
         geom_sf(
             data      = oahu_outline_sf,
@@ -98,12 +98,12 @@ build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
             colour = NA
         ) +
         scale_fill_viridis_c(
-            option   = "plasma",
+            option   = "magma",
             na.value = "#cccccc",
             name     = "Opportunity Cost",
             labels   = label_oc,
             guide    = guide_colorbar(
-                barwidth       = unit(8, "cm"),
+                barwidth       = unit(21, "cm"),
                 barheight      = unit(0.45, "cm"),
                 title.position = "top",
                 title.hjust    = 0.5,
@@ -131,24 +131,25 @@ build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
             )
         ) +
         labs(
-            title    = "Golf Course Opportunity Cost — Oahu, Hawaiʻi",
+            title    = "Golf Course Opportunity Cost - Oahu, Hawaiʻi",
             subtitle = subtitle,
-            caption  = caption_text
+            caption  = stringr::str_wrap(caption_text, width = 185)
         ) +
         theme_void(base_size = 12) +
         theme(
             plot.title      = element_text(
-                face = "bold", size = 16, hjust = 0.5, margin = margin(b = 4)
+                face = "bold", size = 18, hjust = 0.5, margin = margin(b = 4)
             ),
             plot.subtitle   = element_text(
-                size = 9, hjust = 0.5, colour = "grey35", margin = margin(b = 8)
+                size = 11, hjust = 0.5, colour = "#024731", margin = margin(b = 8)
             ),
             plot.caption    = element_text(
-                size = 7, colour = "grey50", hjust = 0, margin = margin(t = 10)
+                size = 9, colour = "#024731", hjust = 0, margin = margin(t = 10)
             ),
+            plot.caption.position = "plot",
             legend.position = "bottom",
-            legend.title    = element_text(size = 9, face = "bold"),
-            legend.text     = element_text(size = 8),
+            legend.title    = element_text(size = 14, face = "bold"),
+            legend.text     = element_text(size = 12),
             plot.background = element_rect(fill = "white", colour = NA),
             plot.margin     = margin(12, 16, 8, 16)
         )
@@ -229,7 +230,7 @@ cat(sprintf(
 ))
 
 
-# ── Step 3: Spatial join — MICE points to polygons ────────────────────────────
+# ── Step 3: Spatial join - MICE points to polygons ────────────────────────────
 # [METHODOLOGY] Pooled OC values are keyed by Longitude × Latitude (legacy
 #               Phase 1 coordinate key). Each polygon is matched to its nearest
 #               OC point via st_nearest_feature(); matches exceeding JOIN_DIST_CAP
@@ -298,7 +299,7 @@ cat(sprintf("  Saved: output/%s\n", basename(OUT_PNG1)))
 # [METHODOLOGY] Phase 2 acreage_source identifies directly measured courses.
 #               Filtering to acreage_source != "MICE_Target" and the Oahu
 #               bounding box yields observed-only OC values with no imputation.
-#               No pooling required — one observed value per course.
+#               No pooling required - one observed value per course.
 
 cat("\n[Step 6] Computing observed-only Oahu OC from Phase 2...\n")
 
@@ -327,7 +328,7 @@ cat(sprintf(
 ))
 
 
-# ── Step 7: Spatial join — observed-only points to polygons ───────────────────
+# ── Step 7: Spatial join - observed-only points to polygons ───────────────────
 
 cat("\n[Step 7] Spatial join for Map 9.2 (observed points → polygons)...\n")
 
@@ -356,7 +357,7 @@ map2 <- build_oahu_oc_map(
     oahu_outline_sf = oahu_outline_sf,
     n_matched       = n_matched_obs,
     subtitle        = sprintf(
-        "%d courses  │  Observed acreage only — no imputation  │  OSM polygon boundaries",
+        "%d courses  │  Observed acreage only - no imputation  │  OSM polygon boundaries",
         n_matched_obs
     ),
     caption_text    = paste0(
