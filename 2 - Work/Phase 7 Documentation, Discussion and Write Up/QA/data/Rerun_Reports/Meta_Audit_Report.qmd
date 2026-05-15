@@ -1,0 +1,42 @@
+---
+title: "Meta Summary - Gone Golfing"
+subtitle: "Audit Report - Train Spotting"
+author: "Michael Manolakis"
+date: today
+date-format: "[Spring] YYYY"
+format:
+  pdf:
+    toc: true
+    toc-depth: 2
+    number-sections: true
+    colorlinks: true
+    geometry: margin=1in
+---
+
+\newpage
+
+{{< include "./Phase1_Rerun_Report.md" >}}
+
+\newpage
+
+{{< include "./Phase2_Rerun_Report.md" >}}
+
+\newpage
+
+{{< include "./Phase3_Rerun_Report.md" >}}
+
+\newpage
+
+{{< include "./Phase4_Rerun_Report.md" >}}
+
+\newpage
+
+{{< include "./Phase5_Rerun_Report.md" >}}
+
+\newpage
+
+{{< include "./Phase6_Rerun_Report.md" >}}
+
+\newpage
+
+{{< include "./Phase7_Rerun_Report.md" >}}

@@ -1530,7 +1530,9 @@ run_8_LaTeX_Tables <- function() {
                 Parameter = case_when(
                     Parameter == "(Intercept)" ~ "Intercept",
                     Parameter == "Holes" ~ "Holes",
-                    Parameter == "factor(county_type)Urban" ~ "Urban County",
+                    Parameter == "factor(county_type)Urban"  ~ "Urban County",
+                    Parameter == "C(county_type)[T.Urban]"  ~ "Urban County",
+                    Parameter == "county_type: Urban"       ~ "Urban County",
                     TRUE ~ latex_escape(Parameter)
                 ),
                 Coef = sprintf("%.3f", Coef),

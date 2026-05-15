@@ -87,6 +87,15 @@ function run_imputation(input_csv::String, out_dir::String; m_datasets::Int = 5)
         out.osm_acreage            = completed.osm_acreage
         out.Baseline_Value_Per_Acre = completed.Baseline_Value_Per_Acre
 
+        # Mice.jl's complete() returns drawn values for ALL rows, not just missing
+        # ones. Restore original observed (non-missing) values so MICE never
+        # overwrites anchored inputs like Hawaii Kai's BVPA = $4,952,600.
+        for col in IMPUTE_COLS
+            orig = acreage_df[!, col]
+            obs  = .!ismissing.(orig)
+            out[obs, col] = orig[obs]
+        end
+
         fname = joinpath(out_dir, "Jl_Imputed_Dataset_$i.csv")
         CSV.write(fname, out; header = true, quote_empty_string = false)
         println("    [OK] $fname")
