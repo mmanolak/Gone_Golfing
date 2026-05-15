@@ -79,9 +79,9 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
     )
 
     # White backing then colored fill replicates R's double-geom_point outlined-circle effect
-    scatter!(ax, xs, est_vals; color = :white,  markersize = 16, strokewidth = 0)
+    scatter!(ax, xs, est_vals; color = :white, markersize = 16, strokewidth = 0)
     scatter!(ax, xs, est_vals; color = colors,  markersize = 16,
-             strokecolor = colors, strokewidth = 1.8)
+                strokecolor = colors, strokewidth = 1.8)
 
     text!(ax, xs, hi_vals;
         text     = [@sprintf("\$%.2fM", v) for v in est_vals],
@@ -91,6 +91,9 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
         font     = :bold,
         color    = colors
     )
+
+    xlims!(ax, 0.7, 2.3)
+    ylims!(ax, 0.0, maximum(hi_vals) * 1.25)
 
     ylims!(ax, minimum(lo_vals) * 0.95, maximum(hi_vals) * 1.25)
 

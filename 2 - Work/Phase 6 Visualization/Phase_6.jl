@@ -306,7 +306,7 @@ module Mod_6_Advanced_Econometric_Plots
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf, Random, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf, Random, Statistics
 
 
 # === 2. GLOBALS & PATHS ===
@@ -352,12 +352,33 @@ const OUT_RAINCLOUD     = joinpath(THESIS_DIR, "6.241_MICE_Raincloud_Diagnostic_
 const COL_RURAL = "#5a9e51"
 const COL_URBAN = "#1a6faf"
 
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
+
 
 # === 3. FUNCTIONS ===
 
 function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::String)
     type_order = ["Rural", "Urban"]
-    xs         = [1.0, 2.0]
+    xs         = [1.2, 1.8]
     colors     = [COL_RURAL, COL_URBAN]
 
     get_val(type, col) = only(marginal_df[marginal_df.type .== type, col])
@@ -383,7 +404,7 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
         direction    = :y,
         color        = colors,
         linewidth    = 1.0,
-        whiskerwidth = 10
+        whiskerwidth = 18
     )
 
     # White backing then colored fill replicates a double-outlined-circle point effect.
@@ -400,7 +421,8 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
         color    = colors
     )
 
-    ylims!(ax, minimum(lo_vals) * 0.95, maximum(hi_vals) * 1.25)
+    xlims!(ax, 0.7, 2.3)
+    ylims!(ax, 0.0, maximum(hi_vals) * 1.25)
 
     Label(fig[2, 1],
         "Model: log(Opportunity_Cost) = β₀ + β₁·Holes + β₂·I(Urban). " *
@@ -625,7 +647,7 @@ module Mod_10_Hawaii_Gap_Dumbbell
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
 
 
 # === 2. GLOBALS & PATHS ===
@@ -653,6 +675,27 @@ const COL_PY  = "#2ca02c"
 const COL_R   = "#1f77b4"
 const COL_JL  = "#9467bd"
 const COL_OBS = "#404040"
+
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
 
 
 # === 3. FUNCTIONS ===
@@ -953,7 +996,7 @@ module Mod_11_Lorenz_Curve
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
 
 
 # === 2. GLOBALS & PATHS ===
@@ -979,6 +1022,27 @@ const OUT_LORENZ    = joinpath(THESIS_DIR, "11.141_Lorenz_Curve_TriLanguage.png"
 const COL_PY = :green
 const COL_R  = :blue
 const COL_JL = :purple
+
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
 
 
 # === 3. FUNCTIONS ===
@@ -1221,7 +1285,7 @@ module Mod_12_Zoning_Waffle
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
 
 
 # === 2. GLOBALS & PATHS ===
@@ -1257,6 +1321,27 @@ const ZONE_GROUP = Dict(
 
 const ZONE_LABELS = ["Preservation / Federal", "Agriculture", "Resort / Residential / Other"]
 const ZONE_COLORS = [:forestgreen, :saddlebrown, :slategray]
+
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
 
 
 # === 3. FUNCTIONS ===
@@ -1485,7 +1570,7 @@ module Mod_13_Counterfactual_Area
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
 
 
 # === 2. GLOBALS & PATHS ===
@@ -1507,6 +1592,27 @@ const OUT_COUNTER = joinpath(THESIS_DIR, "13.141_Counterfactual_Area_TriLanguage
 # "Countries across the world use more land for golf courses than wind or solar energy"
 const SOLAR_ACRES   = 5_000_000.0   # theoretical utility-scale solar for significant U.S. demand
 const HOUSING_ACRES =    50_000.0   # ~1 million high-density units at 20 units/acre
+
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
 
 
 # === 3. FUNCTIONS ===
@@ -1653,7 +1759,7 @@ module Mod_14_Urban_Rural_Scatter
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
 
 
 # === 2. GLOBALS & PATHS ===
@@ -1670,6 +1776,27 @@ const OUTPUT_DIR  = joinpath(SCRIPT_DIR, "output")
 const THESIS_DIR  = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
 mkpath(THESIS_DIR)
 const OUT_SCATTER = joinpath(THESIS_DIR, "14.141_Urban_Rural_Scatter_TriLanguage.png")
+
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
 
 
 # === 3. FUNCTIONS ===

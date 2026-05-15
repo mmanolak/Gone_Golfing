@@ -2693,10 +2693,10 @@ run_15_Residual_Map <- function() {
                     face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
                 ),
                 plot.subtitle = element_text(
-                    size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
+                    size = 10, hjust = 0.5, colour = UHM_GREEN, margin = margin(b = 12)
                 ),
                 plot.caption = element_text(
-                    size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
+                    size = 7, colour = UHM_GREEN, hjust = 0, margin = margin(t = 12)
                 ),
                 legend.position = "bottom",
                 legend.title = element_text(size = 9, face = "bold"),
