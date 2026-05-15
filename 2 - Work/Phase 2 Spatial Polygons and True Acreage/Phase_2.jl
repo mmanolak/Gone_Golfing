@@ -1,4 +1,4 @@
-# Purpose: Phase 2 master — OSM polygon parse + spatial matching.
+# Purpose: Phase 2 master - OSM polygon parse + spatial matching.
 #          Step 1 reads the pyosmium GeoPackage, recalculates acreage in
 #          parallel via ArchGDAL, filters by plausibility bounds, and saves
 #          a canonical Julia GPKG.
@@ -6,7 +6,7 @@
 #          spatial intersect + 500 m nearest-neighbour fallback, then saves
 #          a flat CSV.
 #
-# Fully self-contained — no bulk scripts required.
+# Fully self-contained - no bulk scripts required.
 #
 # NOTE: JULIA_NUM_THREADS must be set via the -t flag or environment variable
 #       before Julia starts (e.g. julia -t 24 Phase_2.jl). Setting
@@ -154,7 +154,7 @@ function main()
     )
 
     pt_geoms = Vector{ArchGDAL.IGeometry}(undef, nrow(courses_df))
-    ArchGDAL.createcoordtrans(source_crs, target_crs) do transform  # [METHODOLOGY] EPSG:5070 — equal-area CRS
+    ArchGDAL.createcoordtrans(source_crs, target_crs) do transform  # [METHODOLOGY] EPSG:5070 - equal-area CRS
         for i in 1:nrow(courses_df)
             pt = ArchGDAL.createpoint(courses_df.Longitude[i], courses_df.Latitude[i])
             ArchGDAL.transform!(pt, transform)

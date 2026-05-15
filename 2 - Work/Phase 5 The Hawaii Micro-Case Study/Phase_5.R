@@ -89,10 +89,10 @@ cat("\n--- Step 1: Geographic Boundary Extraction & Error Analysis ---\n")
 cat("  Loading datasets...\n")
 if (!file.exists(PHASE1_IN)) stop(paste("Input file not found:", PHASE1_IN))
 baseline_df <- read_csv(PHASE1_IN, show_col_types = FALSE)
-# [METHODOLOGY] st_read — spatial read of Phase 2 OSM golf polygons
+# [METHODOLOGY] st_read - spatial read of Phase 2 OSM golf polygons
 if (!file.exists(OSM_IN)) stop(paste("Input file not found:", OSM_IN))
 osm_golf_sf <- st_read(OSM_IN, quiet = TRUE)
-# [METHODOLOGY] st_read — spatial read of Honolulu cadastral parcel layer
+# [METHODOLOGY] st_read - spatial read of Honolulu cadastral parcel layer
 if (!file.exists(PARCELS_GPKG)) stop(paste("Input file not found:", PARCELS_GPKG))
 parcels_sf  <- st_read(PARCELS_GPKG, quiet = TRUE)
 
@@ -105,23 +105,23 @@ suppressMessages(
         progress_bar = FALSE
     ) |>
         filter(NAME == "Honolulu") |>
-        # [METHODOLOGY] st_transform — reproject county boundary to match OSM CRS
+        # [METHODOLOGY] st_transform - reproject county boundary to match OSM CRS
         st_transform(st_crs(osm_golf_sf))
 )
 
 cat("  Extracting OSM polygons within Oahu...\n")
-# [METHODOLOGY] st_filter — spatial subset of all OSM golf polygons to Honolulu county
+# [METHODOLOGY] st_filter - spatial subset of all OSM golf polygons to Honolulu county
 oahu_golf_sf <- st_filter(osm_golf_sf, oahu_boundary_sf, .predicate = st_intersects)
 if (nrow(oahu_golf_sf) == 0) stop("[FATAL] No OSM polygons found on Oahu.")
 
 oahu_baseline_sf <- baseline_df |>
     filter(County_Name == "Honolulu" | FIPS == 15003) |>
-    # [METHODOLOGY] st_as_sf — convert Phase 1 tabular baseline to spatial points
+    # [METHODOLOGY] st_as_sf - convert Phase 1 tabular baseline to spatial points
     st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326) |>
-    # [METHODOLOGY] st_transform — reproject Phase 1 points to match OSM CRS
+    # [METHODOLOGY] st_transform - reproject Phase 1 points to match OSM CRS
     st_transform(st_crs(oahu_golf_sf))
 
-# [METHODOLOGY] st_intersects — check which Phase 1 points fall within an OSM polygon;
+# [METHODOLOGY] st_intersects - check which Phase 1 points fall within an OSM polygon;
 #               mismatch rate quantifies Phase 1-to-Phase 2 representational error
 intersections <- st_intersects(oahu_baseline_sf, oahu_golf_sf)
 hits   <- sum(lengths(intersections) > 0)
@@ -136,20 +136,20 @@ cat(sprintf(
 
 if (st_crs(oahu_golf_sf) != st_crs(parcels_sf)) {
     cat("  Reprojecting parcels to match OSM CRS...\n")
-    # [METHODOLOGY] st_transform — align parcel CRS to OSM CRS for Step 2 overlay
+    # [METHODOLOGY] st_transform - align parcel CRS to OSM CRS for Step 2 overlay
     parcels_sf <- st_transform(parcels_sf, st_crs(oahu_golf_sf))
 }
 
-# [METHODOLOGY] st_write — persist Oahu OSM golf polygons for Step 2 parcel intersection
+# [METHODOLOGY] st_write - persist Oahu OSM golf polygons for Step 2 parcel intersection
 st_write(oahu_golf_sf, TARGET_GOLF_OUT, append = FALSE, quiet = TRUE)
-# [METHODOLOGY] st_write — persist reprojected parcel cadastre for Step 2
+# [METHODOLOGY] st_write - persist reprojected parcel cadastre for Step 2
 st_write(parcels_sf, PARCELS_OUT, append = FALSE, quiet = TRUE)
 
 # ---------- Step 2: Island-Wide Parcel Intersection ----------
 
 cat("\n--- Step 2: Island-Wide Parcel Intersection ---\n")
 cat("  Performing spatial intersection (cookie-cutter)...\n")
-# [METHODOLOGY] st_intersection — cookie-cutter of Phase 2 OSM polygons over the
+# [METHODOLOGY] st_intersection - cookie-cutter of Phase 2 OSM polygons over the
 #               Phase 5 legal cadastre to isolate golf-course parcel fragments
 parcel_intersection_sf <- st_intersection(oahu_golf_sf, parcels_sf)
 cat(sprintf(
@@ -172,7 +172,7 @@ cat(sprintf(
 tmk_df <- data.frame(TMK = unique_tmk_sorted)
 write_csv(tmk_df, TMK_LIST_OUT)
 
-# [METHODOLOGY] st_area — compute legal footprint area from intersection geometry
+# [METHODOLOGY] st_area - compute legal footprint area from intersection geometry
 osm_derived_acres <- as.numeric(sum(st_area(parcel_intersection_sf))) / 4046.86
 cat(sprintf(
     "  Total Legal Footprint: %s Acres\n",
@@ -195,7 +195,7 @@ oahu_estimates <- vector("list", M)
 for (i in seq_len(M)) {
     df_i      <- read_csv(IMPUTED_PATHS[i], show_col_types = FALSE)
     oahu_mask <- !is.na(df_i$Longitude) & !is.na(df_i$Latitude) &
-        # [METHODOLOGY] bounding box 21.2–21.9°N, -158.5 to -157.6°W — Oahu geographic filter
+        # [METHODOLOGY] bounding box 21.2–21.9°N, -158.5 to -157.6°W - Oahu geographic filter
         df_i$Latitude  >= 21.2 & df_i$Latitude  <= 21.9 &
         df_i$Longitude >= -158.5 & df_i$Longitude <= -157.6
     oahu_estimates[[i]] <- df_i[oahu_mask, ] |>
@@ -216,14 +216,14 @@ unique_courses <- oahu_all |>
     summarise(Holes = max(Holes, na.rm = TRUE), .groups = "drop")
 
 courses_sf <- unique_courses |>
-    # [METHODOLOGY] st_as_sf — convert deduplicated baseline points to spatial
+    # [METHODOLOGY] st_as_sf - convert deduplicated baseline points to spatial
     st_as_sf(coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE) |>
-    # [METHODOLOGY] st_transform — reproject baseline points to match OSM CRS
+    # [METHODOLOGY] st_transform - reproject baseline points to match OSM CRS
     st_transform(st_crs(osm_polys_sf))
 
-# [METHODOLOGY] st_nearest_feature — assign each Phase 1 point to nearest OSM polygon
+# [METHODOLOGY] st_nearest_feature - assign each Phase 1 point to nearest OSM polygon
 nearest_idx  <- st_nearest_feature(courses_sf, osm_polys_sf)
-# [METHODOLOGY] st_distance — 500m nearest-neighbor cap: points beyond threshold become orphans
+# [METHODOLOGY] st_distance - 500m nearest-neighbor cap: points beyond threshold become orphans
 nearest_dist <- as.numeric(st_distance(
     courses_sf, osm_polys_sf[nearest_idx, ], by_element = TRUE
 ))
@@ -277,7 +277,7 @@ comparison_df <- data.frame(
         "Total Golf Courses (Oahu, OSM polygons)",
         "Total Unique TMKs (Step 2)",
         "OSM-Derived Legal Footprint (acres)",
-        "Pooled Oahu Opportunity Cost — q_bar ($B)",
+        "Pooled Oahu Opportunity Cost - q_bar ($B)",
         "Standard Error ($B)",
         "95% CI Lower ($B)",
         "95% CI Upper ($B)"
@@ -374,7 +374,7 @@ if (!file.exists(ZONING_GPKG)) {
     stop(sprintf("[FATAL] Zoning layer not found:\n  %s", ZONING_GPKG))
 }
 
-# [METHODOLOGY] st_read — spatial read of Honolulu zoning layer
+# [METHODOLOGY] st_read - spatial read of Honolulu zoning layer
 zoning_sf <- st_read(ZONING_GPKG, quiet = TRUE)
 cat(sprintf("  Loaded zoning layer: %d features\n", nrow(zoning_sf)))
 
@@ -391,7 +391,7 @@ county_zone_acres <- st_drop_geometry(zoning_sf) |>
     group_by(zone_class) |>
     summarise(county_total_acres = sum(zone_total_acres, na.rm = TRUE), .groups = "drop")
 
-# [METHODOLOGY] st_intersection — clips zoning polygons to golf course boundaries,
+# [METHODOLOGY] st_intersection - clips zoning polygons to golf course boundaries,
 #               producing fragment geometries whose area quantifies which zoning classes
 #               overlap the golf course footprint (Pebesma 2018).
 cat("  Performing spatial intersection (golf courses ∩ zoning)...\n")

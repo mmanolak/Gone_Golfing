@@ -1,7 +1,7 @@
-# Phase 2 — Three-Tier Acreage Pipeline
+# Phase 2 - Three-Tier Acreage Pipeline
 # Master Script: Phase_2.R
 #
-# Fully self-contained — no bulk scripts required.
+# Fully self-contained - no bulk scripts required.
 #
 # Pipeline stages:
 #   Step 0  (OSM Parse):  Read golf-course polygons from the pre-built Python
@@ -25,7 +25,7 @@
 #   Phase 2 .../Data/R/R_Phase2_OSM_Golf_Polygons.gpkg
 #   Phase 2 .../Data/R/R_Phase2_Acreage_Matched_v2.csv
 #
-# Run from anywhere — all paths resolve relative to this script's location.
+# Run from anywhere - all paths resolve relative to this script's location.
 
 
 # === 1. LIBRARIES ===
@@ -174,7 +174,7 @@ osm_chunks <- osm_golf_sf |>
   group_split(chunk_id)
 
 osm_processed <- future_map(osm_chunks, function(chunk) {
-  chunk_proj             <- st_transform(chunk, TARGET_CRS)  # [METHODOLOGY] EPSG:5070 — equal-area CRS
+  chunk_proj             <- st_transform(chunk, TARGET_CRS)  # [METHODOLOGY] EPSG:5070 - equal-area CRS
   chunk_proj$area_m2     <- as.numeric(st_area(chunk_proj))  # [METHODOLOGY]
   chunk_proj$osm_acreage <- chunk_proj$area_m2 / SQ_M_PER_ACRE
   chunk_proj
@@ -396,7 +396,7 @@ if (still_missing == 0) {
   } else {
     tigris_golf_sf <- tigris_golf_sf |>
       st_make_valid() |>
-      st_transform(TARGET_CRS) |>  # [METHODOLOGY] EPSG:5070 — equal-area CRS
+      st_transform(TARGET_CRS) |>  # [METHODOLOGY] EPSG:5070 - equal-area CRS
       mutate(tigris_acreage = as.numeric(st_area(geometry)) / SQ_M_PER_ACRE) |>  # [METHODOLOGY]
       filter(tigris_acreage >= MIN_ACRES, tigris_acreage <= MAX_ACRES)
 

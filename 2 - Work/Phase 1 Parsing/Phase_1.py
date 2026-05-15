@@ -1,4 +1,4 @@
-# Purpose: Master pipeline — parse, spatial-join, proxy-merge, and classify
+# Purpose: Master pipeline - parse, spatial-join, proxy-merge, and classify
 #          baseline land values for all US golf courses (Phase 1).
 # Inputs:  00 - Data Sources/Original Data/Golf Courses-USA.csv
 #          00 - Data Sources/Original Data/2022 - USDA County Data - Ag Use.csv
@@ -78,7 +78,7 @@ def main():
     )
 
     print(" 4  Downloading 2022 US County boundaries (pygris)")
-    # [METHODOLOGY] CRS: EPSG 4326 (WGS 84) — projects county boundaries to match golf course point CRS for spatial join
+    # [METHODOLOGY] CRS: EPSG 4326 (WGS 84) - projects county boundaries to match golf course point CRS for spatial join
     county_geo = counties(cb=True, year=2022, resolution="20m").to_crs("EPSG:4326")
 
     print(" 5  Spatial point-in-polygon join")

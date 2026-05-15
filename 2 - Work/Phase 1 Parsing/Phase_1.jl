@@ -1,4 +1,4 @@
-# Purpose: Master pipeline — parse, spatial-join, proxy-merge, and classify
+# Purpose: Master pipeline - parse, spatial-join, proxy-merge, and classify
 #          baseline land values for all US golf courses (Phase 1).
 # Inputs:  00 - Data Sources/Original Data/Golf Courses-USA.csv
 #          00 - Data Sources/Original Data/2022 - USDA County Data - Ag Use.csv
@@ -193,7 +193,7 @@ function main()
         run(`7z x -y -o"$COUNTY_DIR" "$COUNTY_ZIP"`)
     end
 
-    # [METHODOLOGY] Spatial read — county boundaries in EPSG 4326 (WGS 84), matching golf course point CRS
+    # [METHODOLOGY] Spatial read - county boundaries in EPSG 4326 (WGS 84), matching golf course point CRS
     county_geo = GeoDataFrames.read(COUNTY_SHP)
     county_geo = transform(county_geo, :GEOID => ByRow(string) => :FIPS)
     county_geo = select(county_geo,
@@ -315,7 +315,7 @@ function main()
     courses_df = leftjoin(courses_df, fhfa_df, on=:FIPS)
 
     rucc_df = CSV.read(RUCC_CSV, DataFrame)
-    # RUCC source is long-format with multiple attributes per FIPS — isolate RUCC_2023 to get one code per county
+    # RUCC source is long-format with multiple attributes per FIPS - isolate RUCC_2023 to get one code per county
     rucc_df = filter(row -> row.Attribute == "RUCC_2023", rucc_df)
     rucc_df.FIPS = format_fips.(rucc_df.FIPS, 5)
     rucc_df.RUCC_2023 = map(rucc_df.Value) do x
@@ -382,7 +382,7 @@ function main()
 
     total_elapsed = round(time() - global_start; digits=2)
     println("\n" * "="^80)
-    println("PIPELINE COMPLETE — Total execution time: $(total_elapsed)s")
+    println("PIPELINE COMPLETE - Total execution time: $(total_elapsed)s")
     println("="^80)
     println("Output files:")
     println("  - Parsed data:    $OUT_PARSED")

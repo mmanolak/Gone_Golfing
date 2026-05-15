@@ -1,4 +1,4 @@
-# Purpose: Phase 4 master — fit OLS with HC1 robust SEs on each of M R-generated
+# Purpose: Phase 4 master - fit OLS with HC1 robust SEs on each of M R-generated
 #          MICE imputed datasets, then pool via Rubin's Rules and save results.
 # Inputs:  Phase 3 Economic Merge and MICE Imputation/Data/R/R_Imputed_Dataset_{1..M}.csv
 # Outputs: Data/R/R_model_results.rds
@@ -8,11 +8,11 @@
 # === 1. LIBRARIES ===
 
 suppressPackageStartupMessages({
-  library(wooldridge)  # pre-existing dependency — do not remove
+  library(wooldridge)  # pre-existing dependency - do not remove
   library(tidyverse)
   library(lmtest)
   library(sandwich)
-  library(broom)       # pre-existing dependency — do not remove
+  library(broom)       # pre-existing dependency - do not remove
   library(this.path)
 })
 
@@ -112,9 +112,9 @@ for (i in seq_along(IMPUTED_PATHS)) {
     ))
   }
 
-  model <- lm(as.formula(FORMULA_STR), data = acreage_df)  # [METHODOLOGY] OLS — log-linear model for opportunity cost
+  model <- lm(as.formula(FORMULA_STR), data = acreage_df)  # [METHODOLOGY] OLS - log-linear model for opportunity cost
 
-  # [METHODOLOGY] HC1 robust standard errors — heteroskedasticity-consistent;
+  # [METHODOLOGY] HC1 robust standard errors - heteroskedasticity-consistent;
   #               HC1 applies n/(n-k) finite-sample correction
   vcov_hc1 <- vcovHC(model, type = "HC1")
   bse      <- sqrt(diag(vcov_hc1))
@@ -137,7 +137,7 @@ for (i in seq_along(IMPUTED_PATHS)) {
   model_results[[i]] <- model_data
 
   cat(sprintf(
-    "       Done — R²=%.4f, N=%d, df_resid=%d\n",
+    "       Done - R²=%.4f, N=%d, df_resid=%d\n",
     rsquared, nobs_val, df_resid
   ))
 
@@ -201,7 +201,7 @@ if (any(missing_mask)) {
   cat("\n")
 }
 
-# [METHODOLOGY] Rubin's Rules — Barnard & Rubin (1999) df approximation
+# [METHODOLOGY] Rubin's Rules - Barnard & Rubin (1999) df approximation
 m_i <- apply(!is.na(coef_mat), 2, sum)
 m_i[m_i < 2] <- 2
 

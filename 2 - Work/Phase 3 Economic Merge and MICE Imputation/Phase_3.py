@@ -1,4 +1,4 @@
-# Purpose: Complete Phase 3 pipeline — MICE imputation (m=100, LightGBM Random
+# Purpose: Complete Phase 3 pipeline - MICE imputation (m=100, LightGBM Random
 #          Forest) on the Phase 2 acreage-matched dataset to fill missing
 #          osm_acreage and Baseline_Value_Per_Acre values.
 # Inputs:  Phase 2 Spatial Polygons and True Acreage/Data/python/
@@ -80,7 +80,7 @@ def run_imputation(input_csv, out_dir, m_datasets=100):
         f"--- 3  Running miceforest "
         f"(m={m_datasets}, LightGBM backend, n_jobs={N_CORES}) ---"
     )
-    # [METHODOLOGY] miceforest MICE — LightGBM Random Forest, m=100 datasets,
+    # [METHODOLOGY] miceforest MICE - LightGBM Random Forest, m=100 datasets,
     #               random_state=42 for reproducibility (Van Buuren 2018)
     imputed_list = mf.ImputationKernel(
         data=imp_df,
@@ -156,7 +156,7 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
     aggregates  = np.array(aggregates)
     within_vars = np.array(within_vars)
 
-    # [METHODOLOGY] Rubin's Rules pooling — q_bar is the pooled national estimate;
+    # [METHODOLOGY] Rubin's Rules pooling - q_bar is the pooled national estimate;
     #               v_t combines within- and between-imputation variance (Rubin 1987)
     q_bar = aggregates.mean()
     v_w   = within_vars.mean()
@@ -244,7 +244,7 @@ def run_acreage_summary(in_dir, out_csv, m_datasets=100):
 
     print("\n--- 2  Pooling across imputations ---\n")
 
-    # [METHODOLOGY] Rubin's Rules (acreage) — between-imputation variance only;
+    # [METHODOLOGY] Rubin's Rules (acreage) - between-imputation variance only;
     #               within-variance is zero for a spatially fixed attribute
     nat_pool = pool_acreage(national_totals)
 

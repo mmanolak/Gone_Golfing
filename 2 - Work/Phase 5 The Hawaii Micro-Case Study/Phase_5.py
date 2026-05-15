@@ -118,22 +118,22 @@ def run_step1():
 
     print("Loading datasets...")
     baseline_df  = pd.read_csv(PHASE1_IN)
-    # [METHODOLOGY] gpd.read_file — spatial read of Phase 2 OSM golf polygons
+    # [METHODOLOGY] gpd.read_file - spatial read of Phase 2 OSM golf polygons
     osm_golf_geo = gpd.read_file(OSM_IN)
-    # [METHODOLOGY] gpd.read_file — spatial read of Honolulu cadastral parcel layer
+    # [METHODOLOGY] gpd.read_file - spatial read of Honolulu cadastral parcel layer
     parcels_geo  = gpd.read_file(PARCELS_IN)
 
     print("Downloading Oahu boundary...")
     oahu_boundary_geo = (
         pygris.counties(state="HI", cb=True)
         .query("NAME == 'Honolulu'")
-        # [METHODOLOGY] .to_crs — reproject county boundary to match OSM CRS
+        # [METHODOLOGY] .to_crs - reproject county boundary to match OSM CRS
         .to_crs(osm_golf_geo.crs)
     )
 
     print("Extracting all OSM polygons within Oahu...")
     boundary_union = oahu_boundary_geo.geometry.union_all()
-    # [METHODOLOGY] .intersects — spatial subset of all OSM golf polygons to Honolulu county
+    # [METHODOLOGY] .intersects - spatial subset of all OSM golf polygons to Honolulu county
     oahu_golf_geo = osm_golf_geo[osm_golf_geo.geometry.intersects(boundary_union)].copy()
     if len(oahu_golf_geo) == 0:
         print("[FATAL] No OSM polygons found on Oahu.")
@@ -142,7 +142,7 @@ def run_step1():
     oahu_mask = (
         (baseline_df["County_Name"] == "Honolulu") | (baseline_df["FIPS"] == 15003)
     )
-    # [METHODOLOGY] gpd.GeoDataFrame — convert Phase 1 tabular baseline to spatial points
+    # [METHODOLOGY] gpd.GeoDataFrame - convert Phase 1 tabular baseline to spatial points
     oahu_baseline_geo = gpd.GeoDataFrame(
         baseline_df[oahu_mask].copy(),
         geometry=gpd.points_from_xy(
@@ -151,10 +151,10 @@ def run_step1():
         ),
         crs=4326,
     )
-    # [METHODOLOGY] .to_crs — reproject Phase 1 points to match OSM CRS
+    # [METHODOLOGY] .to_crs - reproject Phase 1 points to match OSM CRS
     oahu_baseline_geo = oahu_baseline_geo.to_crs(osm_golf_geo.crs)
 
-    # [METHODOLOGY] gpd.sjoin — check which Phase 1 points fall within an OSM polygon;
+    # [METHODOLOGY] gpd.sjoin - check which Phase 1 points fall within an OSM polygon;
     #               mismatch rate quantifies Phase 1-to-Phase 2 representational error
     joined    = gpd.sjoin(
         oahu_baseline_geo, oahu_golf_geo[["geometry"]], how="left", predicate="intersects"
@@ -176,15 +176,15 @@ def run_step1():
 
     if oahu_golf_geo.crs != parcels_geo.crs:
         print("Reprojecting parcels to match OSM CRS...")
-        # [METHODOLOGY] .to_crs — align parcel CRS to OSM CRS for Step 2 overlay
+        # [METHODOLOGY] .to_crs - align parcel CRS to OSM CRS for Step 2 overlay
         parcels_geo = parcels_geo.to_crs(oahu_golf_geo.crs)
 
     BULK_PYTHON_DIR.mkdir(parents=True, exist_ok=True)
     DATA_PYTHON_DIR.mkdir(parents=True, exist_ok=True)
     print(f"Exporting geometries to: {BULK_PYTHON_DIR}")
-    # [METHODOLOGY] .to_file — persist Oahu OSM golf polygons for Step 2 parcel intersection
+    # [METHODOLOGY] .to_file - persist Oahu OSM golf polygons for Step 2 parcel intersection
     oahu_golf_geo.to_file(TARGET_GOLF_GPKG, driver="GPKG")
-    # [METHODOLOGY] .to_file — persist reprojected parcel cadastre for Step 2
+    # [METHODOLOGY] .to_file - persist reprojected parcel cadastre for Step 2
     parcels_geo.to_file(PARCELS_REPROJECTED, driver="GPKG")
 
     print("\n[DONE] Step 1 Complete.")
@@ -202,16 +202,16 @@ def run_step2():
         print("[FATAL] Reprojected Parcels not found. Run Step 1.")
         raise SystemExit(1)
 
-    # [METHODOLOGY] gpd.read_file — spatial read of Step 1 OSM golf polygons
+    # [METHODOLOGY] gpd.read_file - spatial read of Step 1 OSM golf polygons
     target_golf_geo = gpd.read_file(TARGET_GOLF_GPKG)
-    # [METHODOLOGY] gpd.read_file — spatial read of Step 1 reprojected parcel cadastre
+    # [METHODOLOGY] gpd.read_file - spatial read of Step 1 reprojected parcel cadastre
     parcels_geo     = gpd.read_file(PARCELS_REPROJECTED)
 
     print(f"  -> Loaded {len(target_golf_geo)} target golf polygons.")
     print(f"  -> Loaded {len(parcels_geo)} parcel features.")
     print("\nPerforming spatial intersection (this may take a moment)...")
 
-    # [METHODOLOGY] gpd.overlay(how='intersection') — cookie-cutter of Phase 2 OSM polygons
+    # [METHODOLOGY] gpd.overlay(how='intersection') - cookie-cutter of Phase 2 OSM polygons
     #               over the Phase 5 legal cadastre to isolate golf-course parcel fragments
     parcel_intersection_geo = gpd.overlay(target_golf_geo, parcels_geo, how="intersection")
     print(f"  -> Intersection complete: {len(parcel_intersection_geo)} parcel fragments found.")
@@ -232,7 +232,7 @@ def run_step2():
     tmk_df = pd.DataFrame({"TMK": unique_tmk_sorted})
     tmk_df.to_csv(TMK_LIST_CSV, index=False)
 
-    # [METHODOLOGY] .geometry.area — compute legal footprint area from intersection geometry
+    # [METHODOLOGY] .geometry.area - compute legal footprint area from intersection geometry
     total_area_m2   = parcel_intersection_geo.geometry.area.sum()
     total_acres     = total_area_m2 / 4046.86
 
@@ -284,7 +284,7 @@ def run_step3(osm_derived_acres):
 
     print("-" * 70)
     print("[Step 3.2] Loading parcel attributes from cadastre GPKG...")
-    # [METHODOLOGY] gpd.read_file — spatial read of Step 1 parcel cadastre for attribute join
+    # [METHODOLOGY] gpd.read_file - spatial read of Step 1 parcel cadastre for attribute join
     parcels_attr = gpd.read_file(PARCELS_REPROJECTED).drop(columns="geometry")
 
     if "tmk" in parcels_attr.columns:
@@ -341,7 +341,7 @@ def run_step3(osm_derived_acres):
     print(f"  Oahu courses before deduplication (per imputation): {sizes}")
     print("\n  Applying spatial deduplication using OSM polygons...")
 
-    # [METHODOLOGY] gpd.read_file — spatial read of Oahu golf polygons for deduplication
+    # [METHODOLOGY] gpd.read_file - spatial read of Oahu golf polygons for deduplication
     osm_polys_geo = gpd.read_file(TARGET_GOLF_GPKG)
     osm_polys_geo["poly_id"] = range(1, len(osm_polys_geo) + 1)
 
@@ -351,16 +351,16 @@ def run_step3(osm_derived_acres):
         .reset_index()
     )
 
-    # [METHODOLOGY] gpd.GeoDataFrame — convert deduplicated course coordinates to spatial points
+    # [METHODOLOGY] gpd.GeoDataFrame - convert deduplicated course coordinates to spatial points
     courses_geo = gpd.GeoDataFrame(
         unique_courses,
         geometry=gpd.points_from_xy(unique_courses["Longitude"], unique_courses["Latitude"]),
         crs=4326,
     )
-    # [METHODOLOGY] .to_crs — reproject course points to match OSM CRS
+    # [METHODOLOGY] .to_crs - reproject course points to match OSM CRS
     courses_geo = courses_geo.to_crs(osm_polys_geo.crs)
 
-    # [METHODOLOGY] gpd.sjoin_nearest — nearest-neighbor match to OSM polygons;
+    # [METHODOLOGY] gpd.sjoin_nearest - nearest-neighbor match to OSM polygons;
     #               mirrors Phase 2's fallback matching logic
     joined_nearest = gpd.sjoin_nearest(
         courses_geo.reset_index(drop=True),
@@ -369,7 +369,7 @@ def run_step3(osm_derived_acres):
         distance_col="nearest_dist",
     ).groupby(level=0).first()
 
-    # [METHODOLOGY] 500 m cap — only assign a polygon if within 500 m of the point;
+    # [METHODOLOGY] 500 m cap - only assign a polygon if within 500 m of the point;
     #               threshold mirrors Phase 2 spatial tolerance for point-to-polygon matching
     assigned_poly = np.where(
         joined_nearest["nearest_dist"] <= 500,
@@ -419,7 +419,7 @@ def run_step3(osm_derived_acres):
         .sort_values("Longitude")
     )
 
-    # [METHODOLOGY] Rubin's Rules — pooling across M imputations; simplified formula
+    # [METHODOLOGY] Rubin's Rules - pooling across M imputations; simplified formula
     #               using total-level aggregates (see Phase 4 for full coefficient pooling)
     oahu_agg_dedup = [d["Total_Opportunity_Cost"].sum() for d in oahu_deduped_list]
     q_bar = np.mean(oahu_agg_dedup)
@@ -627,9 +627,9 @@ def run_step6():
         raise SystemExit(1)
 
     print("[Step 1] Loading spatial datasets...")
-    # [METHODOLOGY] gpd.read_file — spatial read of Step 1 Oahu golf polygons for zoning overlay
+    # [METHODOLOGY] gpd.read_file - spatial read of Step 1 Oahu golf polygons for zoning overlay
     golf_gdf   = gpd.read_file(TARGET_GOLF_GPKG)
-    # [METHODOLOGY] gpd.read_file — spatial read of Honolulu zoning layer
+    # [METHODOLOGY] gpd.read_file - spatial read of Honolulu zoning layer
     zoning_gdf = gpd.read_file(ZONING_GPKG)
     print(f"  Golf polygons:  {len(golf_gdf):,} features  (CRS: EPSG {golf_gdf.crs.to_epsg()})")
     print(f"  Zoning layer:   {len(zoning_gdf):,} features  (CRS: EPSG {zoning_gdf.crs.to_epsg()})")
@@ -652,7 +652,7 @@ def run_step6():
         .rename(columns={"zone_total_acres": "county_total_acres"})
     )
 
-    # [METHODOLOGY] gpd.overlay(how='intersection') — clips zoning polygons to golf
+    # [METHODOLOGY] gpd.overlay(how='intersection') - clips zoning polygons to golf
     #               boundaries, quantifying which zone classes cover the golf footprint.
     print("\n[Step 3] Performing spatial intersection (golf courses ∩ zoning)...")
     golf_sub   = golf_gdf[[golf_gdf.geometry.name]]

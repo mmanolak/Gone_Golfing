@@ -83,7 +83,7 @@ function in_oahu(lon, lat)
     return OAHU_LON_MIN <= lon <= OAHU_LON_MAX && OAHU_LAT_MIN <= lat <= OAHU_LAT_MAX
 end
 
-# [METHODOLOGY] createcoordtrans + transform! — in-place reproject using ArchGDAL.jl API;
+# [METHODOLOGY] createcoordtrans + transform! - in-place reproject using ArchGDAL.jl API;
 # ArchGDAL.reproject(geom, ISpatialRef, ISpatialRef) is not defined in this version.
 function reproject_geom(geom, src_crs, tgt_crs)
     ArchGDAL.createcoordtrans(src_crs, tgt_crs) do t
@@ -105,7 +105,7 @@ function find_nearest_polygon(pt_osm, polys_geo::DataFrame)
     min_dist   = Inf
     nearest_id = 0
     for j in 1:nrow(polys_geo)
-        # [METHODOLOGY] ArchGDAL.distance — nearest OSM polygon to a course point
+        # [METHODOLOGY] ArchGDAL.distance - nearest OSM polygon to a course point
         d = ArchGDAL.distance(pt_osm, polys_geo.geometry[j])
         if d < min_dist
             min_dist   = d
@@ -124,7 +124,7 @@ end
 
 function main()
     println("\n" * "=" ^ 70)
-    println("PHASE 5 — HAWAII MICRO-CASE STUDY (STANDALONE)")
+    println("PHASE 5 - HAWAII MICRO-CASE STUDY (STANDALONE)")
     println("=" ^ 70)
 
     # ── input validation ──────────────────────────────────────────────────────
@@ -139,14 +139,14 @@ function main()
 
     # ── STEP 1: Data Acquisition ──────────────────────────────────────────────
     println("\n" * "─" ^ 70)
-    println("STEP 1 — Data Acquisition")
+    println("STEP 1 - Data Acquisition")
     println("─" ^ 70)
     println("\nLoading datasets...")
 
     baseline_df  = CSV.read(PHASE1_IN, DataFrame)
-    # [METHODOLOGY] GeoDataFrames.read — spatial read of Phase 2 Julia OSM golf polygons
+    # [METHODOLOGY] GeoDataFrames.read - spatial read of Phase 2 Julia OSM golf polygons
     osm_golf_geo = GeoDataFrames.read(OSM_IN)
-    # [METHODOLOGY] GeoDataFrames.read — spatial read of Honolulu cadastral parcel layer
+    # [METHODOLOGY] GeoDataFrames.read - spatial read of Honolulu cadastral parcel layer
     parcels_geo  = GeoDataFrames.read(PARCELS_IN)
     # Honolulu cadastral GPKG stores geometry as "SHAPE"; normalize to "geometry"
     "SHAPE" in names(parcels_geo) && rename!(parcels_geo, :SHAPE => :geometry)
@@ -158,7 +158,7 @@ function main()
     parcels_crs = ArchGDAL.getspatialref(parcels_geo.geometry[1])
 
     println("Filtering OSM polygons to Oahu bounding box...")
-    # [METHODOLOGY] centroid-in-bbox — filter OSM golf polygons to Honolulu county extents
+    # [METHODOLOGY] centroid-in-bbox - filter OSM golf polygons to Honolulu county extents
     oahu_mask = ArchGDAL.createcoordtrans(osm_crs, wgs84) do t
         [begin
             c = ArchGDAL.centroid(g)
@@ -176,7 +176,7 @@ function main()
     n_total     = nrow(oahu_baseline)
     hit_results = fill(false, n_total)
 
-    # [METHODOLOGY] WGS84 → OSM CRS — align Phase 1 lat/lon points to OSM CRS for
+    # [METHODOLOGY] WGS84 → OSM CRS - align Phase 1 lat/lon points to OSM CRS for
     #               point-in-polygon check; mismatch rate quantifies Phase 1-to-Phase 2
     #               representational error
     ArchGDAL.createcoordtrans(wgs84, osm_crs) do t
@@ -200,7 +200,7 @@ function main()
     # columns that GeoDataFrames.write can't convert to OGR field types.
     select!(parcels_geo, [:geometry, :tmk])
     println("\nReprojecting parcels to OSM CRS...")
-    # [METHODOLOGY] createcoordtrans + transform! — reproject parcels from native CRS to OSM CRS (EPSG:5070)
+    # [METHODOLOGY] createcoordtrans + transform! - reproject parcels from native CRS to OSM CRS (EPSG:5070)
     ArchGDAL.createcoordtrans(parcels_crs, osm_crs) do t
         for g in parcels_geo.geometry
             ArchGDAL.transform!(g, t)
@@ -211,7 +211,7 @@ function main()
 
     # ── STEP 2: Parcel Intersection ───────────────────────────────────────────
     println("\n" * "─" ^ 70)
-    println("STEP 2 — Parcel Intersection")
+    println("STEP 2 - Parcel Intersection")
     println("─" ^ 70)
     println("  $(nrow(oahu_golf_geo)) golf polygons  ×  $(nrow(parcels_geo)) parcel features")
     println("  Performing spatial intersection (this may take a moment)...")
@@ -222,7 +222,7 @@ function main()
     tmk_col = find_tmk_column(parcels_geo)
     isnothing(tmk_col) && error("[FATAL] No TMK column found in parcel data.")
 
-    # [METHODOLOGY] ArchGDAL.intersection — cookie-cutter of Phase 2 OSM polygons
+    # [METHODOLOGY] ArchGDAL.intersection - cookie-cutter of Phase 2 OSM polygons
     #               over the Phase 5 legal cadastre to isolate golf-course parcel fragments
     for i in 1:nrow(oahu_golf_geo)
         g_geom = oahu_golf_geo.geometry[i]
@@ -250,7 +250,7 @@ function main()
 
     # ── STEP 3: Economic Validation ───────────────────────────────────────────
     println("\n" * "─" ^ 70)
-    println("STEP 3 — Economic Validation")
+    println("STEP 3 - Economic Validation")
     println("─" ^ 70)
 
     # parcel attribute join against in-memory reprojected cadastre (geometry dropped)
@@ -279,7 +279,7 @@ function main()
     oahu_estimates = Vector{DataFrame}(undef, M)
     for i in 1:M
         df_i  = CSV.read(IMPUTED_PATHS[i], DataFrame)
-        # [METHODOLOGY] lat/lon bounding box — Oahu extents to pre-filter national dataset
+        # [METHODOLOGY] lat/lon bounding box - Oahu extents to pre-filter national dataset
         mask  = .!ismissing.(df_i.Longitude) .& .!ismissing.(df_i.Latitude) .&
                 (df_i.Latitude  .>= OAHU_LAT_MIN) .& (df_i.Latitude  .<= OAHU_LAT_MAX) .&
                 (df_i.Longitude .>= OAHU_LON_MIN) .& (df_i.Longitude .<= OAHU_LON_MAX)
@@ -299,11 +299,11 @@ function main()
 
     group_ids = Vector{String}(undef, nrow(unique_courses))
     for i in 1:nrow(unique_courses)
-        # [METHODOLOGY] ArchGDAL.createpoint — convert course lat/lon to spatial point
+        # [METHODOLOGY] ArchGDAL.createpoint - convert course lat/lon to spatial point
         pt_wgs84 = ArchGDAL.createpoint(unique_courses.Longitude[i], unique_courses.Latitude[i])
-        # [METHODOLOGY] reproject_geom — align course point to OSM CRS for polygon matching
+        # [METHODOLOGY] reproject_geom - align course point to OSM CRS for polygon matching
         pt_osm   = reproject_geom(pt_wgs84, wgs84, osm_crs)
-        # [METHODOLOGY] find_nearest_polygon + 500 m cap — mirrors Phase 2 fallback matching
+        # [METHODOLOGY] find_nearest_polygon + 500 m cap - mirrors Phase 2 fallback matching
         nearest_id, dist = find_nearest_polygon(pt_osm, oahu_golf_geo)
         group_ids[i] = dist <= 500 ? string(oahu_golf_geo.poly_id[nearest_id]) : "orphan_$i"
     end
@@ -331,7 +331,7 @@ function main()
     oahu_per_course = combine(groupby(all_deduped, [:Longitude, :Latitude]), agg_spec...)
     sort!(oahu_per_course, :Longitude)
 
-    # [METHODOLOGY] Rubin's Rules — pooling across M imputations; simplified formula
+    # [METHODOLOGY] Rubin's Rules - pooling across M imputations; simplified formula
     #               using total-level aggregates (see Phase 4 for full coefficient pooling)
     oahu_agg_dedup = [sum(d.Total_Opportunity_Cost) for d in oahu_deduped_list]
     q_bar = mean(oahu_agg_dedup)
@@ -359,7 +359,7 @@ function main()
 
     comparison_df = DataFrame(rows)
     println("\n" * "=" ^ 70)
-    println("PHASE 5 ECONOMIC VALIDATION — RESULTS")
+    println("PHASE 5 ECONOMIC VALIDATION - RESULTS")
     println("=" ^ 70)
     for row in eachrow(comparison_df)
         @printf("  %-55s %s\n", row.Metric, row.Value)
@@ -385,7 +385,7 @@ function main()
 
     # ── STEP 5: Geographic Concentration Breakdown ────────────────────────────
     println("\n" * "─" ^ 70)
-    println("STEP 5 — Geographic Concentration Breakdown")
+    println("STEP 5 - Geographic Concentration Breakdown")
     println("─" ^ 70)
 
     tax_data    = CSV.read(TAX_CSV_IN, DataFrame)
@@ -439,12 +439,12 @@ function main()
 
     # ── STEP 6: Zoning Intersection Analysis ──────────────────────────────────
     println("\n" * "─" ^ 70)
-    println("STEP 6 — Zoning Intersection Analysis")
+    println("STEP 6 - Zoning Intersection Analysis")
     println("─" ^ 70)
 
     isfile(ZONING_GPKG) || error("[FATAL] Zoning layer not found:\n  $ZONING_GPKG")
 
-    # [METHODOLOGY] GeoDataFrames.read — spatial read of Honolulu zoning layer
+    # [METHODOLOGY] GeoDataFrames.read - spatial read of Honolulu zoning layer
     zoning_gdf = GeoDataFrames.read(ZONING_GPKG)
     println("  Loaded zoning layer: $(nrow(zoning_gdf)) features")
 
@@ -469,7 +469,7 @@ function main()
         :zone_total_acres => sum => :county_total_acres,
     )
 
-    # [METHODOLOGY] ArchGDAL.intersection — clips the zoning polygons to the exact
+    # [METHODOLOGY] ArchGDAL.intersection - clips the zoning polygons to the exact
     #               boundary of each golf course polygon, producing fragment geometries
     #               whose combined area quantifies which zoning classes overlap the
     #               golf course footprint (Pebesma 2018).

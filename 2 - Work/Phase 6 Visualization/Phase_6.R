@@ -2084,10 +2084,10 @@ run_9b_Oahu_OC_Rural_USDA_Sensitivity <- function() {
     HONOLULU_FIPS <- "15003"
 
     # Development Plan zone classification (ZONMAP_NO from Zoning_Map_Boundary.geojson):
-    # 0     : No Coverage                   — no courses present
-    # 1-14  : Urban/suburban Oahu core      — FHFA
-    # 15-20 : Rural (unambiguously rural)   — USDA override
-    # 21-24 : Windward Oahu (suburban/res.) — FHFA
+    # 0     : No Coverage                   - no courses present
+    # 1-14  : Urban/suburban Oahu core      - FHFA
+    # 15-20 : Rural (unambiguously rural)   - USDA override
+    # 21-24 : Windward Oahu (suburban/res.) - FHFA
 
 
     # === 3. FUNCTIONS ===
@@ -2888,14 +2888,16 @@ run_15_Residual_Map <- function() {
         fill_col = "Mean_Log_Residual",
         title = "OLS Spatial Diagnostics: Mean Log-Residuals by County",
         subtitle = paste0(
-            "log(Opportunity_Cost) − log(Predicted Opportunity_Cost)  │  ",
-            "Red = model under-predicts  │  Blue = model over-predicts  │  ",
-            "Grand Mean β̂ of Py/R/Jl Rubin-pooled estimates (M = 300: 100 each)"
+            "log(Actual OC) − log(Predicted OC) per county  │  ",
+            "Red = county OC exceeds prediction (model underpredicts)  │  ",
+            "Blue = county OC falls short of prediction (model overpredicts)  │  ",
+            "Grand Mean of three Rubin-pooled estimates (Python · R · Julia, M = 100 each)"
         ),
         caption_text = paste0(
             "OLS model: log(Opportunity_Cost) = β₀ + β₁·Holes + β₂·I(Urban). ",
-            "Coefficients = Grand Mean of three independently Rubin-pooled β̂ vectors ",
-            "(100 Python, 100 R, 100 Julia). County value = mean of course-level log-residuals.\n",
+            "Each county's value = mean of course-level log-residuals for courses in that county. ",
+            "No systematic geographic pattern in residuals indicates the model is spatially unbiased. ",
+            "Gray counties contain no golf courses in the Phase 1 dataset.\n",
             "Sources: OpenStreetMap golf course polygons; FHFA residential land price index (urban); ",
             "USDA agricultural land values (rural). ",
             "CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
@@ -2916,14 +2918,15 @@ run_15_Residual_Map <- function() {
         title = "Uncaptured Latent Value: Total Dollar Residuals by County",
         subtitle = paste0(
             "Σ (Actual OC − Predicted OC) per county  │  ",
-            "Red = model under-predicts (latent value)  │  Blue = model over-predicts  │  ",
-            "Signed √ scale (compresses outliers)"
+            "Red = county value exceeds prediction (undercaptured latent value)  │  ",
+            "Blue = county value falls short of prediction  │  ",
+            "Grand Mean of three Rubin-pooled estimates (Python · R · Julia, M = 100 each)  │  Signed √ scale"
         ),
         caption_text = paste0(
-            "Dollar residual = actual Opportunity_Cost − exp(predicted log(Opportunity_Cost)), both in dollars. ",
-            "Predicted log(OC) uses Grand Mean β̂ (arithmetic mean of Py/R/Jl Rubin-pooled estimates, M = 300). ",
-            "Fill uses signed square-root compression: color encodes direction, ",
-            "intensity encodes magnitude.\n",
+            "Dollar residual = (acreage × Baseline_Value_Per_Acre) − exp(Predicted_log_OC); both terms in dollars. ",
+            "Fill uses signed square-root compression to handle the fat-tailed distribution: ",
+            "color encodes direction, intensity encodes magnitude; legend tick labels back-transform to dollar values.\n",
+            "Gray counties contain no golf courses. ",
             "Sources: OpenStreetMap; FHFA/USDA land values. ",
             "CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
         ),

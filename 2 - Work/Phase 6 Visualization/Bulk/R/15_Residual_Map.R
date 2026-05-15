@@ -225,10 +225,10 @@ build_residual_map <- function(counties_joined, fill_col, title, subtitle,
                 face = "bold", size = 18, hjust = 0.5, margin = margin(b = 5)
             ),
             plot.subtitle = element_text(
-                size = 10, hjust = 0.5, colour = "grey35", margin = margin(b = 12)
+                size = 10, hjust = 0.5, colour = "#024731", margin = margin(b = 12)
             ),
             plot.caption  = element_text(
-                size = 7, colour = "grey50", hjust = 0, margin = margin(t = 12)
+                size = 7, colour = "#024731", hjust = 0, margin = margin(t = 12)
             ),
             legend.position = "bottom",
             legend.title    = element_text(size = 9, face = "bold"),
@@ -367,14 +367,16 @@ map1 <- build_residual_map(
     fill_col     = "Mean_Log_Residual",
     title        = "OLS Spatial Diagnostics: Mean Log-Residuals by County",
     subtitle     = paste0(
-        "log(Actual OC) − log(Predicted OC)  │  ",
-        "Red = model under-predicts  │  Blue = model over-predicts  │  ",
-        "Grand Mean across M = 300 MICE imputations (R + Py + Jl, 100 each)"
+        "log(Actual OC) − log(Predicted OC) per county  │  ",
+        "Red = county OC exceeds prediction (model underpredicts)  │  ",
+        "Blue = county OC falls short of prediction (model overpredicts)  │  ",
+        "Grand Mean of three Rubin-pooled estimates (Python · R · Julia, M = 100 each)"
     ),
     caption_text = paste0(
-        "OLS model: log(Opportunity_Cost) = β₀ + β₁·Holes + β₂·I(Urban), ",
-        "estimated via Rubin’s Rules (M = 100 per language). ",
-        "County value = mean of course-level log-residuals. Grand Mean across R, Python, and Julia.\n",
+        "OLS model: log(Opportunity_Cost) = β₀ + β₁·Holes + β₂·I(Urban). ",
+        "Each county’s value = mean of course-level log-residuals for courses in that county. ",
+        "No systematic geographic pattern in residuals indicates the model is spatially unbiased. ",
+        "Gray counties contain no golf courses in the Phase 1 dataset.\n",
         "Sources: OpenStreetMap golf course polygons; FHFA residential land price index (urban); ",
         "USDA agricultural land values (rural). ",
         "CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
@@ -395,14 +397,15 @@ map2 <- build_residual_map(
     title        = "Uncaptured Latent Value: Total Dollar Residuals by County",
     subtitle     = paste0(
         "Σ (Actual OC − Predicted OC) per county  │  ",
-        "Red = model under-predicts (latent value)  │  Blue = model over-predicts  │  ",
-        "Grand Mean across M = 300 MICE imputations (R + Py + Jl) │  Signed √ scale"
+        "Red = county value exceeds prediction (undercaptured latent value)  │  ",
+        "Blue = county value falls short of prediction  │  ",
+        "Grand Mean of three Rubin-pooled estimates (Python · R · Julia, M = 100 each)  │  Signed √ scale"
     ),
     caption_text = paste0(
-        "Dollar residual = (acreage × Baseline_Value_Per_Acre) − exp(Predicted_log_OC). ",
-        "Both terms in dollars; eliminates the units error in the pre-patch formula. ",
-        "Fill uses signed square-root compression: color encodes direction, intensity encodes magnitude.\n",
-        "Grand Mean of Rubin-pooled per-county sums across M = 100 imputations per language (R, Python, Julia). ",
+        "Dollar residual = (acreage × Baseline_Value_Per_Acre) − exp(Predicted_log_OC); both terms in dollars. ",
+        "Fill uses signed square-root compression to handle the fat-tailed distribution: ",
+        "color encodes direction, intensity encodes magnitude; legend tick labels back-transform to dollar values.\n",
+        "Gray counties contain no golf courses. ",
         "Sources: OpenStreetMap; FHFA/USDA land values. ",
         "CRS: NAD83 / Conus Albers (EPSG 5070). Alaska and Hawaii shown as insets."
     ),

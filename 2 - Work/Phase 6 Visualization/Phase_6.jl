@@ -17,6 +17,10 @@ using Printf
 #          output/Final_Thesis_Figures/6.241_MICE_Raincloud_Diagnostic_Combined.png
 #          output/Final_Thesis_Figures/10.141_Hawaii_Gap_Dumbbell_TriLanguage.png
 #          output/Final_Thesis_Figures/11.141_Lorenz_Curve_TriLanguage.png
+#          output/Final_Thesis_Figures/14.141_Urban_Rural_Scatter_TriLanguage.png
+#          output/Final_Thesis_Figures/14.111_Urban_Rural_Scatter_JlVsGrandMean.png
+#          output/Final_Thesis_Figures/14.121_Urban_Rural_Scatter_PyVsGrandMean.png
+#          output/Final_Thesis_Figures/14.131_Urban_Rural_Scatter_RVsGrandMean.png
 #
 #          for running the script:
 #          julia --threads=auto .\Phase_6.jl
@@ -49,9 +53,10 @@ mkpath(QA_DIR)
 const OUT_FOREST  = joinpath(THESIS_DIR, "5.141_Forest_Plot_Combined.png")
 
 const PARAM_LABELS = Dict(
-    "(Intercept)"        => "Intercept",
-    "Holes"              => "Holes (per 18-hole unit)",
-    "county_type: Urban" => "Urban County"
+    "(Intercept)"              => "Intercept",
+    "Holes"                    => "Holes\n(per 18-hole unit)",
+    "county_type: Urban"       => "Urban County",
+    "factor(county_type)Urban" => "Urban County"
 )
 
 # Colors for UH Manoa
@@ -86,13 +91,21 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
     sorted_labels = labels[order]
     n             = length(order)
 
-    fig = Figure(size = (900, 450))
-    ax  = Axis(fig[1, 1];
-        yticks        = (1:n, sorted_labels),
-        xlabel        = "Coefficient  [Dependent variable: log(Opportunity_Cost)]",
-        title         = "Regression Coefficients — Tri-Language MICE-Pooled Models",
-        subtitle      = "Point estimates with 95% confidence intervals (Dodged Y-Axis)",
-        titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731", xgridvisible = true, ygridvisible = false,
+    fig = Figure(size = (900, 520))
+
+    # Title and subtitle as Labels spanning axis + legend columns so they center over the full figure width
+    Label(fig[1, 1:2],
+        "Regression Coefficients — Tri-Language MICE-Pooled Models";
+        fontsize = 14, font = :bold, halign = :center, tellwidth = false)
+    Label(fig[2, 1:2],
+        "Each dot = Rubin-pooled OLS estimate (M=100 imputations). Each bar = 95% CI.  " *
+        "Three estimates per predictor, dodged vertically: Python (green) · R (blue) · Julia (purple).";
+        fontsize = 11, color = "#024731", halign = :center, tellwidth = false, word_wrap = true)
+
+    ax  = Axis(fig[3, 1];
+        yticks       = (1:n, sorted_labels),
+        xlabel       = "Estimated Coefficient",
+        xgridvisible = true, ygridvisible = false, tellwidth = false
     )
 
     vlines!(ax, 0.0; color = "#888888", linestyle = :dash, linewidth = 0.5)
@@ -118,7 +131,7 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
         direction = :x, color = :green, linewidth = 1.5, whiskerwidth = 0.2)
     scatter!(ax, py_coef, collect(Float64.(1:n)) .+ 0.2; color = :green, markersize = 12)
 
-    Legend(fig[1, 2],
+    Legend(fig[3, 2],
         [
             [MarkerElement(color = :green,  marker = :circle)],
             [MarkerElement(color = :blue,   marker = :circle)],
@@ -128,11 +141,16 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
         framevisible = false, labelsize = 11
     )
 
-    Label(fig[2, 1:2],
-        "Dependent variable: log(Opportunity_Cost). OLS estimated on pooled MICE imputations (M = 100) via Rubin's Rules.";
-        fontsize = 10, color = "#024731", halign = :left, tellwidth = false
+    Label(fig[4, 1:2],
+        "Dependent variable: log(Opportunity_Cost). Each dot is a Rubin-pooled OLS coefficient estimated " *
+        "from M = 100 MICE imputations; each bar is the corresponding 95% confidence interval. " *
+        "The three languages use independent MICE backends (LightGBM, Random Forest, Mice.jl); " *
+        "near-identical estimates across all three languages demonstrate robustness to imputation backend choice.";
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
-    rowsize!(fig.layout, 2, Fixed(24))
+    rowsize!(fig.layout, 1, Auto())
+    rowsize!(fig.layout, 2, Auto())
+    rowsize!(fig.layout, 4, Fixed(50))
 
     save(out_path, fig; px_per_unit = 3)
     println("    Saved: $(out_path)")
@@ -152,7 +170,7 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
     tick_strs = ["1 ac", "10 ac", "50 ac", "200 ac", "1,000 ac", "5,000 ac"]
 
     # [METHODOLOGY] Intentional exception to the Jl_-only input rule: this diagnostic
-    # overlay reads all three language MICE sets for visual comparison only — no
+    # overlay reads all three language MICE sets for visual comparison only - no
     # statistical pooling or inference is performed across languages here.
     # lang_id follows CLAUDE.md convention: 1=Julia, 2=Python, 3=R.
     langs = [("Jl", :purple, "Julia",  1),
@@ -185,7 +203,7 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
         @printf("    [%s] Extracted from %d datasets.\n", prefix, length(vals_by_i))
     end
 
-    # Per-language checkpoint plots (QA) — 5 files per language, 15 total → qa_dir
+    # Per-language checkpoint plots (QA) - 5 files per language, 15 total → qa_dir
     for (prefix, col, lang_name, lang_id) in langs
         for (ci, n) in enumerate(CHECKPOINTS)
             fig = Figure(size = (1100, 600))
@@ -193,7 +211,7 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
                 xticks        = (tick_vals, tick_strs),
                 xlabel        = "Final Acreage (log₁₀ scale)",
                 ylabel        = "Density",
-                title         = "Acreage Distribution — $(lang_name) MICE (Cumulative n = $(n))",
+                title         = "Acreage Distribution - $(lang_name) MICE (Cumulative n = $(n))",
                 subtitle      = "Log₁₀ scale  |  Observed = measured parcels  |  Draws 1–$(n)",
                 titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731", xgridvisible  = false,
                 ygridvisible  = false,
@@ -222,14 +240,14 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
         end
     end
 
-    # Combined checkpoint plots — 5 files → thesis_dir
+    # Combined checkpoint plots - 5 files → thesis_dir
     for (ci, n) in enumerate(CHECKPOINTS)
         fig = Figure(size = (1100, 600))
         ax  = Axis(fig[1, 1];
             xticks        = (tick_vals, tick_strs),
             xlabel        = "Final Acreage (log₁₀ scale)",
             ylabel        = "Density",
-            title         = "Acreage Distribution — Tri-Language MICE (Cumulative n = $(n) per language)",
+            title         = "Acreage Distribution - Tri-Language MICE (Cumulative n = $(n) per language)",
             subtitle      = "Log₁₀ scale  |  Observed = measured parcels  |  Py (Green), R (Blue), Jl (Purple)",
             titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731",
             xgridvisible  = false,
@@ -455,8 +473,8 @@ function plot_raincloud(cloud_df::DataFrame, imp_indices::NamedTuple, out_path::
     ax  = Axis(fig[1, 1];
         xticks        = (1:n_groups, group_levels),
         yticks        = (log10_breaks, log10_labels),
-        ylabel        = "log₁₀(Acreage) — input to log(Opportunity_Cost)",
-        title         = "MICE Imputation Diagnostic — log(Opportunity_Cost) Acreage Inputs",
+        ylabel        = "log₁₀(Acreage) - input to log(Opportunity_Cost)",
+        title         = "MICE Imputation Diagnostic - log(Opportunity_Cost) Acreage Inputs",
         subtitle      = "1 imputation per language drawn at seed $(RAINCLOUD_SEED)  │  " *
                         "Py (green), R (blue), Jl (purple)  │  Imputed parcels only",
         titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731", xgridvisible = false, ygridvisible = true,
@@ -549,7 +567,7 @@ function main()
 
     # Predicted log(Opportunity_Cost) at median holes (Rural = no Urban premium).
     # The regression DV is log(Opportunity_Cost) in dollars, so exp(ŷ) is already
-    # the predicted OC in dollars — no bvpa multiplication needed or correct.
+    # the predicted OC in dollars - no bvpa multiplication needed or correct.
     log_hat_rural = b0 + b_holes * med_holes
     log_hat_urban = b0 + b_holes * med_holes + b_urban
 
@@ -573,9 +591,9 @@ function main()
 
     rural_row = only(eachrow(marginal_df[marginal_df.type .== "Rural", :]))
     urban_row = only(eachrow(marginal_df[marginal_df.type .== "Urban", :]))
-    @printf("    Predicted OC — Rural: \$%.2fM  [%.2fM, %.2fM]\n",
+    @printf("    Predicted OC - Rural: \$%.2fM  [%.2fM, %.2fM]\n",
         rural_row.est_M, rural_row.lo_M, rural_row.hi_M)
-    @printf("    Predicted OC — Urban: \$%.2fM  [%.2fM, %.2fM]\n",
+    @printf("    Predicted OC - Urban: \$%.2fM  [%.2fM, %.2fM]\n",
         urban_row.est_M, urban_row.lo_M, urban_row.hi_M)
 
     plot_marginal(marginal_df, med_holes, OUT_MARGINAL)
@@ -669,7 +687,9 @@ const OAHU_FIPS    = 15003
 const OUTPUT_DIR   = joinpath(SCRIPT_DIR, "output")
 const THESIS_DIR   = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
 mkpath(THESIS_DIR)
-const OUT_DUMBBELL = joinpath(THESIS_DIR, "10.141_Hawaii_Gap_Dumbbell_TriLanguage.png")
+const OUT_DUMBBELL_LEFT   = joinpath(THESIS_DIR, "10.141_Hawaii_Gap_Dumbbell_Left_TriLanguage.png")
+const OUT_DUMBBELL_RIGHT  = joinpath(THESIS_DIR, "10.142_Hawaii_Gap_Dumbbell_Right_TriLanguage.png")
+const OUT_DUMBBELL_LEGEND = joinpath(THESIS_DIR, "10.143_Hawaii_Gap_Dumbbell_Legend_TriLanguage.png")
 
 const COL_PY  = "#2ca02c"
 const COL_R   = "#1f77b4"
@@ -720,7 +740,8 @@ function plot_dumbbell(
     right_r::Vector{Float64},   right_r_se::Vector{Float64},
     right_jl::Vector{Float64},  right_jl_se::Vector{Float64},
     grand_mean::Vector{Float64},
-    out_path::String
+    out_path::String;
+    panel_title::String = ""
 )
     n  = length(course_names)
     ys = collect(Float64, 1:n)
@@ -734,12 +755,9 @@ function plot_dumbbell(
     ax    = Axis(fig[1, 1];
         yticks        = (ys, ytick_labels),
         xlabel        = "Estimated Land Value (USD, log₁₀ scale)",
-        title         = "The Hawaii Gap: HBU Model Value vs. Agricultural Floor — Oahu Golf Courses",
-        subtitle      = "Three Rubin-pooled estimates per course (Py/R/Jl, M=100 each)  │  " *
-                        "Grand Mean = arithmetic mean of three language estimates",
-        titlesize     = 14,
-        subtitlesize  = 12,
-        subtitlecolor = "#024731",
+        title         = panel_title,
+        titlesize     = 13,
+        titlecolor    = "#024731",
         xgridvisible  = true,
         ygridvisible  = false,
     )
@@ -797,31 +815,52 @@ function plot_dumbbell(
     end
 
 
-    elem_py   = MarkerElement(color = COL_PY,  marker = :circle,  markersize = 9)
-    elem_r    = MarkerElement(color = COL_R,   marker = :circle,  markersize = 9)
-    elem_jl   = MarkerElement(color = COL_JL,  marker = :circle,  markersize = 9)
-    elem_gm   = MarkerElement(color = :white,  marker = :circle,  markersize = 12,
-                                strokecolor = :black, strokewidth = 1.5)
-    elem_left = MarkerElement(color = COL_OBS, marker = :diamond, markersize = 10)
-    Legend(fig[1, 2],
-        [elem_py, elem_r, elem_jl, elem_gm, elem_left],
-        ["Python  (Rubin M=100)", "R  (Rubin M=100)", "Julia  (Rubin M=100)",
-        "Grand Mean", "Agricultural Floor (USDA × acreage)"],
-        framevisible = true,
-        tellheight   = false
+    save(out_path, fig; px_per_unit = 3)
+    println("    Saved: $(basename(out_path))")
+end
+
+
+function plot_legend_card(out_path::String)
+    fig = Figure(size = (1200, 300), backgroundcolor = :white)
+
+    Label(fig[1, 1:2],
+        "The Hawaii Gap: HBU Model Value vs. Agricultural Floor - Oahu Golf Courses";
+        fontsize = 14, font = :bold, halign = :left, tellwidth = false
+    )
+    Label(fig[2, 1:2],
+        "Three Rubin-pooled estimates per course (Py/R/Jl, M=100 each)  │  " *
+        "Grand Mean = arithmetic mean of three language estimates";
+        fontsize = 12, color = "#024731", halign = :left, tellwidth = false
     )
 
-    Label(fig[2, 1:2],
+    Label(fig[3, 1],
         "Left endpoint: parcel acreage × USDA agricultural value per acre (restricted-use floor). " *
         "Right endpoints: parcel acreage × FHFA residential value per acre (HBU estimate, Rubin-pooled). " *
         "Horizontal gap = Zoning Tax / Deadweight Loss. " *
         "Error bars: 95% CI via Rubin's Rules (delta method, log₁₀ scale); bars capped at axis limits for courses with high imputation variance. " *
         "† No OSM polygon in Phase 2 (military/federal installation or unmapped course); " *
-        "acreage fully imputed by MICE — wide CI reflects genuine uncertainty. " *
+        "acreage fully imputed by MICE - wide CI reflects genuine uncertainty. " *
         "Courses where Py/R coordinate matching is ambiguous show Julia estimate only.";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
-    rowsize!(fig.layout, 2, Fixed(48))
+
+    elem_py   = MarkerElement(color = COL_PY,  marker = :circle,  markersize = 9)
+    elem_r    = MarkerElement(color = COL_R,   marker = :circle,  markersize = 9)
+    elem_jl   = MarkerElement(color = COL_JL,  marker = :circle,  markersize = 9)
+    elem_gm   = MarkerElement(color = :white,  marker = :circle,  markersize = 12,
+                               strokecolor = :black, strokewidth = 1.5)
+    elem_left = MarkerElement(color = COL_OBS, marker = :diamond, markersize = 10)
+    Legend(fig[3, 2],
+        [elem_py, elem_r, elem_jl, elem_gm, elem_left],
+        ["Python  (Rubin M=100)", "R  (Rubin M=100)", "Julia  (Rubin M=100)",
+         "Grand Mean", "Agricultural Floor (USDA × acreage)"];
+        framevisible = true, halign = :right, valign = :top
+    )
+
+    colsize!(fig.layout, 1, Relative(0.65))
+    colsize!(fig.layout, 2, Relative(0.35))
+    rowsize!(fig.layout, 1, Fixed(30))
+    rowsize!(fig.layout, 2, Fixed(24))
 
     save(out_path, fig; px_per_unit = 3)
     println("    Saved: $(basename(out_path))")
@@ -851,7 +890,7 @@ function main()
 
     id_to_idx    = Dict(course_ids[i] => i for i in 1:n_courses)
     # Collision-safe coordinate lookup: if two courses share the same rounded
-    # (Lon, Lat), exclude both from Py/R matching — ambiguity cannot be resolved
+    # (Lon, Lat), exclude both from Py/R matching - ambiguity cannot be resolved
     # without a course_id (which only Julia datasets carry).
     _coord_count = Dict{Tuple{Float64,Float64}, Int}()
     for i in 1:n_courses
@@ -881,7 +920,7 @@ function main()
     jl1_df = nothing; GC.gc()
 
     # Read Phase 2 to flag courses whose acreage was fully MICE-imputed
-    # (no OSM polygon — military bases, unmapped clubs, etc.).
+    # (no OSM polygon - military bases, unmapped clubs, etc.).
     isfile(PHASE2_JL_CSV) || error("Input file not found: $PHASE2_JL_CSV")
     ph2_df       = CSV.read(PHASE2_JL_CSV, DataFrame)
     ph2_oahu     = ph2_df[coalesce.(ph2_df.FIPS .== OAHU_FIPS, false), :]
@@ -970,17 +1009,38 @@ function main()
 
     short_name(s) = String(first(split(String(s), "-"; limit = 2)))
 
-    println("--- [5/5] Building dumbbell plot")
+    half      = length(ord) ÷ 2
+    ord_left  = ord[1:half]
+    ord_right = ord[half+1:end]
+
+    println("--- [5/7] Building dumbbell panel 1 (lower-value courses)")
     plot_dumbbell(
-        [short_name(course_names[i]) for i in ord],
-        ph2_missing[ord],
-        left_vals[ord],
-        right_py[ord],   right_py_se[ord],
-        right_r[ord],    right_r_se[ord],
-        right_jl[ord],   right_jl_se[ord],
-        grand[ord],
-        OUT_DUMBBELL
+        [short_name(course_names[i]) for i in ord_left],
+        ph2_missing[ord_left],
+        left_vals[ord_left],
+        right_py[ord_left],   right_py_se[ord_left],
+        right_r[ord_left],    right_r_se[ord_left],
+        right_jl[ord_left],   right_jl_se[ord_left],
+        grand[ord_left],
+        OUT_DUMBBELL_LEFT;
+        panel_title = "Lower-value courses"
     )
+
+    println("--- [6/7] Building dumbbell panel 2 (higher-value courses)")
+    plot_dumbbell(
+        [short_name(course_names[i]) for i in ord_right],
+        ph2_missing[ord_right],
+        left_vals[ord_right],
+        right_py[ord_right],   right_py_se[ord_right],
+        right_r[ord_right],    right_r_se[ord_right],
+        right_jl[ord_right],   right_jl_se[ord_right],
+        grand[ord_right],
+        OUT_DUMBBELL_RIGHT;
+        panel_title = "Higher-value courses"
+    )
+
+    println("--- [7/7] Building legend card")
+    plot_legend_card(OUT_DUMBBELL_LEGEND)
 
     println()
     println("=== Mod_10 Hawaii Gap Dumbbell complete ===")
@@ -1141,7 +1201,7 @@ function plot_lorenz(
     ax  = Axis(fig[1, 1];
         xlabel        = "Cumulative Share of Golf Courses (Sorted by Opportunity Cost, Ascending)",
         ylabel        = "Cumulative Share of Total Opportunity Cost",
-        title         = "Lorenz Curve of Spatial Misallocation — Opportunity Cost of Golf Courses",
+        title         = "Lorenz Curve of Spatial Misallocation - Opportunity Cost of Golf Courses",
         subtitle      = "Rubin-pooled estimates (M=100 per language) with 95% CI ribbons  │  Grand Mean = black dashed",
         titlesize     = 14,
         subtitlesize  = 12,
@@ -1173,7 +1233,7 @@ function plot_lorenz(
     lines!(ax, grid, mean_r;  color = COL_R,  linewidth = 2.0, label = "R (M=100, 95% CI)")
     lines!(ax, grid, mean_jl; color = COL_JL, linewidth = 2.0, label = "Julia (M=100, 95% CI)")
 
-    # Grand Mean Lorenz curve — black dashed, no ribbon
+    # Grand Mean Lorenz curve - black dashed, no ribbon
     lines!(ax, grid, mean_gm;
         color     = :black,
         linestyle = :dash,
@@ -1218,7 +1278,7 @@ function main()
     lats         = Float64.(baseline.Latitude)
     id_to_idx    = Dict(course_ids[i] => i for i in 1:n_courses)
     # Collision-safe coordinate lookup: if two courses share the same rounded
-    # (Lon, Lat), exclude both from Py/R matching — ambiguity cannot be resolved
+    # (Lon, Lat), exclude both from Py/R matching - ambiguity cannot be resolved
     # without a course_id (which only Julia datasets carry).
     _coord_count = Dict{Tuple{Float64,Float64}, Int}()
     for i in 1:n_courses
@@ -1236,19 +1296,19 @@ function main()
 
     grid = collect(range(0.0, 1.0; length = GRID_N))
 
-    println("--- [2/5] Julia imputations (M=$(M)) — building per-imputation Lorenz curves")
+    println("--- [2/5] Julia imputations (M=$(M)) - building per-imputation Lorenz curves")
     mean_jl, lo_jl, hi_jl = lorenz_ci(
         "Jl", PHASE3_DIR_JL, :osm_acreage, true,
         id_to_idx, coord_to_idx, fhfa, n_courses, grid
     )
 
-    println("--- [3/5] Python imputations (M=$(M)) — building per-imputation Lorenz curves")
+    println("--- [3/5] Python imputations (M=$(M)) - building per-imputation Lorenz curves")
     mean_py, lo_py, hi_py = lorenz_ci(
         "Py", PHASE3_DIR_PY, :osm_acreage, false,
         id_to_idx, coord_to_idx, fhfa, n_courses, grid
     )
 
-    println("--- [4/5] R imputations (M=$(M)) — building per-imputation Lorenz curves")
+    println("--- [4/5] R imputations (M=$(M)) - building per-imputation Lorenz curves")
     mean_r, lo_r, hi_r = lorenz_ci(
         "R", PHASE3_DIR_R, :final_acreage, false,
         id_to_idx, coord_to_idx, fhfa, n_courses, grid
@@ -1440,7 +1500,7 @@ function plot_waffle(
 
     fig = Figure(size = (820, 820), backgroundcolor = :white)
     ax  = Axis(fig[1, 1];
-        title         = "The Preservation Paradox — Zoning of Oahu Golf Land",
+        title         = "The Preservation Paradox - Zoning of Oahu Golf Land",
         subtitle      = "Grand Mean of Py / R / Jl Rubin-pooled estimates  │  M=100 per language",
         titlesize     = 16,
         subtitlesize  = 12,
@@ -1524,13 +1584,13 @@ function main()
         for i in 1:n_oahu if _cnt[round_loc(lons[i], lats[i])] == 1
     )
 
-    println("--- [2/5] Julia imputations (M=$M) — total Oahu OC per imputation")
+    println("--- [2/5] Julia imputations (M=$M) - total Oahu OC per imputation")
     totals_jl = oahu_oc_totals("Jl", PHASE3_DIR_JL, :osm_acreage,   true,  id_to_idx, coord_to_idx, fhfa)
 
-    println("--- [3/5] Python imputations (M=$M) — total Oahu OC per imputation")
+    println("--- [3/5] Python imputations (M=$M) - total Oahu OC per imputation")
     totals_py = oahu_oc_totals("Py", PHASE3_DIR_PY, :osm_acreage,   false, id_to_idx, coord_to_idx, fhfa)
 
-    println("--- [4/5] R imputations (M=$M) — total Oahu OC per imputation")
+    println("--- [4/5] R imputations (M=$M) - total Oahu OC per imputation")
     totals_r  = oahu_oc_totals("R",  PHASE3_DIR_R,  :final_acreage, false, id_to_idx, coord_to_idx, fhfa)
 
     # [METHODOLOGY] Rubin's Rules applied independently per language (M=100 each).
@@ -1538,12 +1598,12 @@ function main()
     r_jl = rubin_pool(totals_jl)
     r_py = rubin_pool(totals_py)
     r_r  = rubin_pool(totals_r)
-    @printf("    Pooled total OC — Jl: \$%.2fB  Py: \$%.2fB  R: \$%.2fB\n",
+    @printf("    Pooled total OC - Jl: \$%.2fB  Py: \$%.2fB  R: \$%.2fB\n",
         r_jl.est / 1e9, r_py.est / 1e9, r_r.est / 1e9)
 
     # [METHODOLOGY] Grand Mean = arithmetic mean of three independently pooled estimates.
     valid_ests = filter(x -> !isnan(x) && x > 0, [r_jl.est, r_py.est, r_r.est])
-    isempty(valid_ests) && error("All three language OC estimates are NaN — check input data.")
+    isempty(valid_ests) && error("All three language OC estimates are NaN - check input data.")
     grand_mean_oc = mean(valid_ests)
     @printf("    Grand Mean total Oahu OC: \$%.2fB\n", grand_mean_oc / 1e9)
 
@@ -1551,7 +1611,7 @@ function main()
     zdf              = CSV.read(ZONING_CSV, DataFrame)
     pcts, total_acres = group_zones(zdf)
     tiles            = pct_to_tiles(pcts)
-    @printf("    Zones — Preservation: %d%%  Agriculture: %d%%  Other: %d%%  (total acres: %.1f)\n",
+    @printf("    Zones - Preservation: %d%%  Agriculture: %d%%  Other: %d%%  (total acres: %.1f)\n",
         tiles[1], tiles[2], tiles[3], total_acres)
 
     plot_waffle(ZONE_LABELS, tiles, pcts, grand_mean_oc, OUT_WAFFLE)
@@ -1640,7 +1700,7 @@ function plot_comparison(
 
     fig = Figure(size = (1200, 580), backgroundcolor = :white)
     ax  = Axis(fig[1, 1];
-        title          = "The Counterfactual Area Comparison — U.S. Golf Land vs. Competing Uses",
+        title          = "The Counterfactual Area Comparison - U.S. Golf Land vs. Competing Uses",
         subtitle       = "Grand Mean of Py / R / Jl Rubin-pooled estimates  │  M=100 per language",
         titlesize      = 16,
         subtitlesize   = 12,
@@ -1649,10 +1709,10 @@ function plot_comparison(
         xlabelsize     = 13,
         yticks         = (1:6, [
             "1M High-Density\nHomes (Reference)",
-            "Golf — Julia (Rubin-pooled)",
-            "Golf — Python (Rubin-pooled)",
-            "Golf — R (Rubin-pooled)",
-            "Golf — Grand Mean",
+            "Golf - Julia (Rubin-pooled)",
+            "Golf - Python (Rubin-pooled)",
+            "Golf - R (Rubin-pooled)",
+            "Golf - Grand Mean",
             "Utility-Scale Solar\n(Reference)"
         ]),
         yticklabelsize = 11,
@@ -1706,7 +1766,7 @@ function plot_comparison(
     xlims!(ax, -0.10, SOLAR_ACRES / M_ACRES * 1.12)
 
     Label(fig[2, 1],
-        "Solar and housing references are external estimates (see Readings/03 — Countries across the world use more land for golf courses than wind or solar energy). Golf acreage from MICE-pooled OSM polygon data (Jl/Py: osm_acreage; R: final_acreage). Grand Mean = arithmetic mean of three independently Rubin-pooled national totals.";
+        "Solar and housing references are external estimates (see Readings/03 - Countries across the world use more land for golf courses than wind or solar energy). Golf acreage from MICE-pooled OSM polygon data (Jl/Py: osm_acreage; R: final_acreage). Grand Mean = arithmetic mean of three independently Rubin-pooled national totals.";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(42))
@@ -1764,18 +1824,27 @@ using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
 
 # === 2. GLOBALS & PATHS ===
 
-const SCRIPT_DIR = @__DIR__
-const WORK_DIR   = normpath(joinpath(SCRIPT_DIR, ".."))
-const PHASE3_DIR = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data")
+const SCRIPT_DIR    = @__DIR__
+const WORK_DIR      = normpath(joinpath(SCRIPT_DIR, ".."))
+const PHASE3_DIR    = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation", "Data")
 
-const JL_IMP_CSV = joinpath(PHASE3_DIR, "Julia",  "Jl_Imputed_Dataset_1.csv")
-const PY_IMP_CSV = joinpath(PHASE3_DIR, "python", "Py_Imputed_Dataset_1.csv")
-const R_IMP_CSV  = joinpath(PHASE3_DIR, "R",      "R_Imputed_Dataset_1.csv")
+const PHASE3_DIR_JL = joinpath(PHASE3_DIR, "Julia")
+const PHASE3_DIR_PY = joinpath(PHASE3_DIR, "python")
+const PHASE3_DIR_R  = joinpath(PHASE3_DIR, "R")
 
-const OUTPUT_DIR  = joinpath(SCRIPT_DIR, "output")
-const THESIS_DIR  = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
+const JL_IMP_CSV    = joinpath(PHASE3_DIR_JL, "Jl_Imputed_Dataset_1.csv")
+const PY_IMP_CSV    = joinpath(PHASE3_DIR_PY, "Py_Imputed_Dataset_1.csv")
+const R_IMP_CSV     = joinpath(PHASE3_DIR_R,  "R_Imputed_Dataset_1.csv")
+
+const M             = 100
+
+const OUTPUT_DIR    = joinpath(SCRIPT_DIR, "output")
+const THESIS_DIR    = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
 mkpath(THESIS_DIR)
-const OUT_SCATTER = joinpath(THESIS_DIR, "14.141_Urban_Rural_Scatter_TriLanguage.png")
+const OUT_SCATTER   = joinpath(THESIS_DIR, "14.141_Urban_Rural_Scatter_TriLanguage.png")
+const OUT_JL_VS_GM  = joinpath(THESIS_DIR, "14.111_Urban_Rural_Scatter_JlVsGrandMean.png")
+const OUT_PY_VS_GM  = joinpath(THESIS_DIR, "14.121_Urban_Rural_Scatter_PyVsGrandMean.png")
+const OUT_R_VS_GM   = joinpath(THESIS_DIR, "14.131_Urban_Rural_Scatter_RVsGrandMean.png")
 
 # Colors for UH Manoa
 UHM_GREEN = colorant"#024731"   # Green
@@ -1826,11 +1895,59 @@ function ols(x::Vector{Float64}, y::Vector{Float64})
 end
 
 
-function plot_scatter(jl::NamedTuple, py::NamedTuple, r::NamedTuple, out_path::String)
+# Compute M=100 OLS envelopes for one language group on the provided xs evaluation grid.
+# Returns mean_int, mean_slope (for Grand Mean computation), plus mean_y, lo_y, hi_y where
+# lo/hi are pointwise 2.5th–97.5th percentile of predicted log(OC) across M imputations.
+function ols_envelope(
+    lang_prefix::String,
+    phase3_dir::String,
+    acreage_col::Symbol,
+    xs::Vector{Float64},
+    m::Int = M
+)
+    n          = length(xs)
+    pred_mat   = Matrix{Float64}(undef, m, n)
+    slopes     = Vector{Float64}(undef, m)
+    intercepts = Vector{Float64}(undef, m)
+
+    for i in 1:m
+        path = joinpath(phase3_dir, "$(lang_prefix)_Imputed_Dataset_$(i).csv")
+        isfile(path) || error("Input file not found: $path")
+        df   = CSV.read(path, DataFrame)
+        df   = dropmissing(df, [acreage_col, :Baseline_Value_Per_Acre])
+        mask = (Float64.(df[!, acreage_col]) .> 0.0) .& (Float64.(df.Baseline_Value_Per_Acre) .> 0.0)
+        df   = df[mask, :]
+        ac   = Float64.(df[!, acreage_col])
+        bv   = Float64.(df.Baseline_Value_Per_Acre)
+        fit  = ols(log.(ac), log.(ac .* bv))
+        slopes[i]      = fit.slope
+        intercepts[i]  = fit.intercept
+        pred_mat[i, :] = fit.intercept .+ fit.slope .* xs
+        # [METHODOLOGY] Memory-safe: drop raw DataFrame after metric extraction.
+        df = nothing
+        GC.gc()
+    end
+
+    mean_int   = mean(intercepts)
+    mean_slope = mean(slopes)
+    mean_y     = vec(mean(pred_mat; dims = 1))
+    lo_y       = [quantile(pred_mat[:, j], 0.025) for j in 1:n]
+    hi_y       = [quantile(pred_mat[:, j], 0.975) for j in 1:n]
+
+    return (mean_int = mean_int, mean_slope = mean_slope, mean_y = mean_y, lo_y = lo_y, hi_y = hi_y)
+end
+
+
+function plot_scatter(
+    jl::NamedTuple, py::NamedTuple, r::NamedTuple,
+    env_jl::NamedTuple, env_py::NamedTuple, env_r::NamedTuple,
+    xs::Vector{Float64},
+    out_path::String
+)
     fig = Figure(size = (1100, 680), backgroundcolor = :white)
     ax  = Axis(fig[1, 1];
-        title         = "The Urban / Rural Bifurcation — log(Opportunity Cost) vs. log(Acreage)",
-        subtitle      = "Scatter: imputation #1 per language  │  Lines: OLS per language  │  Grand Mean = arithmetic mean of three OLS fits",
+        title         = "The Urban / Rural Bifurcation - log(Opportunity Cost) vs. log(Acreage)",
+        subtitle      = "Scatter: imputation #1 per language  │  OLS lines and 95% CI bands from M=100 imputations  │  Grand Mean = black dashed",
         titlesize     = 15,
         subtitlesize  = 12,
         subtitlecolor = "#024731",
@@ -1840,35 +1957,23 @@ function plot_scatter(jl::NamedTuple, py::NamedTuple, r::NamedTuple, out_path::S
         ylabelsize    = 13,
     )
 
-    x_min = min(minimum(jl.log_ac), minimum(py.log_ac), minimum(r.log_ac))
-    x_max = max(maximum(jl.log_ac), maximum(py.log_ac), maximum(r.log_ac))
-    xs    = range(x_min, x_max; length = 300)
+    # [METHODOLOGY] Grand Mean OLS = arithmetic mean of three independently fitted per-language OLS mean estimates.
+    gm_int   = mean([env_jl.mean_int,   env_py.mean_int,   env_r.mean_int])
+    gm_slope = mean([env_jl.mean_slope, env_py.mean_slope, env_r.mean_slope])
+    ys_gm    = gm_int .+ gm_slope .* xs
 
-    ols_intercepts = Float64[]
-    ols_slopes     = Float64[]
-
-    for (d, col) in [(jl, :purple), (py, :green), (r, :blue)]
+    for (d, env, col) in [(jl, env_jl, :purple), (py, env_py, :green), (r, env_r, :blue)]
         u = d.is_urban
-        # Scatter: Urban = filled circle, Rural = upward triangle
         scatter!(ax, d.log_ac[u],   d.log_oc[u];
                 color = (col, 0.14), markersize = 3.5, marker = :circle)
         scatter!(ax, d.log_ac[.!u], d.log_oc[.!u];
                 color = (col, 0.14), markersize = 3.5, marker = :utriangle)
-        # Per-language OLS regression line
-        fit = ols(d.log_ac, d.log_oc)
-        push!(ols_intercepts, fit.intercept)
-        push!(ols_slopes,     fit.slope)
-        ys = fit.intercept .+ fit.slope .* collect(xs)
-        lines!(ax, collect(xs), ys; color = col, linewidth = 2.5)
+        band!(ax, xs, env.lo_y, env.hi_y; color = (col, 0.18))
+        lines!(ax, xs, env.mean_y; color = col, linewidth = 2.5)
     end
 
-    # [METHODOLOGY] Grand Mean OLS = arithmetic mean of three independently fitted per-language OLS estimates.
-    gm_int   = mean(ols_intercepts)
-    gm_slope = mean(ols_slopes)
-    ys_gm    = gm_int .+ gm_slope .* collect(xs)
-    lines!(ax, collect(xs), ys_gm; color = :black, linewidth = 3.2, linestyle = :dash)
+    lines!(ax, xs, ys_gm; color = :black, linewidth = 3.2, linestyle = :dash)
 
-    # Legend
     elem_urban = MarkerElement(color = :gray40, marker = :circle,    markersize = 9)
     elem_rural = MarkerElement(color = :gray40, marker = :utriangle, markersize = 9)
     elem_jl    = LineElement(color = :purple, linewidth = 2.5)
@@ -1878,12 +1983,77 @@ function plot_scatter(jl::NamedTuple, py::NamedTuple, r::NamedTuple, out_path::S
     Legend(fig[1, 2],
         [elem_urban, elem_rural, elem_jl, elem_py, elem_r_ln, elem_gm],
         ["Urban (RUCC 1–3)", "Rural (RUCC 4–9)",
-        "Julia OLS", "Python OLS", "R OLS", "Grand Mean OLS"];
+         "Julia OLS (M=100)", "Python OLS (M=100)", "R OLS (M=100)", "Grand Mean OLS"];
         framevisible = true, labelsize = 11, rowgap = 5
     )
 
     Label(fig[2, 1:2],
-        "log(OC) = log(imputed acreage x Baseline_Value_Per_Acre). Jl/Py: osm_acreage; R: final_acreage. Urban/Rural from county_type. OLS lines fitted on imputation #1 only (scatter display). Grand Mean = arithmetic mean of three per-language OLS slopes and intercepts.";
+        "Scatter: imputation #1 per language. OLS line = mean slope/intercept across M=100 imputations; " *
+        "CI band = pointwise 2.5th–97.5th percentile of predicted log(OC) across M imputations. " *
+        "Jl/Py: osm_acreage; R: final_acreage. Urban/Rural from county_type. " *
+        "Grand Mean = arithmetic mean of three per-language OLS mean fits.";
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
+    )
+    rowsize!(fig.layout, 2, Fixed(42))
+
+    mkpath(dirname(out_path))
+    save(out_path, fig; px_per_unit = 3)
+    @printf("    Saved: %s\n", basename(out_path))
+    return fig
+end
+
+
+function plot_lang_vs_gm(
+    d::NamedTuple,
+    env::NamedTuple,
+    gm_int::Float64,
+    gm_slope::Float64,
+    xs::Vector{Float64},
+    lang_label::String,
+    lang_color::Symbol,
+    out_path::String
+)
+    fig = Figure(size = (1100, 680), backgroundcolor = :white)
+    ax  = Axis(fig[1, 1];
+        title         = "Urban/Rural Bifurcation - $(lang_label) vs. Grand Mean OLS",
+        subtitle      = "$(lang_label) OLS mean line and 95% CI band (M=100)  │  Grand Mean OLS = black dashed",
+        titlesize     = 15,
+        subtitlesize  = 12,
+        subtitlecolor = "#024731",
+        xlabel        = "log(Acreage)",
+        ylabel        = "log(Opportunity Cost)",
+        xlabelsize    = 13,
+        ylabelsize    = 13,
+    )
+
+    u = d.is_urban
+    scatter!(ax, d.log_ac[u],   d.log_oc[u];
+            color = (lang_color, 0.14), markersize = 3.5, marker = :circle)
+    scatter!(ax, d.log_ac[.!u], d.log_oc[.!u];
+            color = (lang_color, 0.14), markersize = 3.5, marker = :utriangle)
+
+    band!(ax, xs, env.lo_y, env.hi_y; color = (lang_color, 0.25))
+    lines!(ax, xs, env.mean_y; color = lang_color, linewidth = 2.5)
+
+    ys_gm = gm_int .+ gm_slope .* xs
+    lines!(ax, xs, ys_gm; color = :black, linewidth = 3.2, linestyle = :dash)
+
+    elem_urban = MarkerElement(color = :gray40,    marker = :circle,    markersize = 9)
+    elem_rural = MarkerElement(color = :gray40,    marker = :utriangle, markersize = 9)
+    elem_lang  = LineElement(color = lang_color,   linewidth = 2.5)
+    elem_ci    = PolyElement(color = (lang_color, 0.25))
+    elem_gm    = LineElement(color = :black,       linewidth = 3.2, linestyle = :dash)
+    Legend(fig[1, 2],
+        [elem_urban, elem_rural, elem_lang, elem_ci, elem_gm],
+        ["Urban (RUCC 1–3)", "Rural (RUCC 4–9)",
+         "$(lang_label) OLS (M=100 mean)", "95% CI band", "Grand Mean OLS"];
+        framevisible = true, labelsize = 11, rowgap = 5
+    )
+
+    Label(fig[2, 1:2],
+        "Scatter: imputation #1. OLS line = $(lang_label) mean slope/intercept across M=100 imputations; " *
+        "CI band = pointwise 2.5th–97.5th percentile of predicted log(OC). " *
+        "Grand Mean OLS = arithmetic mean of Julia, Python, and R per-language mean slopes and intercepts.";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(42))
@@ -1904,15 +2074,41 @@ function main()
     isfile(PY_IMP_CSV) || error("Input file not found: $PY_IMP_CSV")
     isfile(R_IMP_CSV)  || error("Input file not found: $R_IMP_CSV")
 
+    println("--- [1/7] Loading imputation #1 scatter data")
     jl = load_scatter_data(JL_IMP_CSV, :osm_acreage)
     py = load_scatter_data(PY_IMP_CSV, :osm_acreage)
     r  = load_scatter_data(R_IMP_CSV,  :final_acreage)
 
-    @printf("    Courses loaded — Jl: %d  Py: %d  R: %d\n",
+    @printf("    Courses loaded - Jl: %d  Py: %d  R: %d\n",
             length(jl.log_ac), length(py.log_ac), length(r.log_ac))
 
-    plot_scatter(jl, py, r, OUT_SCATTER)
+    x_min = min(minimum(jl.log_ac), minimum(py.log_ac), minimum(r.log_ac))
+    x_max = max(maximum(jl.log_ac), maximum(py.log_ac), maximum(r.log_ac))
+    xs    = collect(range(x_min, x_max; length = 300))
 
+    println("--- [2/7] Julia M=100 OLS envelopes")
+    env_jl = ols_envelope("Jl", PHASE3_DIR_JL, :osm_acreage,   xs)
+
+    println("--- [3/7] Python M=100 OLS envelopes")
+    env_py = ols_envelope("Py", PHASE3_DIR_PY, :osm_acreage,   xs)
+
+    println("--- [4/7] R M=100 OLS envelopes")
+    env_r  = ols_envelope("R",  PHASE3_DIR_R,  :final_acreage, xs)
+
+    # [METHODOLOGY] Grand Mean OLS = arithmetic mean of three independently fitted per-language OLS mean estimates.
+    gm_int   = mean([env_jl.mean_int,   env_py.mean_int,   env_r.mean_int])
+    gm_slope = mean([env_jl.mean_slope, env_py.mean_slope, env_r.mean_slope])
+    @printf("    Grand Mean OLS - intercept: %.4f  slope: %.4f\n", gm_int, gm_slope)
+
+    println("--- [5/7] Rendering 14.141 tri-language scatter with CI bands")
+    plot_scatter(jl, py, r, env_jl, env_py, env_r, xs, OUT_SCATTER)
+
+    println("--- [6/7] Rendering per-language vs Grand Mean scatter plots")
+    plot_lang_vs_gm(jl, env_jl, gm_int, gm_slope, xs, "Julia",  :purple, OUT_JL_VS_GM)
+    plot_lang_vs_gm(py, env_py, gm_int, gm_slope, xs, "Python", :green,  OUT_PY_VS_GM)
+    plot_lang_vs_gm(r,  env_r,  gm_int, gm_slope, xs, "R",      :blue,   OUT_R_VS_GM)
+
+    println("--- [7/7] Done")
     println()
     println("=== Mod_14 Urban-Rural Scatter complete ===")
     println()
@@ -1932,7 +2128,7 @@ function main()
     println("\n=== Phase 6 Visualization ===")
     @printf("    Julia threads available: %d\n", Threads.nthreads())
     if Threads.nthreads() == 1
-        @warn "Running on 1 thread — parallel speedup disabled. " *
+        @warn "Running on 1 thread - parallel speedup disabled. " *
                 "Relaunch with: julia --threads=auto .\\Phase_6.jl"
     end
     println()

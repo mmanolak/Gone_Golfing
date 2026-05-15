@@ -1,4 +1,4 @@
-# Purpose: Phase 2 master — OSM polygon extraction + spatial matching.
+# Purpose: Phase 2 master - OSM polygon extraction + spatial matching.
 #          Step 1 streams the 11 GB PBF via pyosmium, reprojects to EPSG:5070,
 #          computes true acreage, and saves a GeoPackage.
 #          Step 2 matches polygons to Phase 1 points via spatial intersect
@@ -73,7 +73,7 @@ def extract_osm_polygons():
     t0 = time.time()
 
     handler = GolfCourseHandler()
-    # sparse_mem_array allocates per node seen, not by max node ID — avoids the
+    # sparse_mem_array allocates per node seen, not by max node ID - avoids the
     # multi-GB upfront allocation that flex_mem (the default) triggers on US-scale PBFs.
     handler.apply_file(str(PBF_FILE), locations=True, idx="sparse_mem_array")
 
@@ -89,7 +89,7 @@ def extract_osm_polygons():
     # 2. Build GeoDataFrame in EPSG:4326 then reproject
     print("2 Building GeoDataFrame & reprojecting to EPSG:5070")
     osm_golf_geo = gpd.GeoDataFrame(handler.records, crs="EPSG:4326")
-    osm_golf_geo = osm_golf_geo.to_crs(epsg=5070)  # [METHODOLOGY] EPSG:5070 — equal-area CRS for accurate acreage
+    osm_golf_geo = osm_golf_geo.to_crs(epsg=5070)  # [METHODOLOGY] EPSG:5070 - equal-area CRS for accurate acreage
 
     # 3. Calculate area & convert to acres
     print("3 Calculating acreage")
@@ -139,7 +139,7 @@ def match_osm_to_courses(osm_golf_geo):
         courses_df,
         geometry=gpd.points_from_xy(courses_df["Longitude"], courses_df["Latitude"]),
         crs="EPSG:4326",
-    ).to_crs(epsg=5070)  # [METHODOLOGY] EPSG:5070 — equal-area CRS for distance accuracy
+    ).to_crs(epsg=5070)  # [METHODOLOGY] EPSG:5070 - equal-area CRS for distance accuracy
     print(f"    Phase 1 rows: {len(courses_geo):,}")
 
     # 2. Load OSM polygons (already in EPSG:5070)

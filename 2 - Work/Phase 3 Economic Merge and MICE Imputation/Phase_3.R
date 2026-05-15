@@ -1,4 +1,4 @@
-# Purpose: Complete Phase 3 pipeline — MICE imputation (m=100, Random Forest)
+# Purpose: Complete Phase 3 pipeline - MICE imputation (m=100, Random Forest)
 #          followed by Rubin's Rules pooling to produce a national land-value
 #          point estimate with 95% CI.
 # Inputs:  Phase 2 Spatial Polygons and True Acreage/Data/R/
@@ -19,7 +19,7 @@
 # === 1. LIBRARIES ===
 
 suppressPackageStartupMessages({
-  library(wooldridge)   # pre-existing dependency — do not remove
+  library(wooldridge)   # pre-existing dependency - do not remove
   library(tidyverse)
   library(mice)
   library(future)
@@ -117,7 +117,7 @@ cat(sprintf(
   M, SAFE_WORKERS
 ))
 
-# [METHODOLOGY] futuremice — parallel MICE with Random Forest; tree-based to avoid
+# [METHODOLOGY] futuremice - parallel MICE with Random Forest; tree-based to avoid
 #               negative predictions and handle mixed predictor types natively
 imputed_list <- futuremice(
   data         = imp_df,
@@ -166,7 +166,7 @@ for (i in 1:M) {
   rm(df); gc()
 }
 
-# [METHODOLOGY] Rubin's Rules pooling — q_bar is the pooled national estimate;
+# [METHODOLOGY] Rubin's Rules pooling - q_bar is the pooled national estimate;
 #               v_t combines within- and between-imputation variance (Rubin 1987)
 cat("\nApplying Rubin's Rules\n")
 
@@ -245,7 +245,7 @@ for (i in seq_len(M)) {
   rm(df_ac); gc()
 }
 
-# [METHODOLOGY] Rubin's Rules (acreage) — between-imputation variance only;
+# [METHODOLOGY] Rubin's Rules (acreage) - between-imputation variance only;
 #               within-variance is zero for a spatially fixed attribute
 nat_pool_ac   <- pool_acreage(acreage_totals)
 all_by_type_ac <- bind_rows(acreage_by_type)

@@ -1,4 +1,4 @@
-# Purpose: Phase 4 master — fit OLS with HC1 robust SEs on each of M Python-generated
+# Purpose: Phase 4 master - fit OLS with HC1 robust SEs on each of M Python-generated
 #          MICE imputed datasets, then pool via Rubin's Rules and save results.
 # Inputs:  Phase 3 Economic Merge and MICE Imputation/Data/Python/Py_Imputed_Dataset_{1..M}.csv
 # Outputs: Data/Python/Py_model_results.pkl
@@ -60,7 +60,7 @@ def main():
         raise SystemExit(1)
 
     print("=" * 70)
-    print("PHASE 4 — ECONOMETRIC MODELLING")
+    print("PHASE 4 - ECONOMETRIC MODELLING")
     print("=" * 70)
     print()
     print(f"Phase 3 inputs : {PHASE3_DIR}")
@@ -99,8 +99,8 @@ def main():
         if n_dropped:
             print(f"       Dropped {n_dropped:,} rows with missing values in model columns.")
 
-        model  = smf.ols(FORMULA_STR, data=acreage_df)  # [METHODOLOGY] OLS — log-linear model for opportunity cost
-        result = model.fit(cov_type="HC1")               # [METHODOLOGY] HC1 robust SEs — heteroskedasticity-consistent; HC1 = n/(n-k) correction
+        model  = smf.ols(FORMULA_STR, data=acreage_df)  # [METHODOLOGY] OLS - log-linear model for opportunity cost
+        result = model.fit(cov_type="HC1")               # [METHODOLOGY] HC1 robust SEs - heteroskedasticity-consistent; HC1 = n/(n-k) correction
 
         model_data = {
             "params":       result.params,
@@ -113,7 +113,7 @@ def main():
 
         model_results.append(model_data)
         print(
-            f"       Done — R²={result.rsquared:.4f}, N={int(result.nobs):,}, "
+            f"       Done - R²={result.rsquared:.4f}, N={int(result.nobs):,}, "
             f"df_resid={int(result.df_resid):,}"
         )
 
@@ -165,7 +165,7 @@ def main():
             print(f"      {p}  (present in {present_in}/{M_loaded} models)")
         print()
 
-    # [METHODOLOGY] Rubin's Rules — Barnard & Rubin (1999) df approximation
+    # [METHODOLOGY] Rubin's Rules - Barnard & Rubin (1999) df approximation
     m_i = coef_df.notna().sum(axis=0).clip(lower=2)
 
     q_bar   = coef_df.mean(axis=0)

@@ -1,4 +1,4 @@
-# Purpose: Phase 4 master — fit OLS with HC1 robust SEs on each of M Julia-generated
+# Purpose: Phase 4 master - fit OLS with HC1 robust SEs on each of M Julia-generated
 #          MICE imputed datasets, then pool via Rubin's Rules and save results.
 # Inputs:  Phase 3 Economic Merge and MICE Imputation/Data/Julia/Jl_Imputed_Dataset_{1..M}.csv
 # Outputs: Data/Julia/Jl_model_results.jls
@@ -65,7 +65,7 @@ function main()
         exit(1)
     end
 
-    println("\n=== PHASE 4 — STEP 1: MODEL FITTING ===")
+    println("\n=== PHASE 4 - STEP 1: MODEL FITTING ===")
     println("Phase 3 inputs : $PHASE3_DIR")
     println("Output folder  : $OUT_DIR")
     println("Formula        : $FORMULA_STR")
@@ -104,9 +104,9 @@ function main()
 
         acreage_df.county_type = string.(acreage_df.county_type)
 
-        model = lm(@formula(Log_Opportunity_Cost ~ Holes + county_type), acreage_df)  # [METHODOLOGY] OLS — log-linear model for opportunity cost
+        model = lm(@formula(Log_Opportunity_Cost ~ Holes + county_type), acreage_df)  # [METHODOLOGY] OLS - log-linear model for opportunity cost
 
-        # [METHODOLOGY] HC1 robust standard errors — heteroskedasticity-consistent;
+        # [METHODOLOGY] HC1 robust standard errors - heteroskedasticity-consistent;
         #               HC1 applies n/(n-k) finite-sample correction (manual sandwich)
         X    = modelmatrix(model)
         e    = residuals(model)
@@ -141,7 +141,7 @@ function main()
 
         push!(model_results, model_data)
 
-        @printf("       Done — R²=%.4f, N=%d, df_resid=%d\n",
+        @printf("       Done - R²=%.4f, N=%d, df_resid=%d\n",
                 rsquared_val, nobs_val, df_resid_val)
 
         if i == 1
@@ -166,7 +166,7 @@ function main()
 
     # ---- Step 2: Parameter Pooling ----
 
-    println("\n=== PHASE 4 — STEP 2: PARAMETER POOLING (RUBIN'S RULES) ===")
+    println("\n=== PHASE 4 - STEP 2: PARAMETER POOLING (RUBIN'S RULES) ===")
     println("============================================================\n")
 
     num_imp = length(model_results)
@@ -207,7 +207,7 @@ function main()
         println()
     end
 
-    # [METHODOLOGY] Rubin's Rules — Barnard & Rubin (1999) df approximation
+    # [METHODOLOGY] Rubin's Rules - Barnard & Rubin (1999) df approximation
     m_i = Float64.(vec(sum(.!isnan.(coef_mat), dims=1)))
     m_i .= max.(m_i, 2.0)
 

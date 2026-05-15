@@ -1,4 +1,4 @@
-# Purpose: Complete Phase 3 pipeline — MICE imputation (m=5) then Rubin's
+# Purpose: Complete Phase 3 pipeline - MICE imputation (m=5) then Rubin's
 #          Rules pooling to produce a national land-value estimate with 95% CI.
 # Inputs:  Phase 2 Spatial Polygons and True Acreage/Data/Julia/
 #            Jl_Phase2_Acreage_Matched.csv
@@ -68,7 +68,7 @@ function run_imputation(input_csv::String, out_dir::String; m_datasets::Int = 5)
     # 3. Run MICE ------------------------------------------------------------
     println("--- 3  Running MICE imputation (m=$m_datasets) ---")
     Random.seed!(42)  # [METHODOLOGY] reproducibility seed for stochastic MICE imputation
-    # [METHODOLOGY] Mice.jl MICE — m=100 multiply-imputed datasets, iter=10;
+    # [METHODOLOGY] Mice.jl MICE - m=100 multiply-imputed datasets, iter=10;
     #               see Van Buuren (2018) for methodology
     imputed_list = mice(imp_df, m = m_datasets, iter = 10)
 
@@ -135,7 +135,7 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
         @printf("  Dataset %d:  \$%10.3f B\n", i, q_i / 1e9)
     end
 
-    # [METHODOLOGY] Rubin's Rules pooling — q_bar is the pooled national estimate;
+    # [METHODOLOGY] Rubin's Rules pooling - q_bar is the pooled national estimate;
     #               v_t combines within- and between-imputation variance (Rubin 1987)
     println("\n--- 2  Applying Rubin's Rules ---")
 
@@ -233,7 +233,7 @@ function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 
 
     println("\n--- 2  Pooling across imputations ---\n")
 
-    # [METHODOLOGY] Rubin's Rules (acreage) — between-imputation variance only;
+    # [METHODOLOGY] Rubin's Rules (acreage) - between-imputation variance only;
     #               within-variance is zero for a spatially fixed attribute
     nat_pool    = pool_acreage(national_totals)
     all_by_type = vcat(by_type_list...)
