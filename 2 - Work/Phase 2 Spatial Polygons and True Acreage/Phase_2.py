@@ -219,14 +219,20 @@ def match_osm_to_courses(osm_golf_geo):
 
 
 def main():
-    for path, label in ((PBF_FILE, "PBF file"), (PHASE1_CSV, "Phase 1 CSV")):
-        if not path.exists():
-            raise FileNotFoundError(f"{label} not found: {path}")
+    if not PHASE1_CSV.exists():
+        raise FileNotFoundError(f"Phase 1 CSV not found: {PHASE1_CSV}")
 
-    osm_golf_geo = extract_osm_polygons()
-    if osm_golf_geo is None:
-        print("\nStep 1 failed. Aborting pipeline.")
-        return
+    if OUT_GPKG.exists():
+        print(f"  [CACHE] GPKG found — skipping PBF parse.")
+        print(f"          Loading: {OUT_GPKG}")
+        osm_golf_geo = gpd.read_file(str(OUT_GPKG))
+    else:
+        if not PBF_FILE.exists():
+            raise FileNotFoundError(f"PBF file not found: {PBF_FILE}")
+        osm_golf_geo = extract_osm_polygons()
+        if osm_golf_geo is None:
+            print("\nStep 1 failed. Aborting pipeline.")
+            return
 
     match_osm_to_courses(osm_golf_geo)
 

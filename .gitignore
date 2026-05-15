@@ -37,3 +37,8 @@ Gone Golfing.Rproj
 *.gz
 *.xml
 *.bcf-SAVE-ERROR
+*.cpg
+*.dbf
+*.prj
+*.shp
+*.shx

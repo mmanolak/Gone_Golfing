@@ -32,9 +32,9 @@ FHFA_IN    = joinpath(DATA_DIR, "2024 - FHFA June 20 Land Prices.xlsx")
 RUCC_CSV   = joinpath(ROOT_DIR, "00 - Data Sources", "Secondary", "2023-rural-urban-continuum-codes.csv")
 
 COUNTY_DIR = DATA_DIR
-COUNTY_SHP = joinpath(COUNTY_DIR, "cb_2022_us_county_20m.shp")
-COUNTY_ZIP = joinpath(COUNTY_DIR, "cb_2022_us_county_20m.zip")
-COUNTY_CB  = joinpath(ROOT_DIR, "00 - Data Sources", "Secondary", "cb_2022_us_county_20m.zip")
+COUNTY_SHP = joinpath(COUNTY_DIR, "tl_2022_us_county.shp")
+COUNTY_ZIP = joinpath(COUNTY_DIR, "tl_2022_us_county.zip")
+COUNTY_URL = "https://www2.census.gov/geo/tiger/TIGER2022/COUNTY/tl_2022_us_county.zip"
 
 OUT_PARSED   = joinpath(OUTPUT_DIR, "Jl_Phase1_Parsed_Golf_Courses.csv")
 OUT_SPATIAL  = joinpath(OUTPUT_DIR, "Jl_Phase1_Spatial_Joined_Golf_Courses.csv")
@@ -42,6 +42,21 @@ OUT_BASELINE = joinpath(OUTPUT_DIR, "Jl_Phase1_Baseline_Golf_Valuation.csv")
 
 
 # === 3. FUNCTIONS ===
+
+const STATE_FIPS_TO_ABBR = Dict(
+    "01" => "AL", "02" => "AK", "04" => "AZ", "05" => "AR", "06" => "CA",
+    "08" => "CO", "09" => "CT", "10" => "DE", "11" => "DC", "12" => "FL",
+    "13" => "GA", "15" => "HI", "16" => "ID", "17" => "IL", "18" => "IN",
+    "19" => "IA", "20" => "KS", "21" => "KY", "22" => "LA", "23" => "ME",
+    "24" => "MD", "25" => "MA", "26" => "MI", "27" => "MN", "28" => "MS",
+    "29" => "MO", "30" => "MT", "31" => "NE", "32" => "NV", "33" => "NH",
+    "34" => "NJ", "35" => "NM", "36" => "NY", "37" => "NC", "38" => "ND",
+    "39" => "OH", "40" => "OK", "41" => "OR", "42" => "PA", "44" => "RI",
+    "45" => "SC", "46" => "SD", "47" => "TN", "48" => "TX", "49" => "UT",
+    "50" => "VT", "51" => "VA", "53" => "WA", "54" => "WV", "55" => "WI",
+    "56" => "WY", "60" => "AS", "66" => "GU", "69" => "MP", "72" => "PR",
+    "78" => "VI"
+)
 
 function name_state_to_name(name_state::String)::String
     m = match(r"^(.+?)\s*-\s*[A-Z]{2}$", name_state)
@@ -188,17 +203,18 @@ function main()
 
     if !isfile(COUNTY_SHP)
         if !isfile(COUNTY_ZIP)
-            Downloads.download(COUNTY_CB, COUNTY_ZIP)
+            Downloads.download(COUNTY_URL, COUNTY_ZIP)
         end
         run(`7z x -y -o"$COUNTY_DIR" "$COUNTY_ZIP"`)
     end
 
     # [METHODOLOGY] Spatial read - county boundaries in EPSG 4326 (WGS 84), matching golf course point CRS
     county_geo = GeoDataFrames.read(COUNTY_SHP)
-    county_geo = transform(county_geo, :GEOID => ByRow(string) => :FIPS)
-    county_geo = select(county_geo,
-        :FIPS, :NAME => :County_Name, :STUSPS => :Tigris_State_Abbr, :geometry
+    county_geo = transform(county_geo,
+        :GEOID   => ByRow(string)                                         => :FIPS,
+        :STATEFP => ByRow(fp -> get(STATE_FIPS_TO_ABBR, string(fp), "")) => :Tigris_State_Abbr
     )
+    county_geo = select(county_geo, :FIPS, :NAME => :County_Name, :Tigris_State_Abbr, :geometry)
 
     county_envelopes = ArchGDAL.envelope.(county_geo.geometry)
 

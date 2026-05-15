@@ -29,7 +29,7 @@ const SCRIPT_DIR   = @__DIR__
 const PY_GPKG      = joinpath(SCRIPT_DIR, "Data", "Python", "Py_Phase2_OSM_Golf_Polygons.gpkg")
 const OSM_GPKG_OUT = joinpath(SCRIPT_DIR, "Data", "Julia",  "Jl_Phase2_OSM_Golf_Polygons.gpkg")
 const PHASE1_CSV   = joinpath(SCRIPT_DIR, "..", "Phase 1 Parsing", "Data", "Julia",
-                              "Jl_Phase1_Baseline_Golf_Valuation.csv")
+                                "Jl_Phase1_Baseline_Golf_Valuation.csv")
 const OUT_CSV      = joinpath(SCRIPT_DIR, "Data", "Julia", "Jl_Phase2_Acreage_Matched.csv")
 
 const MIN_ACRES     = 5.0
@@ -80,7 +80,7 @@ function main()
     println()
 
 
-    # ── STEP 1: Parse OSM Polygons ──────────────────────────────────────────
+    #  STEP 1: Parse OSM Polygons 
 
     println("=" ^ 80)
     println("STEP 1: Parse OSM Polygons and Calculate True Acreage")
@@ -131,7 +131,7 @@ function main()
     println("\n[OK] Step 1 completed in $(step1_elapsed)s")
 
 
-    # ── STEP 2: Match OSM to Phase 1 Courses ────────────────────────────────
+    #  STEP 2: Match OSM to Phase 1 Courses
 
     println("\n" * "=" ^ 80)
     println("STEP 2: Match OSM Polygons to Golf Courses")
@@ -243,7 +243,7 @@ function main()
     println("\n[OK] Step 2 completed in $(step2_elapsed)s")
 
 
-    # ── Final summary ────────────────────────────────────────────────────────
+    #  Final summary 
 
     total_elapsed = round(time() - global_start; digits = 2)
     println("\n" * "=" ^ 80)
