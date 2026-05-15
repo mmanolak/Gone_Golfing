@@ -16,7 +16,7 @@ PACKAGES = [
     "GLM", "CovarianceMatrices", "Serialization",
     "LinearAlgebra", "Distributions",
     # Phase 6 Visualization
-    "CairoMakie", "Latexify", "GeoInterfaceMakie", "StatsBase", "ZipFile"
+    "CairoMakie", "Latexify", "GeoInterfaceMakie", "StatsBase", "ZipFile", "Colors", "Plots"
 ]
 
 

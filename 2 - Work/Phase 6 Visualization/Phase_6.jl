@@ -28,7 +28,7 @@ module Mod_5_Econometric_Plots
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, DataFrames, Printf
+using CSV, CairoMakie, DataFrames, Printf, Colors
 
 
 # === 2. GLOBALS & PATHS ===
@@ -54,6 +54,26 @@ const PARAM_LABELS = Dict(
     "county_type: Urban" => "Urban County"
 )
 
+# Colors for UH Manoa
+UHM_GREEN = colorant"#024731"   # Green
+UHM_GOLD = colorant"#B3995D"    # Gold
+UHM_SILVER = colorant"#B2B2B2"  # Silver/Grey
+UHM_BLACK = colorant"#000000"   # Black
+UHM_WHITE = colorant"#FFFFFF"   # White
+OCEAN = colorant"#00758D"       # Darker Cyan
+SKY = colorant"#00A4E2"         # Lighter Blue
+LEHUA = colorant"#E3002C"       # Red
+ILIMA = colorant"#F2A900"       # Dark Yellow
+PUA_KENIKENI = colorant"#FAD561"# Dark Gold
+KUKUI = colorant"#D6CBAE"       # Beige
+AKALA = colorant"#E06E8C"       # Dark Pink
+MAO = colorant"#82B53F"         # Dark Lime Green
+LAI = colorant"#00846B"         # Royal Green
+J_COLOR = colorant"#800080"     # Julia Base Color
+R_COLOR = colorant"#008000"     # R Base Color
+P_COLOR = colorant"#0000FF"     # Python Base Color
+
+UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = OCEAN, sky = SKY, lehua = LEHUA)
 
 # === 3. FUNCTIONS ===
 
@@ -72,11 +92,7 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
         xlabel        = "Coefficient  [Dependent variable: log(Opportunity_Cost)]",
         title         = "Regression Coefficients — Tri-Language MICE-Pooled Models",
         subtitle      = "Point estimates with 95% confidence intervals (Dodged Y-Axis)",
-        titlesize     = 14,
-        subtitlesize  = 11,
-        subtitlecolor = "#555555",
-        xgridvisible  = true,
-        ygridvisible  = false,
+        titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731", xgridvisible = true, ygridvisible = false,
     )
 
     vlines!(ax, 0.0; color = "#888888", linestyle = :dash, linewidth = 0.5)
@@ -114,7 +130,7 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
 
     Label(fig[2, 1:2],
         "Dependent variable: log(Opportunity_Cost). OLS estimated on pooled MICE imputations (M = 100) via Rubin's Rules.";
-        fontsize = 9, color = "#888888", halign = :left, tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false
     )
     rowsize!(fig.layout, 2, Fixed(24))
 
@@ -128,7 +144,7 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
     round_coords(lon, lat) = round(lon, digits = 4), round(lat, digits = 4)
     missing_mask = ismissing.(phase2_df.osm_acreage)
     missing_locs = Set(round_coords.(phase2_df[missing_mask, :Longitude],
-                                     phase2_df[missing_mask, :Latitude]))
+                                    phase2_df[missing_mask, :Latitude]))
 
     obs_raw   = [x for x in phase2_df.osm_acreage if !ismissing(x) && x > 0]
     obs_log   = log10.(Float64.(obs_raw))
@@ -140,8 +156,8 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
     # statistical pooling or inference is performed across languages here.
     # lang_id follows CLAUDE.md convention: 1=Julia, 2=Python, 3=R.
     langs = [("Jl", :purple, "Julia",  1),
-             ("Py", :green,  "python", 2),
-             ("R",  :blue,   "R",      3)]
+            ("Py", :green,  "python", 2),
+            ("R",  :blue,   "R",      3)]
 
     # Pre-collect extracted log-acreage values per language, indexed by dataset number.
     # Raw DataFrames are dropped immediately after metric extraction.
@@ -179,10 +195,7 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
                 ylabel        = "Density",
                 title         = "Acreage Distribution — $(lang_name) MICE (Cumulative n = $(n))",
                 subtitle      = "Log₁₀ scale  |  Observed = measured parcels  |  Draws 1–$(n)",
-                titlesize     = 14,
-                subtitlesize  = 11,
-                subtitlecolor = "#555555",
-                xgridvisible  = false,
+                titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731", xgridvisible  = false,
                 ygridvisible  = false,
             )
             for i in 1:n
@@ -218,9 +231,7 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
             ylabel        = "Density",
             title         = "Acreage Distribution — Tri-Language MICE (Cumulative n = $(n) per language)",
             subtitle      = "Log₁₀ scale  |  Observed = measured parcels  |  Py (Green), R (Blue), Jl (Purple)",
-            titlesize     = 14,
-            subtitlesize  = 11,
-            subtitlecolor = "#555555",
+            titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731",
             xgridvisible  = false,
             ygridvisible  = false,
         )
@@ -242,9 +253,9 @@ function plot_density(phase2_df::DataFrame, thesis_dir::String, qa_dir::String)
                 [PolyElement(color = (:purple, 0.5), strokecolor = :transparent)],
             ],
             ["Observed",
-             "Python MICE (n = $(n))",
-             "R MICE (n = $(n))",
-             "Julia MICE (n = $(n))"];
+            "Python MICE (n = $(n))",
+            "R MICE (n = $(n))",
+            "Julia MICE (n = $(n))"];
             framevisible = false, labelsize = 11
         )
         n_str = lpad(n, 3, '0')
@@ -362,8 +373,8 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
         subtitle      = "Grand Mean of Py/R/Jl Rubin-pooled estimates  │  " *
                         "Holes fixed at median = $(Int(round(med_holes)))",
         titlesize     = 14,
-        subtitlesize  = 10.5,
-        subtitlecolor = "#555555",
+        subtitlesize  = 12,
+        subtitlecolor = "#024731",
         xgridvisible  = false,
         ygridvisible  = false,
     )
@@ -378,7 +389,7 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
     # White backing then colored fill replicates a double-outlined-circle point effect.
     scatter!(ax, xs, est_vals; color = :white, markersize = 16, strokewidth = 0)
     scatter!(ax, xs, est_vals; color = colors, markersize = 16,
-             strokecolor = colors, strokewidth = 1.8)
+            strokecolor = colors, strokewidth = 1.8)
 
     text!(ax, xs, hi_vals;
         text     = [@sprintf("\$%.2fM", v) for v in est_vals],
@@ -395,12 +406,9 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
         "Model: log(Opportunity_Cost) = β₀ + β₁·Holes + β₂·I(Urban). " *
         "OC (USD) = exp(ŷ); converted to millions. Grand Mean of Py/R/Jl Rubin-pooled estimates. " *
         "Error bars: 95% CI (delta method; covariance terms omitted).";
-        fontsize  = 8.5,
-        color     = "#888888",
-        halign    = :left,
-        tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
-    rowsize!(fig.layout, 2, Fixed(28))
+    rowsize!(fig.layout, 2, Auto())
 
     save(out_path, fig; px_per_unit = 3)
     println("    Saved: $(basename(out_path))")
@@ -429,11 +437,7 @@ function plot_raincloud(cloud_df::DataFrame, imp_indices::NamedTuple, out_path::
         title         = "MICE Imputation Diagnostic — log(Opportunity_Cost) Acreage Inputs",
         subtitle      = "1 imputation per language drawn at seed $(RAINCLOUD_SEED)  │  " *
                         "Py (green), R (blue), Jl (purple)  │  Imputed parcels only",
-        titlesize     = 14,
-        subtitlesize  = 10.5,
-        subtitlecolor = "#555555",
-        xgridvisible  = false,
-        ygridvisible  = true,
+        titlesize = 14, subtitlesize = 12, subtitlecolor = "#024731", xgridvisible = false, ygridvisible = true,
     )
 
     # [METHODOLOGY] Fixed seed for reproducible jitter scatter positions.
@@ -473,10 +477,7 @@ function plot_raincloud(cloud_df::DataFrame, imp_indices::NamedTuple, out_path::
         "Seed = $(RAINCLOUD_SEED). One imputation randomly selected per language " *
         "(Python imp. $(imp_indices.py), R imp. $(imp_indices.r), Julia imp. $(imp_indices.jl)). " *
         "Observed = measured parcels; imputed rows = parcels with missing osm_acreage in Phase 2.";
-        fontsize  = 8.5,
-        color     = "#888888",
-        halign    = :left,
-        tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false
     )
     rowsize!(fig.layout, 2, Fixed(36))
 
@@ -694,8 +695,8 @@ function plot_dumbbell(
         subtitle      = "Three Rubin-pooled estimates per course (Py/R/Jl, M=100 each)  │  " *
                         "Grand Mean = arithmetic mean of three language estimates",
         titlesize     = 14,
-        subtitlesize  = 9.5,
-        subtitlecolor = "#555555",
+        subtitlesize  = 12,
+        subtitlecolor = "#024731",
         xgridvisible  = true,
         ygridvisible  = false,
     )
@@ -757,12 +758,12 @@ function plot_dumbbell(
     elem_r    = MarkerElement(color = COL_R,   marker = :circle,  markersize = 9)
     elem_jl   = MarkerElement(color = COL_JL,  marker = :circle,  markersize = 9)
     elem_gm   = MarkerElement(color = :white,  marker = :circle,  markersize = 12,
-                              strokecolor = :black, strokewidth = 1.5)
+                                strokecolor = :black, strokewidth = 1.5)
     elem_left = MarkerElement(color = COL_OBS, marker = :diamond, markersize = 10)
     Legend(fig[1, 2],
         [elem_py, elem_r, elem_jl, elem_gm, elem_left],
         ["Python  (Rubin M=100)", "R  (Rubin M=100)", "Julia  (Rubin M=100)",
-         "Grand Mean", "Agricultural Floor (USDA × acreage)"],
+        "Grand Mean", "Agricultural Floor (USDA × acreage)"],
         framevisible = true,
         tellheight   = false
     )
@@ -775,10 +776,7 @@ function plot_dumbbell(
         "† No OSM polygon in Phase 2 (military/federal installation or unmapped course); " *
         "acreage fully imputed by MICE — wide CI reflects genuine uncertainty. " *
         "Courses where Py/R coordinate matching is ambiguous show Julia estimate only.";
-        fontsize  = 8,
-        color     = "#888888",
-        halign    = :left,
-        tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(48))
 
@@ -850,7 +848,7 @@ function main()
         for row in eachrow(ph2_oahu)
     )
     ph2_missing = Bool[ismissing(get(ph2_acre_map, course_ids[i], missing))
-                       for i in 1:n_courses]
+                        for i in 1:n_courses]
     ph2_df = nothing; GC.gc()
     @printf("    Courses with missing Phase 2 acreage (MICE-imputed): %d\n", sum(ph2_missing))
 
@@ -1059,9 +1057,9 @@ function lorenz_ci(
     # [METHODOLOGY] Rubin's Rules point estimate: q̄ = mean of M per-imputation estimates.
     mean_y = Float64[mean(filter(isfinite, mat[:, j])) for j in 1:G]
     lo_y   = Float64[let col = filter(isfinite, mat[:, j]);
-                         isempty(col) ? NaN : quantile(col, 0.025) end for j in 1:G]
+                        isempty(col) ? NaN : quantile(col, 0.025) end for j in 1:G]
     hi_y   = Float64[let col = filter(isfinite, mat[:, j]);
-                         isempty(col) ? NaN : quantile(col, 0.975) end for j in 1:G]
+                        isempty(col) ? NaN : quantile(col, 0.975) end for j in 1:G]
 
     return mean_y, lo_y, hi_y
 end
@@ -1082,8 +1080,8 @@ function plot_lorenz(
         title         = "Lorenz Curve of Spatial Misallocation — Opportunity Cost of Golf Courses",
         subtitle      = "Rubin-pooled estimates (M=100 per language) with 95% CI ribbons  │  Grand Mean = black dashed",
         titlesize     = 14,
-        subtitlesize  = 10.5,
-        subtitlecolor = "#555555",
+        subtitlesize  = 12,
+        subtitlecolor = "#024731",
         xgridvisible  = true,
         ygridvisible  = true,
         aspect        = 1.0,
@@ -1126,10 +1124,7 @@ function plot_lorenz(
         "Rubin's Rules applied independently per language (M=100 each). " *
         "95% CI ribbons = pointwise 2.5th–97.5th percentile across M imputation-specific Lorenz curves. " *
         "Grand Mean = arithmetic mean of three Rubin-pooled per-course OC estimates.";
-        fontsize  = 8.5,
-        color     = "#888888",
-        halign    = :left,
-        tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(36))
 
@@ -1363,8 +1358,8 @@ function plot_waffle(
         title         = "The Preservation Paradox — Zoning of Oahu Golf Land",
         subtitle      = "Grand Mean of Py / R / Jl Rubin-pooled estimates  │  M=100 per language",
         titlesize     = 16,
-        subtitlesize  = 10.5,
-        subtitlecolor = "#555555",
+        subtitlesize  = 12,
+        subtitlecolor = "#024731",
         aspect        = DataAspect()
     )
     hidedecorations!(ax)
@@ -1400,10 +1395,7 @@ function plot_waffle(
             "Grand Mean total Oahu OC: \$%.2fB  (Rubin-pooled independently per language, M=100 each; arithmetic mean of Jl, Py, R estimates). Tile proportions = land-area share by zoning category from Phase 5 parcel data.",
             oc_B
         );
-        fontsize  = 8.5,
-        color     = "#888888",
-        halign    = :left,
-        tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(32))
     rowsize!(fig.layout, 3, Fixed(44))
@@ -1522,7 +1514,7 @@ const HOUSING_ACRES =    50_000.0   # ~1 million high-density units at 20 units/
 function read_national_total(path::String)
     df   = CSV.read(path, DataFrame)
     mask = coalesce.(df.Category .== "National Total", false) .&
-           coalesce.(df.County_Type .== "All", false)
+            coalesce.(df.County_Type .== "All", false)
     nrow(df[mask, :]) > 0 || error("National Total / All row not found in $path")
     row = df[mask, :][1, :]
     (
@@ -1545,8 +1537,8 @@ function plot_comparison(
         title          = "The Counterfactual Area Comparison — U.S. Golf Land vs. Competing Uses",
         subtitle       = "Grand Mean of Py / R / Jl Rubin-pooled estimates  │  M=100 per language",
         titlesize      = 16,
-        subtitlesize   = 10.5,
-        subtitlecolor  = "#555555",
+        subtitlesize   = 12,
+        subtitlecolor  = "#024731",
         xlabel         = "Total Land Area (million acres)",
         xlabelsize     = 13,
         yticks         = (1:6, [
@@ -1570,15 +1562,15 @@ function plot_comparison(
     scatter!(ax, [SOLAR_ACRES   / M_ACRES], [6]; color = :goldenrod, markersize = 14, marker = :diamond)
     scatter!(ax, [HOUSING_ACRES / M_ACRES], [1]; color = :slategray, markersize = 14, marker = :diamond)
     text!(ax, SOLAR_ACRES   / M_ACRES + 0.08, 6.22;
-          text = @sprintf("%.1fM ac", SOLAR_ACRES / M_ACRES),
-          color = :goldenrod, fontsize = 9, align = (:left, :center))
+            text = @sprintf("%.1fM ac", SOLAR_ACRES / M_ACRES),
+            color = :goldenrod, fontsize = 9, align = (:left, :center))
     text!(ax, HOUSING_ACRES / M_ACRES + 0.08, 1.22;
-          text = @sprintf("%.0fk ac", HOUSING_ACRES / 1000.0),
-          color = :slategray, fontsize = 9, align = (:left, :center))
+            text = @sprintf("%.0fk ac", HOUSING_ACRES / 1000.0),
+            color = :slategray, fontsize = 9, align = (:left, :center))
 
     # Grand Mean CI ribbon (shaded rectangle spanning CI lower → upper at y ≈ 5)
     poly!(ax, Rect2f(gm_ci_lo / M_ACRES, 4.55, (gm_ci_hi - gm_ci_lo) / M_ACRES, 0.90);
-          color = (:black, 0.12), strokecolor = :transparent)
+            color = (:black, 0.12), strokecolor = :transparent)
 
     # Per-language horizontal CI curves: line segment = 95% CI, circle = point estimate
     for (y_pos, est, ci_lo, ci_hi, col, mk) in [
@@ -1589,19 +1581,19 @@ function plot_comparison(
     ]
         # CI line (the counterfactual area curve for this language)
         lines!(ax, [ci_lo / M_ACRES, ci_hi / M_ACRES], [y_pos, y_pos];
-               color = col, linewidth = 3.5)
+                color = col, linewidth = 3.5)
         # Whisker end caps
         scatter!(ax, [ci_lo / M_ACRES, ci_hi / M_ACRES], [y_pos, y_pos];
-                 color = col, markersize = 8, marker = :vline)
+                color = col, markersize = 8, marker = :vline)
         # Point estimate marker
         scatter!(ax, [est / M_ACRES], [y_pos];
-                 color = col, markersize = 14, marker = mk)
+                color = col, markersize = 14, marker = mk)
         # Value label
         text!(ax, ci_hi / M_ACRES + 0.003, y_pos + 0.16;
-              text     = @sprintf("%.4fM", est / M_ACRES),
-              color    = col,
-              fontsize = 9,
-              align    = (:left, :center))
+            text     = @sprintf("%.4fM", est / M_ACRES),
+            color    = col,
+            fontsize = 9,
+            align    = (:left, :center))
     end
 
     ylims!(ax, 0.35, 6.65)
@@ -1609,10 +1601,7 @@ function plot_comparison(
 
     Label(fig[2, 1],
         "Solar and housing references are external estimates (see Readings/03 — Countries across the world use more land for golf courses than wind or solar energy). Golf acreage from MICE-pooled OSM polygon data (Jl/Py: osm_acreage; R: final_acreage). Grand Mean = arithmetic mean of three independently Rubin-pooled national totals.";
-        fontsize  = 8.5,
-        color     = "#888888",
-        halign    = :left,
-        tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(42))
 
@@ -1716,8 +1705,8 @@ function plot_scatter(jl::NamedTuple, py::NamedTuple, r::NamedTuple, out_path::S
         title         = "The Urban / Rural Bifurcation — log(Opportunity Cost) vs. log(Acreage)",
         subtitle      = "Scatter: imputation #1 per language  │  Lines: OLS per language  │  Grand Mean = arithmetic mean of three OLS fits",
         titlesize     = 15,
-        subtitlesize  = 9.5,
-        subtitlecolor = "#555555",
+        subtitlesize  = 12,
+        subtitlecolor = "#024731",
         xlabel        = "log(Acreage)",
         ylabel        = "log(Opportunity Cost)",
         xlabelsize    = 13,
@@ -1735,9 +1724,9 @@ function plot_scatter(jl::NamedTuple, py::NamedTuple, r::NamedTuple, out_path::S
         u = d.is_urban
         # Scatter: Urban = filled circle, Rural = upward triangle
         scatter!(ax, d.log_ac[u],   d.log_oc[u];
-                 color = (col, 0.14), markersize = 3.5, marker = :circle)
+                color = (col, 0.14), markersize = 3.5, marker = :circle)
         scatter!(ax, d.log_ac[.!u], d.log_oc[.!u];
-                 color = (col, 0.14), markersize = 3.5, marker = :utriangle)
+                color = (col, 0.14), markersize = 3.5, marker = :utriangle)
         # Per-language OLS regression line
         fit = ols(d.log_ac, d.log_oc)
         push!(ols_intercepts, fit.intercept)
@@ -1762,13 +1751,13 @@ function plot_scatter(jl::NamedTuple, py::NamedTuple, r::NamedTuple, out_path::S
     Legend(fig[1, 2],
         [elem_urban, elem_rural, elem_jl, elem_py, elem_r_ln, elem_gm],
         ["Urban (RUCC 1–3)", "Rural (RUCC 4–9)",
-         "Julia OLS", "Python OLS", "R OLS", "Grand Mean OLS"];
+        "Julia OLS", "Python OLS", "R OLS", "Grand Mean OLS"];
         framevisible = true, labelsize = 11, rowgap = 5
     )
 
     Label(fig[2, 1:2],
         "log(OC) = log(imputed acreage x Baseline_Value_Per_Acre). Jl/Py: osm_acreage; R: final_acreage. Urban/Rural from county_type. OLS lines fitted on imputation #1 only (scatter display). Grand Mean = arithmetic mean of three per-language OLS slopes and intercepts.";
-        fontsize = 8.5, color = "#888888", halign = :left, tellwidth = false
+        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(42))
 
@@ -1817,7 +1806,7 @@ function main()
     @printf("    Julia threads available: %d\n", Threads.nthreads())
     if Threads.nthreads() == 1
         @warn "Running on 1 thread — parallel speedup disabled. " *
-              "Relaunch with: julia --threads=auto .\\Phase_6.jl"
+                "Relaunch with: julia --threads=auto .\\Phase_6.jl"
     end
     println()
 

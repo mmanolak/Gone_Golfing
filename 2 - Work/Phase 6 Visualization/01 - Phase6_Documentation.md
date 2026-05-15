@@ -40,7 +40,7 @@ After evaluating output quality across all three candidate languages, the follow
 **Top 5 states (Grand Mean):** CA $293.70B · FL $111.95B · NY $53.91B · TX $38.61B · HI $35.61B  
 **Top 5 counties:** Los Angeles $49.73B · Orange $38.47B · Santa Clara $33.80B · San Diego $30.31B · Honolulu $29.69B
 
-**Known issue — Map 15.1:** Log-residual range returned `[NaN, NaN]`; the log-residual choropleth renders all-gray. Dollar-residual map (15.2) is unaffected. Pre-existing computation issue, not introduced by Phase 6 fixes.
+**Script 15 (resolved May 2026, Part 6C):** Log-residual range corrected from `[NaN, NaN]` (all-gray render) to `[−2.809, 4.437]`. Dollar-residual corrected from `$−1.766e12` absurd magnitudes to `[$−1.30B, $45.86B]`. See Part 6C in the Structural Audit Log and the Script 15 section for full fix details.
 
 ---
 
@@ -111,6 +111,40 @@ Cross-script integration audit: path routing, filename convention, output direct
 5. **PASS — No filename conflicts**: Phase_6.R holds prefixes 1–4, 7, 9, 15; Phase_6.jl holds 5–6, 10–14. Sets are disjoint; no collision risk.
 6. **FIX — `11_Lorenz_Curve_TriLanguage.png` violated 1.234 convention** (Phase_6.jl lines 19 and 979): renamed to `11.141_Lorenz_Curve_TriLanguage.png` in both the header comment and the `OUT_LORENZ` constant. All other Phase_6.jl output names follow the convention.
 7. **OBS — Phase_6.jl header comment stale**: Line 4 says "scripts 5, 6, and 10" but file handles Mod_5 through Mod_14 (scripts 5, 6, 10–14). Output file list (lines 11–19) omitted `12.141_`, `13.141_`, `14.141_` outputs. Comment-only; no runtime impact. Output file index in this document corrected to match actual script output names.
+
+**Script 15 Residual Map Diagnostic — May 2026 (Checklist Part 6C)**  
+Six formula and methodology bugs identified and corrected in standalone `Bulk/R/15_Residual_Map.R`, then ported one-for-one into `run_15_Residual_Map()` in `Phase_6.R`:
+
+1. **Log-residual formula corrected.** Pre-patch formula `log(final_acreage) - predicted_log` was off by `log(BVPA) ≈ 15.4` log-units. Corrected to `log(acreage × Baseline_Value_Per_Acre) - predicted_log`.
+2. **Dollar-residual units error corrected.** Pre-patch subtracted dollars from acres then multiplied by $/acre, producing `$−1.766e12` magnitudes. Corrected to `(acreage × Baseline_Value_Per_Acre) - exp(predicted_log)` with both terms in dollars.
+3. **`acreage > 1` filter added.** Guards against `log(0)` / `log(1e−15)` from near-zero MICE-imputed acreage values.
+4. **FIPS-safe cross-language join.** `select(-any_of(c("FIPS", "County_Name", "State_Abbr", "Tigris_State_Abbr")))` before `left_join(county_lookup, by = c("Longitude", "Latitude"))`. Drops native FIPS/county columns from Py/Jl (no-op for R). Fixes both the R FIPS-not-found error and the Julia `State_Abbr` column conflict.
+5. **Holes range filter added.** `filter(between(Holes, 9, 72))` guards against the 252-hole Phase 1 aggregate record causing `exp(b_holes × 252) ≈ $3.7T` explosion in the dollar-residual map.
+6. **Verified output ranges (Grand Mean, M=300 total).** Log-residual: [−2.809, 4.437]. Dollar-residual: [$−1.30B, $45.86B]. Counties with residuals: 2,874 of 3,144.
+
+CLAUDE.md updated: FIPS asymmetry corrected, Script 15 status marked Fixed.
+
+**FIPS-NA Diagnostic Audit — May 2026 (Checklist Part 6D)**  
+Read-only national audit confirming 34 FIPS-NA courses (0.21% of 16,292) — consistent across all three language pipelines (R: 34, Py: 34, Jl: 34). Three questions resolved:
+
+1. **Q1 — $4,952,600/acre anchor confirmed.** Exact match between thesis value and FHFA source (`2024 - FHFA June 20 Land Prices.xlsx`, sheet "Panel Counties", Year==2022, FIPS 15003). R's Phase 1 lookup reads the correct source value directly.
+2. **Q2 — Root cause: `cb=TRUE, resolution="20m"` cartographic boundary simplification.** All 5 Hawaii FIPS-NA courses are 54–433 meters outside the 1:20,000,000 simplified polygon. Hawaii Kai (54.7m) and Mid-Pacific (140.4m) also resolve with `cb=FALSE`. Kahili and King Kamehameha Golf Club on Maui share identical coordinates at 352m from any polygon — likely a source data coordinate issue, not a pipeline error.
+3. **Q3 — Thesis defensible.** 34 courses across 16 states (HI:5, CA:4, FL:4, WI:4, AL:3, MI:2, OR:2, SC:2; CT/MA/MD/ME/NY/OH/VA/WA: 1 each). Distribution is consistent with coastal/water-boundary simplification artifacts. The §5.4.2 footnote already covers the known Hawaii cases. No Phase 1 re-run required before defense.
+
+Diagnostic outputs (read-only) in `Phase 7 Documentation.../QA/`: `FIPS_NA_Audit.R`, `FIPS_NA_Audit_Report.md`, `FIPS_NA_Courses_R.csv` (34 courses), `FIPS_NA_State_Summary.csv`.
+
+**Script 9b Rural-USDA Sensitivity — May 2026 (Checklist Part 6E)**  
+New defense-only bulk script `9b_Oahu_OC_Map_Rural_USDA_Sensitivity.R` written, standalone test run confirmed, and integrated into `Phase_6.R` as `run_9b_Oahu_OC_Rural_USDA_Sensitivity()`. CLAUDE.md updated with full methodology.
+
+Reclassification keyed on `ZONMAP_NO` from `Zoning_Map_Boundary.geojson` (34 polygons, City & County of Honolulu Development Plan boundary layer):
+- Codes 1–14, 21–24 (urban/suburban core and Windward Oahu: Kualoa, Kaneohe, Kailua, Waimanalo) → FHFA ($4,952,600/ac)
+- Codes 15–20 (rural: Lualualei/Makaha, Makua/Kaena, Mokuleia/Wailua/Haleiwa, Kawailoa/Waialee, Kahuku/Laie, Hauula/Punaluu/Kaaawa) → USDA ($29,887/ac, read dynamically)
+- Code 0 — no golf courses present
+
+FHFA normalization applied to ALL Oahu BVPA before any USDA override, correcting Hawaii Kai and Mid-Pacific (FIPS-NA courses whose BVPA was MICE-imputed in Py/Jl rather than resolved from Phase 1). Zone assignment: `st_centroid` → `st_join(st_within)` → `st_nearest_feature` fallback (500m cap). Grand Mean: Rubin's Rules independently per language (M=100), arithmetic mean of three. Output: `9b.141_Oahu_OC_Map_Rural_USDA_Sensitivity_GrandMean.png` — standalone to `Bulk/R/output/`, master to `output/Final_Thesis_Figures/`.
+
+**Phase_6.jl Module 5 Library Fix — May 14, 2026**  
+`Plots` package removed from `Mod_5_Econometric_Plots` `using` statement (was: `using CSV, CairoMakie, DataFrames, Printf, Colors, Plots`; now: `using CSV, CairoMakie, DataFrames, Printf, Colors`). `Plots.jl` and `CairoMakie.jl` export overlapping function names (`scatter!`, `lines!`, and others); loading both in the same module scope causes Julia binding-ambiguity errors at runtime. `Colors` is retained — required for the `colorant""` string macro used by the UHM color palette constants (`UHM_GREEN`, `UHM_GOLD`, etc.) added in the same editing pass. Remaining changes in that pass are cosmetic: subtitle color standardized to `#024731` (UHM Green), caption font sizes updated to 10pt, and `word_wrap = true` added to multi-line captions across all modules.
 
 ---
 
@@ -263,6 +297,48 @@ Fill: `scale_fill_viridis_c(option = "plasma")` with a custom `label_oc()` label
 
 ---
 
+### Script 9b — `9b_Oahu_OC_Map_Rural_USDA_Sensitivity.R`
+**Output:** `output/9b.141_Oahu_OC_Map_Rural_USDA_Sensitivity_GrandMean.png` (defense deliverable, 12 × 10 in)
+
+Defense-only sensitivity variant of the Oahu Grand Mean opportunity cost map. Reclassifies courses in rural Honolulu County Development Plan zones from the FHFA residential proxy to the USDA agricultural proxy. Addresses the FHFA-aggregation caveat in thesis §5.4: Honolulu County's countywide FHFA index does not distinguish rural submarkets from the urban core.
+
+**Reclassification logic:** `ZONMAP_NO` from `Zoning_Map_Boundary.geojson` (City & County of Honolulu Development Plan boundary layer, 34 polygons):
+- Codes 1–14, 21–24 (urban/suburban core; Windward Oahu: Kualoa, Kaneohe, Kailua, Waimanalo): FHFA ($4,952,600/ac, FIPS 15003, 2022)
+- Codes 15–20 (Lualualei/Makaha, Makua/Kaena, Mokuleia/Wailua/Haleiwa, Kawailoa/Waialee, Kahuku/Laie, Hauula/Punaluu/Kaaawa): USDA ($29,887/ac, read dynamically from `2022 - USDA County Data - Ag Use.csv`)
+- Code 0: no golf courses present
+
+**FHFA normalization step:** ALL Oahu `Baseline_Value_Per_Acre` values are overwritten with the FHFA value before any USDA override. This corrects Hawaii Kai and Mid-Pacific (FIPS-NA courses whose BVPA was MICE-imputed in Py/Jl rather than assigned the Phase 1 FHFA value).
+
+**Spatial pipeline:** `st_centroid` of each OSM golf polygon → `st_join(st_within)` against Development Plan polygons → `st_nearest_feature` fallback for unmatched centroids (500m cap). Grand Mean: Rubin's Rules independently per language (M=100 each), arithmetic mean of three pooled estimates. Map format matches Script 9's `9.141` output (same plasma color scale, polygon-to-point join, caption format).
+
+Integrated into `Phase_6.R` as `run_9b_Oahu_OC_Rural_USDA_Sensitivity()`, output routed to `output/Final_Thesis_Figures/`.
+
+**Key inputs:** `Target_Golf_Polygons.gpkg`, `Honolulu_Parcels_Reprojected.gpkg`, `R_Phase1_Baseline_Golf_Valuation.csv`, `Zoning_Map_Boundary.geojson`, `R/Py/Jl_Imputed_Dataset_{1..100}.csv`, `2022 - USDA County Data - Ag Use.csv`  
+**R packages:** `tidyverse`, `sf`, `scales`, `ggspatial`, `this.path`
+
+---
+
+### Script 15 — `15_Residual_Map.R`
+**Outputs:** `output/15.141_Log_Residual_Map_GrandMean.png` (14 × 9 in), `output/15.241_Dollar_Residual_Map_GrandMean.png` (14 × 9 in)
+
+Two residual choropleth maps at the county level. Residuals measure the gap between each course's observed opportunity cost and the OLS-predicted value from the Phase 4 regression (`log(OC) = β₀ + β₁·Holes + β₂·I(Urban)`). Tri-language Grand Mean: Rubin's Rules independently per language (M=100 each), arithmetic mean of three pooled county-level estimates.
+
+**15.141 — Log-residual map:** `log(acreage × BVPA) − predicted_log`, aggregated to county mean. Range: [−2.809, 4.437]. Zero = perfect model fit; positive = observed OC exceeds prediction (undervalued by the model); negative = prediction exceeds observed OC.
+
+**15.241 — Dollar-residual map:** `(acreage × BVPA) − exp(predicted_log)`, both terms in dollars. Range: [$−1.30B, $45.86B]. Counties with residuals: 2,874 of 3,144 (288 counties have no course data, rendered gray).
+
+**Data safety filters:**
+- `acreage > 1`: guards against `log(0)` / `log(1e−15)` producing −Inf or NaN from near-zero MICE-imputed acreage
+- `between(Holes, 9, 72)`: guards against the 252-hole Phase 1 aggregate record causing `exp(b_holes × 252) ≈ $3.7T` explosion in the dollar-residual map
+- FIPS-safe cross-language join: `select(-any_of(c("FIPS", "County_Name", "State_Abbr", "Tigris_State_Abbr")))` before `left_join(county_lookup, ...)` — eliminates the R FIPS-not-found error and the Julia `State_Abbr` column-suffix conflict
+
+These maps are spatial diagnostics; the thesis prose does not reference any `15.x` figure.
+
+**Key inputs:** `R/Py/Jl_Imputed_Dataset_{1..100}.csv`, `R_Phase1_Baseline_Golf_Valuation.csv`  
+**R packages:** `tidyverse`, `sf`, `tigris`, `scales`, `this.path`
+
+---
+
 ## R Output File Index
 
 ```
@@ -278,10 +354,11 @@ Bulk/R/output/
 ├── 8.141_Table1_Acreage.tex
 ├── 8.241_Table2_Regression.tex
 ├── 8.301_Table3_Hawaii_Geo.tex
-├── 9.131_Oahu_Opportunity_Cost_Map_R.png                (12 × 10 in, 300 DPI)
-├── 9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png     (12 × 10 in, 300 DPI)
-├── 15.141_Residual_Map_Log.png                          (14 × 9 in, 300 DPI)
-└── 15.241_Residual_Map_Dollar.png                       (14 × 9 in, 300 DPI)
+├── 9.131_Oahu_Opportunity_Cost_Map_R.png                        (12 × 10 in, 300 DPI)
+├── 9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png             (12 × 10 in, 300 DPI)
+├── 9b.141_Oahu_OC_Map_Rural_USDA_Sensitivity_GrandMean.png      (12 × 10 in, 300 DPI)
+├── 15.141_Log_Residual_Map_GrandMean.png                        (14 × 9 in, 300 DPI)
+└── 15.241_Dollar_Residual_Map_GrandMean.png                     (14 × 9 in, 300 DPI)
 ```
 
 ---
@@ -370,9 +447,10 @@ output/
 │   ├── 8.141_Table1_Acreage.tex                                    [Phase_6.R Script 8]
 │   ├── 8.241_Table2_Regression.tex                                 [Phase_6.R Script 8]
 │   ├── 8.301_Table3_Hawaii_Geo.tex                                 [Phase_6.R Script 8]
-│   ├── 9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png            [Phase_6.R Script 9]
-│   ├── 9.141_Oahu_Opportunity_Cost_Map_GrandMean.png               [Phase_6.R Script 9]
-│   ├── 10.141_Hawaii_Gap_Dumbbell_TriLanguage.png                  [Phase_6.jl Mod_10]
+│   ├── 9.101_Oahu_Opportunity_Cost_Map_ObservedOnly.png                [Phase_6.R Script 9]
+│   ├── 9.141_Oahu_Opportunity_Cost_Map_GrandMean.png                   [Phase_6.R Script 9]
+│   ├── 9b.141_Oahu_OC_Map_Rural_USDA_Sensitivity_GrandMean.png         [Phase_6.R Script 9b]
+│   ├── 10.141_Hawaii_Gap_Dumbbell_TriLanguage.png                      [Phase_6.jl Mod_10]
 │   ├── 11.141_Lorenz_Curve_TriLanguage.png                         [Phase_6.jl Mod_11]
 │   ├── 12.141_Zoning_Waffle_Chart_TriLanguage.png                  [Phase_6.jl Mod_12]
 │   ├── 13.141_Counterfactual_Area_TriLanguage.png                  [Phase_6.jl Mod_13]
@@ -396,3 +474,5 @@ output/
 ```
 
 > **Note (6C audit):** Script 9 (Oahu OC Map) produces only GrandMean + ObservedOnly in `Final_Thesis_Figures/` — no per-language QA maps. Script 15 (Residual Maps) produces GrandMean only — no ObservedOnly variant by design (residuals require a fitted model).
+
+

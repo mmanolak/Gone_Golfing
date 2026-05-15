@@ -79,7 +79,7 @@ function plot_forest(reg_df::DataFrame, out_path::String)
         subtitle      = "Point estimates with 95% confidence intervals  |  *** p < 0.001",
         titlesize     = 14,
         subtitlesize  = 11,
-        subtitlecolor = "#555555",
+        subtitlecolor = "#024731",
         xgridvisible  = true,
         ygridvisible  = false,
     )
@@ -93,13 +93,13 @@ function plot_forest(reg_df::DataFrame, out_path::String)
         whiskerwidth = 0.2
     )
 
-    scatter!(ax, sorted_coef, Float64.(1:n); color = "#9467bd", markersize = 12)
+    scatter!(ax, sorted_coef, Float64.(1:n); color = "#800080", markersize = 12)
 
     Label(fig[2, 1],
         "Dependent variable: log(Opportunity_Cost). " *
         "OLS estimated on pooled MICE imputations (M = 100) via Rubin's Rules.";
-        fontsize  = 9,
-        color     = "#888888",
+        fontsize  = 10,
+        color     = "#800080",
         halign    = :left,
         tellwidth = false
     )
@@ -150,7 +150,7 @@ function plot_density(phase2_df::DataFrame, imputed_paths::Vector{String}, out_p
                         "Imputations = MICE-filled missing values (purple, α = 0.05 per draw)",
         titlesize     = 14,
         subtitlesize  = 11,
-        subtitlecolor = "#555555",
+        subtitlecolor = "#024731",
         xgridvisible  = false,
         ygridvisible  = false,
     )
@@ -181,8 +181,8 @@ function plot_density(phase2_df::DataFrame, imputed_paths::Vector{String}, out_p
     Label(fig[2, 1],
         "Alpha-blended density (α = 0.05 per draw): denser regions indicate higher " *
         "agreement across the $m_count MICE imputations.";
-        fontsize  = 9,
-        color     = "#888888",
+        fontsize  = 10,
+        color     = "#024731",
         halign    = :left,
         tellwidth = false
     )
