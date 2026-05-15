@@ -96,7 +96,7 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
         xlabel        = "Coefficient  [Dependent variable: log(Opportunity_Cost)]",
         title         = "Regression Coefficients - Tri-Language MICE-Pooled Models",
         subtitle      = "Each dot = Rubin-pooled OLS estimate (M=100 imputations). Each bar = 95% CI.\n" *
-                        "Three estimates per predictor, dodged vertically: Python (green) · R (blue) · Julia (purple).",
+                        "Three estimates per predictor, dodged vertically: \n Python (green) · R (blue) · Julia (purple).",
         titlesize = 14, subtitlesize = 11, subtitlecolor = "#024731", xgridvisible = true, ygridvisible = false, tellwidth = false
     )
 
