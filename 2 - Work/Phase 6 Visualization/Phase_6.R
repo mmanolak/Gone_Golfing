@@ -2890,7 +2890,7 @@ run_15_Residual_Map <- function() {
         subtitle = paste0(
             "log(Actual OC) − log(Predicted OC) per county  │  ",
             "Red = county OC exceeds prediction (model underpredicts)  │  ",
-            "Blue = county OC falls short of prediction (model overpredicts)  │  ",
+            "Blue = county OC falls short of prediction (model overpredicts) \n",
             "Grand Mean of three Rubin-pooled estimates (Python · R · Julia, M = 100 each)"
         ),
         caption_text = paste0(
@@ -2919,7 +2919,7 @@ run_15_Residual_Map <- function() {
         subtitle = paste0(
             "Σ (Actual OC − Predicted OC) per county  │  ",
             "Red = county value exceeds prediction (undercaptured latent value)  │  ",
-            "Blue = county value falls short of prediction  │  ",
+            "Blue = county value falls short of prediction \n",
             "Grand Mean of three Rubin-pooled estimates (Python · R · Julia, M = 100 each)  │  Signed √ scale"
         ),
         caption_text = paste0(

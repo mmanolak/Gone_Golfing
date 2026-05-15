@@ -102,7 +102,7 @@ courses_sf <- courses_df |>
 
 cat(" 4  Downloading 2022 US County boundaries (tigris)\n")
 # [METHODOLOGY] CRS: EPSG 4326 (WGS 84) - projects county boundaries to match golf course point CRS for spatial join
-county_sf <- counties(cb = TRUE, year = 2022, resolution = "20m", progress_bar = FALSE) |>
+county_sf <- counties(cb = FALSE, year = 2022, resolution = "20m", progress_bar = FALSE) |>
   st_transform(4326)
 
 cat(" 5  Spatial point-in-polygon join\n")
@@ -119,7 +119,7 @@ courses_df <- st_drop_geometry(courses_sf) |>
     Tigris_State_Abbr = state
   ) |>
   select(course_id, Course_Name, Ownership_Type, Holes, Address, City, State_Abbr,
-         Zip_Code, Longitude, Latitude, FIPS, County_Name, Tigris_State_Abbr)
+          Zip_Code, Longitude, Latitude, FIPS, County_Name, Tigris_State_Abbr)
 
 write_csv(courses_df, OUT_SPATIAL)
 cat(sprintf("    [OK] Spatial data saved -> %s\n", OUT_SPATIAL))

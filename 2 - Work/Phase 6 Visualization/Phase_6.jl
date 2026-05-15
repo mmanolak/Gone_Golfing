@@ -53,10 +53,9 @@ mkpath(QA_DIR)
 const OUT_FOREST  = joinpath(THESIS_DIR, "5.141_Forest_Plot_Combined.png")
 
 const PARAM_LABELS = Dict(
-    "(Intercept)"              => "Intercept",
-    "Holes"                    => "Holes\n(per 18-hole unit)",
-    "county_type: Urban"       => "Urban County",
-    "factor(county_type)Urban" => "Urban County"
+    "(Intercept)"        => "Intercept",
+    "Holes"              => "Holes \n (per 18-hole unit)",
+    "county_type: Urban" => "Urban County"
 )
 
 # Colors for UH Manoa
@@ -91,21 +90,14 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
     sorted_labels = labels[order]
     n             = length(order)
 
-    fig = Figure(size = (900, 520))
-
-    # Title and subtitle as Labels spanning axis + legend columns so they center over the full figure width
-    Label(fig[1, 1:2],
-        "Regression Coefficients — Tri-Language MICE-Pooled Models";
-        fontsize = 14, font = :bold, halign = :center, tellwidth = false)
-    Label(fig[2, 1:2],
-        "Each dot = Rubin-pooled OLS estimate (M=100 imputations). Each bar = 95% CI.  " *
-        "Three estimates per predictor, dodged vertically: Python (green) · R (blue) · Julia (purple).";
-        fontsize = 11, color = "#024731", halign = :center, tellwidth = false, word_wrap = true)
-
-    ax  = Axis(fig[3, 1];
-        yticks       = (1:n, sorted_labels),
-        xlabel       = "Estimated Coefficient",
-        xgridvisible = true, ygridvisible = false, tellwidth = false
+    fig = Figure(size = (900, 450))
+    ax  = Axis(fig[1, 1];
+        yticks        = (1:n, sorted_labels),
+        xlabel        = "Coefficient  [Dependent variable: log(Opportunity_Cost)]",
+        title         = "Regression Coefficients - Tri-Language MICE-Pooled Models",
+        subtitle      = "Each dot = Rubin-pooled OLS estimate (M=100 imputations). Each bar = 95% CI.\n" *
+                        "Three estimates per predictor, dodged vertically: Python (green) · R (blue) · Julia (purple).",
+        titlesize = 14, subtitlesize = 11, subtitlecolor = "#024731", xgridvisible = true, ygridvisible = false, tellwidth = false
     )
 
     vlines!(ax, 0.0; color = "#888888", linestyle = :dash, linewidth = 0.5)
@@ -131,7 +123,7 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
         direction = :x, color = :green, linewidth = 1.5, whiskerwidth = 0.2)
     scatter!(ax, py_coef, collect(Float64.(1:n)) .+ 0.2; color = :green, markersize = 12)
 
-    Legend(fig[3, 2],
+    Legend(fig[1, 2],
         [
             [MarkerElement(color = :green,  marker = :circle)],
             [MarkerElement(color = :blue,   marker = :circle)],
@@ -141,16 +133,14 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
         framevisible = false, labelsize = 11
     )
 
-    Label(fig[4, 1:2],
+    Label(fig[2, 1:2],
         "Dependent variable: log(Opportunity_Cost). Each dot is a Rubin-pooled OLS coefficient estimated " *
         "from M = 100 MICE imputations; each bar is the corresponding 95% confidence interval. " *
         "The three languages use independent MICE backends (LightGBM, Random Forest, Mice.jl); " *
         "near-identical estimates across all three languages demonstrate robustness to imputation backend choice.";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
-    rowsize!(fig.layout, 1, Auto())
-    rowsize!(fig.layout, 2, Auto())
-    rowsize!(fig.layout, 4, Fixed(50))
+    rowsize!(fig.layout, 2, Fixed(40))
 
     save(out_path, fig; px_per_unit = 3)
     println("    Saved: $(out_path)")
