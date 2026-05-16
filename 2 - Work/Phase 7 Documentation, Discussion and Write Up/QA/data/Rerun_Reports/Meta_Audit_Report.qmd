@@ -25,6 +25,8 @@ format:
 
 {{< include "./Phase3_Rerun_Report.md" >}}
 
+{{< include "./Phase3_MiceJL_Bug_Scope.md" >}}
+
 \newpage
 
 {{< include "./Phase4_Rerun_Report.md" >}}
@@ -32,6 +34,8 @@ format:
 \newpage
 
 {{< include "./Phase5_Rerun_Report.md" >}}
+
+{{< include "./Phase5_Methodology_Archaeology.md" >}}
 
 \newpage
 
