@@ -2197,7 +2197,7 @@ run_9b_Oahu_OC_Rural_USDA_Sensitivity <- function() {
     # zone BVPA override. All Oahu BVPA values are first normalized to fhfa_value,
     # then courses in rural_zones are overridden with usda_value.
     pool_oahu_oc_sensitivity <- function(paths, lang_label, zone_lookup,
-                                         fhfa_value, usda_value, rural_zones) {
+                                            fhfa_value, usda_value, rural_zones) {
         total_list <- vector("list", M)
         cat(sprintf(
             "  [%s] Pooling %d imputations (FHFA normalization + Dev Plan rural override)...\n",
@@ -2266,7 +2266,7 @@ run_9b_Oahu_OC_Rural_USDA_Sensitivity <- function() {
     }
 
     build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
-                                   n_matched, subtitle, caption_text) {
+                                    n_matched, subtitle, caption_text) {
         ggplot() +
             geom_sf(
                 data      = oahu_outline_sf,
@@ -2519,29 +2519,11 @@ run_9b_Oahu_OC_Rural_USDA_Sensitivity <- function() {
     caption_text <- paste0(
         "Sensitivity visualization: Honolulu County courses are reclassified by the City ",
         "and County of Honolulu's Development Plan boundary layer. Courses in unambiguously ",
-        "rural Development Plan areas (codes 15-20: Lualualei/Makaha, Makua/Kaena, ",
-        "Mokuleia/Waialua/Haleiwa, Kawailoa/Waialee, Kahuku/Laie, Hauula/Punaluu/Kaaawa) ",
-        "have been reclassified to use the 2022 USDA agricultural per-acre value ($",
+        "rural Development Plan areas (codes 15-20) have been reclassified to use the 2022 ",
+        "USDA agricultural per-acre value ($",
         format(as.integer(USDA_RURAL_VALUE), big.mark = ","),
         "/ac) rather than the FHFA residential value ($",
-        format(as.integer(FHFA_OAHU_VALUE), big.mark = ","),
-        "/ac). Code 0 (No Coverage) has no golf courses. ",
-        "All other Oahu courses (Development Plan codes 1-14, 21-24) retain the ",
-        "FHFA urban proxy used in the thesis. ",
-        "All Oahu courses are first normalized to FHFA $",
-        format(as.integer(FHFA_OAHU_VALUE), big.mark = ","),
-        "/ac before rural zones are overridden; this corrects FIPS-NA courses ",
-        "(Hawaii Kai, Mid-Pacific) whose baseline was MICE-imputed in Python/Julia datasets. ",
-        "Opportunity Cost = Grand Mean of three independently Rubin-pooled OC estimates ",
-        "(100 Python, 100 R, 100 Julia MICE imputations). ",
-        "This sensitivity check addresses the FHFA-aggregation limitation documented in ",
-        "§5.4 of the thesis, where Honolulu County's countywide FHFA index does not ",
-        "distinguish rural submarkets from the urban core. ",
-        "Polygon-to-point assignment via nearest-feature spatial join (cap: 500 m). ",
-        "Sources: OpenStreetMap; FHFA residential land price index (2022, Honolulu County); ",
-        "USDA 2022 Agricultural Census (Honolulu County); ",
-        "City & County of Honolulu Development Plan boundaries. ",
-        "CRS: WGS 84 / UTM Zone 4N (EPSG 32604)."
+        format(as.integer(FHFA_OAHU_VALUE), big.mark = ","), "/ac)."
     )
 
     map_sens <- build_oahu_oc_map(
