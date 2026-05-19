@@ -36,6 +36,10 @@ What is the aggregate financial opportunity cost of U.S. golf courses when evalu
 *   [  FHFA Files 2024-08 Land-Prices / file: 2024 - FHFA June 20 Land Prices.xlsx](https://www.fhfa.gov/sites/default/files/2024-08/Land-Prices_2024_20_June.xlsx)
 *   [FHFA Conforming Loan Limit Values Map / file: Conforming Loan Limits.pdf](https://www.fhfa.gov/data/dashboard/conforming-loan-limit-values-map)
 *   [Github User cwimpy - rurality / file: 2023-rural-urban-continuum-codes.csv](https://github.com/cwimpy/rurality/blob/main/data-raw/rucc2023.csv)
+*   [Utility-scale U.S. solar electricity generation continues to grow in 2024](https://www.eia.gov/todayinenergy/detail.php?id=63324)
+*   [Preliminary Monthly Electric Generator Inventory (based on Form EIA-860M as a supplement to Form EIA-860)](https://www.eia.gov/electricity/data/eia860m/)
+*   [Census - Information of Delaware](https://data.census.gov/profile/Delaware?g=040XX00US10)
+*   [Census - Information of Rhode Island](https://data.census.gov/profile/Rhode_Island?g=040XX00US44)
 
 ### Honolulu / Micro Case 
 *   [Tax Plat Boundary / file: Tax_Plats_](https://honolulu-cchnl.opendata.arcgis.com/datasets/9096b8efec024f179dc569755fb3fdea_0/explore?location=21.484700%2C-157.973000%2C10)

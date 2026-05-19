@@ -9,7 +9,7 @@
 #   v_b   = var(Q_i, ddof=1)    -- between-imputation variance
 #   v_t   = v_w + v_b + v_b/m  -- total variance
 #   se    = sqrt(v_t)
-#   95%CI = q_bar +/- 1.96 * se
+#   99%CI = q_bar +/- 2.576 * se
 
 
 # === 1. LIBRARIES ===
@@ -58,8 +58,8 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     v_b   = var(aggregates; corrected = true)
     v_t   = v_w + v_b + v_b / m_datasets
     se    = sqrt(v_t)
-    ci_lo = q_bar - 1.96 * se
-    ci_hi = q_bar + 1.96 * se
+    ci_lo = q_bar - 2.576 * se
+    ci_hi = q_bar + 2.576 * se
 
     println("\n=== RUBIN'S RULES RESULTS ===")
     @printf("  Pooled Aggregate National Value:  \$%10.3f B\n", q_bar / 1e9)
@@ -68,7 +68,7 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     @printf("  Total Variance (v_t):             %.4e\n", v_t)
     @printf("  Standard Error:                   \$%10.3f B\n", se / 1e9)
     @printf(
-        "  95%% Confidence Interval:          \$%10.3f B - \$%10.3f B\n",
+        "  99%% Confidence Interval:          \$%10.3f B - \$%10.3f B\n",
         ci_lo / 1e9, ci_hi / 1e9
     )
 

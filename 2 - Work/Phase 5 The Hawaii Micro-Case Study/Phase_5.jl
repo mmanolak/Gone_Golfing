@@ -263,7 +263,7 @@ function main()
 
     area_candidates     = ["dpp_approved_area_acres", "dpp_stated_area", "rpa_stated_area"]
     area_col            = findfirst(c -> c in names(matched_parcels) &&
-                                   any(!ismissing, matched_parcels[!, c]), area_candidates)
+                                    any(!ismissing, matched_parcels[!, c]), area_candidates)
     official_area_acres = NaN
     if !isnothing(area_col)
         col = area_candidates[area_col]
@@ -295,7 +295,7 @@ function main()
     # reuse oahu_golf_geo as the OSM polygon reference; tag with poly_id for dedup
     oahu_golf_geo.poly_id = 1:nrow(oahu_golf_geo)
     unique_courses = combine(groupby(oahu_all, [:Longitude, :Latitude]),
-                             :Holes => maximum => :Holes)
+                                :Holes => maximum => :Holes)
 
     group_ids = Vector{String}(undef, nrow(unique_courses))
     for i in 1:nrow(unique_courses)
@@ -339,8 +339,8 @@ function main()
     v_b   = var(oahu_agg_dedup)
     v_t   = v_w + v_b + v_b / M
     se    = sqrt(v_t)
-    ci_lo = q_bar - 1.96 * se
-    ci_hi = q_bar + 1.96 * se
+    ci_lo = q_bar - 2.576 * se
+    ci_hi = q_bar + 2.576 * se
 
     rows = NamedTuple{(:Metric, :Value), Tuple{String, String}}[]
     add_row!(rows, "Total Golf Courses (Oahu, OSM polygons)",      nrow(oahu_golf_geo))

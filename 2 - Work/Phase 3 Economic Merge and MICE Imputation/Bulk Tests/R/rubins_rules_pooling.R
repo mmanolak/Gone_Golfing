@@ -45,8 +45,8 @@ rubins_rules <- function(Q_vec, U_vec = NULL) {
   list(
     Q_bar = Q_bar, V_W = V_W, V_B = V_B, V_T = V_T,
     SE    = SE,
-    CI_lo = Q_bar - 1.96 * SE,
-    CI_hi = Q_bar + 1.96 * SE,
+    CI_lo = Q_bar - 2.576 * SE,
+    CI_hi = Q_bar + 2.576 * SE,
     m     = m
   )
 }

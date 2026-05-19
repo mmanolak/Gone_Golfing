@@ -811,16 +811,16 @@ end
 
 
 function plot_legend_card(out_path::String)
-    fig = Figure(size = (1200, 300), backgroundcolor = :white)
+    fig = Figure(size = (800, 300), backgroundcolor = :white)
 
     Label(fig[1, 1:2],
         "The Hawaii Gap: HBU Model Value vs. Agricultural Floor - Oahu Golf Courses";
-        fontsize = 14, font = :bold, halign = :left, tellwidth = false
+        fontsize = 20, font = :bold, halign = :center, tellwidth = false
     )
     Label(fig[2, 1:2],
         "Three Rubin-pooled estimates per course (Py/R/Jl, M=100 each)  │  " *
         "Grand Mean = arithmetic mean of three language estimates";
-        fontsize = 12, color = "#024731", halign = :left, tellwidth = false
+        fontsize = 13, color = "#024731", halign = :center, valign = :bottom, tellwidth = false
     )
 
     Label(fig[3, 1],
@@ -831,19 +831,19 @@ function plot_legend_card(out_path::String)
         "† No OSM polygon in Phase 2 (military/federal installation or unmapped course); " *
         "acreage fully imputed by MICE - wide CI reflects genuine uncertainty. " *
         "Courses where Py/R coordinate matching is ambiguous show Julia estimate only.";
-        fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
+        fontsize = 11, color = "#024731", halign = :left, valign = :bottom, tellwidth = false, word_wrap = true
     )
 
     elem_py   = MarkerElement(color = COL_PY,  marker = :circle,  markersize = 9)
     elem_r    = MarkerElement(color = COL_R,   marker = :circle,  markersize = 9)
     elem_jl   = MarkerElement(color = COL_JL,  marker = :circle,  markersize = 9)
     elem_gm   = MarkerElement(color = :white,  marker = :circle,  markersize = 12,
-                               strokecolor = :black, strokewidth = 1.5)
+                                strokecolor = :black, strokewidth = 1.5)
     elem_left = MarkerElement(color = COL_OBS, marker = :diamond, markersize = 10)
     Legend(fig[3, 2],
         [elem_py, elem_r, elem_jl, elem_gm, elem_left],
         ["Python  (Rubin M=100)", "R  (Rubin M=100)", "Julia  (Rubin M=100)",
-         "Grand Mean", "Agricultural Floor (USDA × acreage)"];
+            "Grand Mean", "Agricultural Floor (USDA × acreage)"];
         framevisible = true, halign = :right, valign = :top
     )
 

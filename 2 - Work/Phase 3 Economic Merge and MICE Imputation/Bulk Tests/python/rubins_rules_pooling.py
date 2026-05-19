@@ -59,8 +59,8 @@ def run_pooling(in_dir, out_csv, m_datasets=5):
     v_b   = aggregates.var(ddof=1)
     v_t   = v_w + v_b + v_b / m_datasets
     se    = np.sqrt(v_t)
-    ci_lo = q_bar - 1.96 * se
-    ci_hi = q_bar + 1.96 * se
+    ci_lo = q_bar - 2.576 * se
+    ci_hi = q_bar + 2.576 * se
 
     print(f"\n=== RUBIN'S RULES RESULTS ===")
     print(f"  Pooled Aggregate National Value:  ${q_bar / 1e9:,.3f} Billion")
@@ -69,7 +69,7 @@ def run_pooling(in_dir, out_csv, m_datasets=5):
     print(f"  Total Variance (v_t):             {v_t:.4e}")
     print(f"  Standard Error:                   ${se / 1e9:,.3f} Billion")
     print(
-        f"  95% Confidence Interval:          "
+        f"  99% Confidence Interval:          "
         f"${ci_lo / 1e9:,.3f} B  -  ${ci_hi / 1e9:,.3f} B"
     )
 

@@ -427,12 +427,12 @@ def run_step3(osm_derived_acres):
     v_b   = np.var(oahu_agg_dedup, ddof=1)
     v_t   = v_w + v_b + v_b / M
     se    = np.sqrt(v_t)
-    ci_lo = q_bar - 1.96 * se
-    ci_hi = q_bar + 1.96 * se
+    ci_lo = q_bar - 2.576 * se
+    ci_hi = q_bar + 2.576 * se
 
     print(
         f"\n  Deduplicated Pooled Oahu Opportunity Cost: "
-        f"${q_bar/1e9:.3f}B (95% CI: ${ci_lo/1e9:.3f}B - ${ci_hi/1e9:.3f}B)"
+        f"${q_bar/1e9:.3f}B (99% CI: ${ci_lo/1e9:.3f}B - ${ci_hi/1e9:.3f}B)"
     )
 
     print("-" * 70)

@@ -98,9 +98,9 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
     ylims!(ax, minimum(lo_vals) * 0.95, maximum(hi_vals) * 1.25)
 
     Label(fig[2, 1],
-        "Model: log(acreage) = β₀ + β₁·Holes + β₂·I(Urban). " *
+        "Model: log(Opportunity Cost) = β₀ + β₁·Holes + β₂·I(Urban). " *
         "OC = exp(ŷ) × mean land value per acre by county type. " *
-        "Error bars: 95% CI (delta method; covariance terms omitted).";
+        "Error bars: 99% CI (delta method; covariance terms omitted).";
         fontsize  = 8.5,
         color     = "#888888",
         halign    = :left,
@@ -231,7 +231,7 @@ function main()
     se_pred_rural = sqrt(se_b0^2 + (med_holes * se_holes)^2)
     se_pred_urban = sqrt(se_b0^2 + (med_holes * se_holes)^2 + se_urban^2)
 
-    make_row(log_hat, se_pred, bvpa, type; z = 1.96) = (
+    make_row(log_hat, se_pred, bvpa, type; z = 2.576) = (
         type  = type,
         est_M = exp(log_hat)               * bvpa / 1e6,
         lo_M  = exp(log_hat - z * se_pred) * bvpa / 1e6,

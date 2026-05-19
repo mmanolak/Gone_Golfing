@@ -103,15 +103,15 @@ build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
             name     = "Opportunity Cost",
             labels   = label_oc,
             guide    = guide_colorbar(
-                barwidth       = unit(21, "cm"),
-                barheight      = unit(0.45, "cm"),
+                barwidth       = unit(0.5, "cm"),
+                barheight      = unit(5, "cm"),
                 title.position = "top",
                 title.hjust    = 0.5,
                 ticks.colour   = "white"
             )
         ) +
         annotation_scale(
-            location   = "br",
+            location   = "tl",
             width_hint = 0.22,
             style      = "ticks",
             text_cex   = 0.75,
@@ -119,10 +119,10 @@ build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
             pad_y      = unit(0.5, "cm")
         ) +
         annotation_north_arrow(
-            location    = "tr",
+            location    = "tl",
             which_north = "true",
             pad_x       = unit(0.5, "cm"),
-            pad_y       = unit(0.5, "cm"),
+            pad_y       = unit(1.5, "cm"),
             style       = north_arrow_fancy_orienteering(
                 fill      = c("white", "#444444"),
                 line_col  = "#444444",
@@ -147,9 +147,10 @@ build_oahu_oc_map <- function(golf_oc_sf, oahu_outline_sf,
                 size = 9, colour = "#024731", hjust = 0, margin = margin(t = 10)
             ),
             plot.caption.position = "plot",
-            legend.position = "bottom",
-            legend.title    = element_text(size = 14, face = "bold"),
-            legend.text     = element_text(size = 12),
+            legend.position  = "right",
+            legend.direction = "vertical",
+            legend.title     = element_text(size = 14, face = "bold"),
+            legend.text      = element_text(size = 12),
             plot.background = element_rect(fill = "white", colour = NA),
             plot.margin     = margin(12, 16, 8, 16)
         )

@@ -115,7 +115,7 @@ tbl1 <- kable(
     col.names = c(
         "Category", "County Type",
         "Pooled Acres", "SD (Between)",
-        "95\\% CI Lower", "95\\% CI Upper"
+        "99\\% CI Lower", "99\\% CI Upper"
     )
 ) |>
     kable_styling(latex_options = c("hold_position"))
@@ -159,7 +159,7 @@ tbl2 <- kable(
     escape    = FALSE,
     caption   = paste0(
         "MICE-Pooled OLS Regression Results (Rubin's Rules, $M = 100$). ",
-        "Dep.\\ var.: $\\log(\\text{final acreage})$."
+        "Dep.\\ var.: $\\log(\\text{Opportunity Cost})$."
     ),
     label     = "regression_results",
     col.names = c(

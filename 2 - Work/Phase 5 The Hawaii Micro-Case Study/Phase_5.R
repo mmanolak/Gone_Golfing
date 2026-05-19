@@ -264,11 +264,11 @@ v_w   <- mean(sapply(
 v_b   <- var(oahu_agg_dedup)
 v_t   <- v_w + v_b + v_b / M
 se    <- sqrt(v_t)
-ci_lo <- q_bar - 1.96 * se
-ci_hi <- q_bar + 1.96 * se
+ci_lo <- q_bar - 2.576 * se
+ci_hi <- q_bar + 2.576 * se
 
 cat(sprintf(
-    "  Pooled Oahu Opportunity Cost: $%.3fB (95%% CI: $%.3fB - $%.3fB)\n",
+    "  Pooled Oahu Opportunity Cost: $%.3fB (99%% CI: $%.3fB - $%.3fB)\n",
     q_bar / 1e9, ci_lo / 1e9, ci_hi / 1e9
 ))
 

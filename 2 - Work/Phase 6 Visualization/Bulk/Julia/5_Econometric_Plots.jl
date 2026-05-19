@@ -66,8 +66,8 @@ function plot_forest(reg_df::DataFrame, out_path::String)
 
     order         = sortperm(reg_df.Coef)
     sorted_coef   = reg_df.Coef[order]
-    sorted_ci_lo  = (reg_df.Coef .- 1.96 .* reg_df.Std_Error)[order]
-    sorted_ci_hi  = (reg_df.Coef .+ 1.96 .* reg_df.Std_Error)[order]
+    sorted_ci_lo  = (reg_df.Coef .- 2.576 .* reg_df.Std_Error)[order]
+    sorted_ci_hi  = (reg_df.Coef .+ 2.576 .* reg_df.Std_Error)[order]
     sorted_labels = labels[order]
     n             = length(order)
 

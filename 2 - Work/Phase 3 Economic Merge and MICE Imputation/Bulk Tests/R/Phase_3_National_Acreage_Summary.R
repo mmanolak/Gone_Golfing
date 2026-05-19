@@ -27,7 +27,7 @@ M <- 5
 # === 3. FUNCTIONS ===
 
 #' Pool a numeric vector of per-imputation totals by simple averaging.
-#' Returns pooled mean, between-imputation SD, and a 95% CI based on
+#' Returns pooled mean, between-imputation SD, and a 99% CI based on
 #' the between-imputation variance only (within-variance = 0 for acreage).
 #' @param x Numeric vector of length M.
 #' @return Named list: mean, sd_b, ci_lo, ci_hi.
@@ -38,8 +38,8 @@ pool_acreage <- function(x) {
   list(
     mean  = q_bar,
     sd_b  = sqrt(v_b),
-    ci_lo = q_bar - 1.96 * se,
-    ci_hi = q_bar + 1.96 * se
+    ci_lo = q_bar - 2.576 * se,
+    ci_hi = q_bar + 2.576 * se
   )
 }
 
@@ -114,13 +114,13 @@ main <- function() {
     format(round(nat_pool$sd_b, 2), big.mark = ",")
   ))
   cat(sprintf("  %-38s %s - %s\n",
-    "95% CI",
+    "99% CI",
     format(round(nat_pool$ci_lo), big.mark = ","),
     format(round(nat_pool$ci_hi), big.mark = ",")
   ))
 
   cat(sprintf("\n  %-20s %15s %15s %15s\n",
-    "County Type", "Pooled Acres", "SD (between)", "95% CI"))
+    "County Type", "Pooled Acres", "SD (between)", "99% CI"))
   cat(sprintf("  %-20s %15s %15s %15s\n",
     strrep("-", 20), strrep("-", 15), strrep("-", 15), strrep("-", 15)))
 
