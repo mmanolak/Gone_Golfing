@@ -36,10 +36,12 @@ pool_acreage <- function(x) {
   v_b   <- var(x)
   se    <- sqrt(v_b + v_b / length(x))
   list(
-    mean  = q_bar,
-    sd_b  = sqrt(v_b),
-    ci_lo = q_bar - 2.576 * se,
-    ci_hi = q_bar + 2.576 * se
+    mean    = q_bar,
+    sd_b    = sqrt(v_b),
+    ci95_lo = q_bar - 1.960 * se,
+    ci95_hi = q_bar + 1.960 * se,
+    ci99_lo = q_bar - 2.576 * se,
+    ci99_hi = q_bar + 2.576 * se
   )
 }
 
@@ -92,8 +94,10 @@ main <- function() {
     summarise(
       pooled_acres = mean(acreage),
       sd_b         = sd(acreage),
-      ci_lo        = pool_acreage(acreage)$ci_lo,
-      ci_hi        = pool_acreage(acreage)$ci_hi,
+      ci95_lo      = pool_acreage(acreage)$ci95_lo,
+      ci95_hi      = pool_acreage(acreage)$ci95_hi,
+      ci99_lo      = pool_acreage(acreage)$ci99_lo,
+      ci99_hi      = pool_acreage(acreage)$ci99_hi,
       .groups = "drop"
     ) |>
     arrange(desc(pooled_acres))
@@ -115,8 +119,13 @@ main <- function() {
   ))
   cat(sprintf("  %-38s %s - %s\n",
     "99% CI",
-    format(round(nat_pool$ci_lo), big.mark = ","),
-    format(round(nat_pool$ci_hi), big.mark = ",")
+    format(round(nat_pool$ci99_lo), big.mark = ","),
+    format(round(nat_pool$ci99_hi), big.mark = ",")
+  ))
+  cat(sprintf("  %-38s %s - %s\n",
+    "95% CI",
+    format(round(nat_pool$ci95_lo), big.mark = ","),
+    format(round(nat_pool$ci95_hi), big.mark = ",")
   ))
 
   cat(sprintf("\n  %-20s %15s %15s %15s\n",
@@ -130,8 +139,8 @@ main <- function() {
       row$county_type,
       format(round(row$pooled_acres), big.mark = ","),
       format(round(row$sd_b, 2),      big.mark = ","),
-      format(round(row$ci_lo),        big.mark = ","),
-      format(round(row$ci_hi),        big.mark = ",")
+      format(round(row$ci99_lo),      big.mark = ","),
+      format(round(row$ci99_hi),      big.mark = ",")
     ))
   }
   cat(strrep("=", 70), "\n\n", sep = "")
@@ -143,8 +152,10 @@ main <- function() {
       County_Type       = "All",
       Pooled_Acres      = round(nat_pool$mean, 2),
       SD_Between        = round(nat_pool$sd_b, 4),
-      CI_95_Lower_Acres = round(nat_pool$ci_lo, 2),
-      CI_95_Upper_Acres = round(nat_pool$ci_hi, 2)
+      CI_95_Lower_Acres = round(nat_pool$ci95_lo, 2),
+      CI_95_Upper_Acres = round(nat_pool$ci95_hi, 2),
+      CI_99_Lower_Acres = round(nat_pool$ci99_lo, 2),
+      CI_99_Upper_Acres = round(nat_pool$ci99_hi, 2)
     ),
     type_pool |>
       transmute(
@@ -152,8 +163,10 @@ main <- function() {
         County_Type       = county_type,
         Pooled_Acres      = round(pooled_acres, 2),
         SD_Between        = round(sd_b, 4),
-        CI_95_Lower_Acres = round(ci_lo, 2),
-        CI_95_Upper_Acres = round(ci_hi, 2)
+        CI_95_Lower_Acres = round(ci95_lo, 2),
+        CI_95_Upper_Acres = round(ci95_hi, 2),
+        CI_99_Lower_Acres = round(ci99_lo, 2),
+        CI_99_Upper_Acres = round(ci99_hi, 2)
       )
   )
 

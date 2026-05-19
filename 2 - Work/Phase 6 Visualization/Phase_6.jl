@@ -811,7 +811,7 @@ end
 
 
 function plot_legend_card(out_path::String)
-    fig = Figure(size = (800, 200), backgroundcolor = :white)
+    fig = Figure(size = (800, 275), backgroundcolor = :white)
 
     Label(fig[1, 1:2],
         "The Hawaii Gap: HBU Model Value vs. Agricultural Floor - Oahu Golf Courses";

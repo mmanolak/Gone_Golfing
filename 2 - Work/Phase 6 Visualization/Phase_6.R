@@ -1492,6 +1492,8 @@ run_8_LaTeX_Tables <- function() {
     cat(sprintf("  %d rows loaded.\n", nrow(acreage_raw)))
 
     acreage_tbl <- acreage_raw |>
+        select(Category, County_Type, Pooled_Acres, SD_Between,
+               CI_99_Lower_Acres, CI_99_Upper_Acres) |>
         mutate(
             Category = latex_escape(Category),
             County_Type = latex_escape(County_Type),
@@ -1514,7 +1516,16 @@ run_8_LaTeX_Tables <- function() {
             "99\\% CI Lower", "99\\% CI Upper"
         )
     ) |>
-        kable_styling(latex_options = c("hold_position"))
+        kable_styling(latex_options = c("hold_position")) |>
+        footnote(
+            general = paste0(
+                "99\\% confidence intervals reported; ",
+                "95\\% intervals available in the replication package."
+            ),
+            general_title     = "",
+            footnote_as_chunk = TRUE,
+            escape            = FALSE
+        )
 
     writeLines(as.character(tbl1), OUT_TEX1)
     cat(sprintf("  Saved: %s\n\n", basename(OUT_TEX1)))

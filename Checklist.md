@@ -201,6 +201,41 @@ No regeneration will occur until the value cross-check confirmed above.
 
 **Deliverable:** After regeneration, write comprehensive `QA/data/CI_99pct_Project_Update.md` listing every script touched, line numbers, and sample old vs. new CI bounds.
 
+
+# Task 6 — Dual-CI Extension (95% and 99% coexisting)
+
+**Status: IN PROGRESS**
+
+**Scope (user-approved 2026-05-18):**
+
+| Target | Change |
+|--------|--------|
+| Forest plot (`5.1_Forest_Plot.png`) | Dual CI bands: 99% outer (dark, thick), 95% inner (light, thin); legend makes layering explicit |
+| Marginal effects plot (`6.141`) | Single CI at 99% — no dual ribbon; caption notes "99% CI shown; 95% CI available in supplementary data" |
+| Table 1 (`8.1_Table1_Acreage.tex`) | Single CI at 99%; footnote: "99% confidence intervals reported; 95% intervals available in the replication package." |
+| Phase 3 CSVs (R/Python/Julia) | Both `CI_95_*` and `CI_99_*` as parallel columns; fix column-name mismatch (values were 99% but columns said 95%) |
+| Rubin's Rules scripts (3 languages) | Both CI computations in `rubins_rules()` / `run_pooling()` functions; dual rows in output CSVs |
+| `CI_99pct_Project_Update.md` | New section documenting dual-CI extension and column-rename rationale |
+
+**Script edits:**
+- [x] `Phase 6 Visualization/Bulk/Julia/5_Econometric_Plots.jl` — dual `rangebars!` layers, legend, subtitle update
+- [x] `Phase 3/Bulk Tests/R/Phase_3_National_Acreage_Summary.R` — `pool_acreage()` returns both CI levels; CSV adds `CI_99_*` columns, renames `CI_95_*` to correct 95% values
+- [x] `Phase 3/Bulk Tests/R/rubins_rules_pooling.R` — `rubins_rules()` returns `CI95_*` and `CI99_*`; CSV rows fixed and expanded
+- [x] `Phase 3/Bulk Tests/Julia/Rubins_Pooling.jl` — dual CI; fix wrong "95% CI" labels (held 99% values); add proper 95% rows
+- [x] `Phase 3/Bulk Tests/python/rubins_rules_pooling.py` — same as Julia
+- [x] `Phase 6 Visualization/Bulk/R/8_LaTeX_Tables.R` — `select(CI_99_*)` before mutate; add `footnote()` to tbl1
+- [x] `Phase 6 Visualization/Phase_6.R` — mirror Table 1 changes from `8_LaTeX_Tables.R`
+
+**Regeneration:**
+- [ ] `National_Acreage_Summary.csv` — rerun `Phase_3_National_Acreage_Summary.R`
+- [ ] `5.1_Forest_Plot.png` — rerun `5_Econometric_Plots.jl`
+- [ ] `8.1_Table1_Acreage.tex` — rerun `8_LaTeX_Tables.R`
+
+**Deliverable:**
+- [ ] `QA/data/CI_99pct_Project_Update.md` amended with dual-CI extension section + β_urban four-bound sanity check
+
+**Cross-language consistency note:** Forest plot reads coefficient SEs inline and applies two z multipliers (1.96 and 2.576) to the same SEs. Statistically valid; SE is unchanged.
+
 ---
 
 ## Notes

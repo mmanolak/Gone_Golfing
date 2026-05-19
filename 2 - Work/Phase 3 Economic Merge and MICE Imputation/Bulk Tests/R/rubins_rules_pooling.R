@@ -43,11 +43,13 @@ rubins_rules <- function(Q_vec, U_vec = NULL) {
   V_T   <- V_W + V_B + V_B / m
   SE    <- sqrt(V_T)
   list(
-    Q_bar = Q_bar, V_W = V_W, V_B = V_B, V_T = V_T,
-    SE    = SE,
-    CI_lo = Q_bar - 2.576 * SE,
-    CI_hi = Q_bar + 2.576 * SE,
-    m     = m
+    Q_bar   = Q_bar, V_W = V_W, V_B = V_B, V_T = V_T,
+    SE      = SE,
+    CI95_lo = Q_bar - 1.960 * SE,
+    CI95_hi = Q_bar + 1.960 * SE,
+    CI99_lo = Q_bar - 2.576 * SE,
+    CI99_hi = Q_bar + 2.576 * SE,
+    m       = m
   )
 }
 
@@ -84,14 +86,16 @@ main <- function() {
 
   # [METHODOLOGY] Rubin's Rules pooling — Q_bar is the pooled national estimate;
   #               V_T combines within- and between-imputation variance (Rubin 1987)
-  pool   <- rubins_rules(aggregates, within_vars)
-  Q_bar  <- pool$Q_bar
-  V_W    <- pool$V_W
-  V_B    <- pool$V_B
-  V_T    <- pool$V_T
-  SE     <- pool$SE
-  CI_lo  <- pool$CI_lo
-  CI_hi  <- pool$CI_hi
+  pool    <- rubins_rules(aggregates, within_vars)
+  Q_bar   <- pool$Q_bar
+  V_W     <- pool$V_W
+  V_B     <- pool$V_B
+  V_T     <- pool$V_T
+  SE      <- pool$SE
+  CI95_lo <- pool$CI95_lo
+  CI95_hi <- pool$CI95_hi
+  CI99_lo <- pool$CI99_lo
+  CI99_hi <- pool$CI99_hi
 
   cat("\n=== RUBIN'S RULES RESULTS ===\n")
   cat(sprintf("  Pooled Aggregate National Value:  $%10.3f B\n", Q_bar / 1e9))
@@ -100,8 +104,12 @@ main <- function() {
   cat(sprintf("  Total Variance (V_T):             %.4e\n", V_T))
   cat(sprintf("  Standard Error:                   $%10.3f B\n", SE / 1e9))
   cat(sprintf(
+    "  99%% Confidence Interval:          $%10.3f B - $%10.3f B\n",
+    CI99_lo / 1e9, CI99_hi / 1e9
+  ))
+  cat(sprintf(
     "  95%% Confidence Interval:          $%10.3f B - $%10.3f B\n",
-    CI_lo / 1e9, CI_hi / 1e9
+    CI95_lo / 1e9, CI95_hi / 1e9
   ))
 
   pooled_df <- data.frame(
@@ -112,6 +120,8 @@ main <- function() {
       "Between-Imputation Variance (V_B)",
       "Total Variance (V_T)",
       "Standard Error ($)",
+      "99% CI Lower ($B)",
+      "99% CI Upper ($B)",
       "95% CI Lower ($B)",
       "95% CI Upper ($B)",
       paste0("Dataset ", 1:M, " Aggregate ($B)")
@@ -123,8 +133,10 @@ main <- function() {
       sprintf("%.4e", V_B),
       sprintf("%.4e", V_T),
       format(SE, big.mark = ",", scientific = FALSE),
-      sprintf("%.3f", CI_lo / 1e9),
-      sprintf("%.3f", CI_hi / 1e9),
+      sprintf("%.3f", CI99_lo / 1e9),
+      sprintf("%.3f", CI99_hi / 1e9),
+      sprintf("%.3f", CI95_lo / 1e9),
+      sprintf("%.3f", CI95_hi / 1e9),
       sprintf("%.3f", aggregates / 1e9)
     )
   )

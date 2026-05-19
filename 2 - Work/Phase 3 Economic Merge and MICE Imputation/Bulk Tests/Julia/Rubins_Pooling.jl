@@ -58,8 +58,10 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     v_b   = var(aggregates; corrected = true)
     v_t   = v_w + v_b + v_b / m_datasets
     se    = sqrt(v_t)
-    ci_lo = q_bar - 2.576 * se
-    ci_hi = q_bar + 2.576 * se
+    ci95_lo = q_bar - 1.960 * se
+    ci95_hi = q_bar + 1.960 * se
+    ci99_lo = q_bar - 2.576 * se
+    ci99_hi = q_bar + 2.576 * se
 
     println("\n=== RUBIN'S RULES RESULTS ===")
     @printf("  Pooled Aggregate National Value:  \$%10.3f B\n", q_bar / 1e9)
@@ -69,7 +71,11 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     @printf("  Standard Error:                   \$%10.3f B\n", se / 1e9)
     @printf(
         "  99%% Confidence Interval:          \$%10.3f B - \$%10.3f B\n",
-        ci_lo / 1e9, ci_hi / 1e9
+        ci99_lo / 1e9, ci99_hi / 1e9
+    )
+    @printf(
+        "  95%% Confidence Interval:          \$%10.3f B - \$%10.3f B\n",
+        ci95_lo / 1e9, ci95_hi / 1e9
     )
 
     pooled_df = DataFrame(
@@ -81,6 +87,8 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
                 "Between-Imputation Variance (v_b)",
                 "Total Variance (v_t)",
                 "Standard Error (\$)",
+                "99% CI Lower (\$B)",
+                "99% CI Upper (\$B)",
                 "95% CI Lower (\$B)",
                 "95% CI Upper (\$B)",
             ],
@@ -94,8 +102,10 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
                 @sprintf("%.4e",  v_b),
                 @sprintf("%.4e",  v_t),
                 @sprintf("%.2f",  se),
-                @sprintf("%.3f",  ci_lo / 1e9),
-                @sprintf("%.3f",  ci_hi / 1e9),
+                @sprintf("%.3f",  ci99_lo / 1e9),
+                @sprintf("%.3f",  ci99_hi / 1e9),
+                @sprintf("%.3f",  ci95_lo / 1e9),
+                @sprintf("%.3f",  ci95_hi / 1e9),
             ],
             [@sprintf("%.3f", aggregates[i] / 1e9) for i in 1:m_datasets]
         )
@@ -104,7 +114,7 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     CSV.write(out_csv, pooled_df; header = true)
     println("\n  [OK] Saved -> $out_csv")
 
-    return q_bar, se, ci_lo, ci_hi
+    return q_bar, se, ci95_lo, ci95_hi, ci99_lo, ci99_hi
 end
 
 

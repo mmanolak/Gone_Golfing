@@ -64,19 +64,21 @@ function plot_forest(reg_df::DataFrame, out_path::String)
         row.Sig in ("*", "**", "***") ? base * "  " * row.Sig : base
     end
 
-    order         = sortperm(reg_df.Coef)
-    sorted_coef   = reg_df.Coef[order]
-    sorted_ci_lo  = (reg_df.Coef .- 2.576 .* reg_df.Std_Error)[order]
-    sorted_ci_hi  = (reg_df.Coef .+ 2.576 .* reg_df.Std_Error)[order]
-    sorted_labels = labels[order]
-    n             = length(order)
+    order          = sortperm(reg_df.Coef)
+    sorted_coef    = reg_df.Coef[order]
+    sorted_ci99_lo = (reg_df.Coef .- 2.576 .* reg_df.Std_Error)[order]
+    sorted_ci99_hi = (reg_df.Coef .+ 2.576 .* reg_df.Std_Error)[order]
+    sorted_ci95_lo = (reg_df.Coef .- 1.960 .* reg_df.Std_Error)[order]
+    sorted_ci95_hi = (reg_df.Coef .+ 1.960 .* reg_df.Std_Error)[order]
+    sorted_labels  = labels[order]
+    n              = length(order)
 
-    fig = Figure(size = (900, 400))
+    fig = Figure(size = (1050, 400))
     ax  = Axis(fig[1, 1];
         yticks        = (1:n, sorted_labels),
         xlabel        = "Coefficient  [Dependent variable: log(Opportunity_Cost)]",
         title         = "Regression Coefficients — Phase 4 MICE-Pooled Model",
-        subtitle      = "Point estimates with 95% confidence intervals  |  *** p < 0.001",
+        subtitle      = "Point estimates with 95% and 99% confidence intervals  |  *** p < 0.001",
         titlesize     = 14,
         subtitlesize  = 11,
         subtitlecolor = "#024731",
@@ -86,16 +88,35 @@ function plot_forest(reg_df::DataFrame, out_path::String)
 
     vlines!(ax, 0.0; color = "#888888", linestyle = :dash, linewidth = 0.5)
 
-    rangebars!(ax, collect(Float64.(1:n)), sorted_ci_lo, sorted_ci_hi;
+    # 99% CI outer band — drawn first so 95% band renders on top
+    rangebars!(ax, collect(Float64.(1:n)), sorted_ci99_lo, sorted_ci99_hi;
         direction    = :x,
         color        = "#444444",
+        linewidth    = 1.5,
+        whiskerwidth = 0.3
+    )
+
+    # 95% CI inner band — narrower, lighter
+    rangebars!(ax, collect(Float64.(1:n)), sorted_ci95_lo, sorted_ci95_hi;
+        direction    = :x,
+        color        = "#AAAAAA",
         linewidth    = 0.75,
         whiskerwidth = 0.2
     )
 
     scatter!(ax, sorted_coef, Float64.(1:n); color = "#800080", markersize = 12)
 
-    Label(fig[2, 1],
+    Legend(fig[1, 2],
+        [
+            [MarkerElement(color = "#800080", marker = :circle, markersize = 12)],
+            [LineElement(color = "#444444", linewidth = 1.5)],
+            [LineElement(color = "#AAAAAA", linewidth = 0.75)],
+        ],
+        ["Point estimate", "99% CI", "95% CI"];
+        framevisible = false, labelsize = 11
+    )
+
+    Label(fig[2, 1:2],
         "Dependent variable: log(Opportunity_Cost). " *
         "OLS estimated on pooled MICE imputations (M = 100) via Rubin's Rules.";
         fontsize  = 10,

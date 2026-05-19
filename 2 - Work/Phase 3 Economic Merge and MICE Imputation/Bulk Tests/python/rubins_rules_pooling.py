@@ -59,8 +59,10 @@ def run_pooling(in_dir, out_csv, m_datasets=5):
     v_b   = aggregates.var(ddof=1)
     v_t   = v_w + v_b + v_b / m_datasets
     se    = np.sqrt(v_t)
-    ci_lo = q_bar - 2.576 * se
-    ci_hi = q_bar + 2.576 * se
+    ci95_lo = q_bar - 1.960 * se
+    ci95_hi = q_bar + 1.960 * se
+    ci99_lo = q_bar - 2.576 * se
+    ci99_hi = q_bar + 2.576 * se
 
     print(f"\n=== RUBIN'S RULES RESULTS ===")
     print(f"  Pooled Aggregate National Value:  ${q_bar / 1e9:,.3f} Billion")
@@ -70,7 +72,11 @@ def run_pooling(in_dir, out_csv, m_datasets=5):
     print(f"  Standard Error:                   ${se / 1e9:,.3f} Billion")
     print(
         f"  99% Confidence Interval:          "
-        f"${ci_lo / 1e9:,.3f} B  -  ${ci_hi / 1e9:,.3f} B"
+        f"${ci99_lo / 1e9:,.3f} B  -  ${ci99_hi / 1e9:,.3f} B"
+    )
+    print(
+        f"  95% Confidence Interval:          "
+        f"${ci95_lo / 1e9:,.3f} B  -  ${ci95_hi / 1e9:,.3f} B"
     )
 
     pooled_df = pd.DataFrame({
@@ -81,6 +87,8 @@ def run_pooling(in_dir, out_csv, m_datasets=5):
             "Between-Imputation Variance (v_b)",
             "Total Variance (v_t)",
             "Standard Error ($)",
+            "99% CI Lower ($B)",
+            "99% CI Upper ($B)",
             "95% CI Lower ($B)",
             "95% CI Upper ($B)",
         ] + [f"Dataset {i} Aggregate ($B)" for i in range(1, m_datasets + 1)],
@@ -91,8 +99,10 @@ def run_pooling(in_dir, out_csv, m_datasets=5):
             f"{v_b:.4e}",
             f"{v_t:.4e}",
             f"{se:,.2f}",
-            f"{ci_lo / 1e9:,.3f}",
-            f"{ci_hi / 1e9:,.3f}",
+            f"{ci99_lo / 1e9:,.3f}",
+            f"{ci99_hi / 1e9:,.3f}",
+            f"{ci95_lo / 1e9:,.3f}",
+            f"{ci95_hi / 1e9:,.3f}",
         ] + [f"{q / 1e9:,.3f}" for q in aggregates],
     })
 
