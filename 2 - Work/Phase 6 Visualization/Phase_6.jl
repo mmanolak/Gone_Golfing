@@ -1349,30 +1349,39 @@ module Mod_12_Zoning_Waffle
 
 # === 1. LIBRARIES ===
 
-using CSV, CairoMakie, Colors, DataFrames, Printf, Statistics
+using CSV, CairoMakie, Colors, DataFrames, Printf
 
 
 # === 2. GLOBALS & PATHS ===
 
-const SCRIPT_DIR    = @__DIR__
-const WORK_DIR      = normpath(joinpath(SCRIPT_DIR, ".."))
-const PHASE1_JL_CSV = joinpath(WORK_DIR, "Phase 1 Parsing", "Data", "Julia",
-                                "Jl_Phase1_Baseline_Golf_Valuation.csv")
-const PHASE3_DIR_JL = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
-                                "Data", "Julia")
-const PHASE3_DIR_PY = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
-                                "Data", "python")
-const PHASE3_DIR_R  = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
-                                "Data", "R")
-const PHASE5_DIR_JL = joinpath(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study",
-                                "Data", "Julia")
-const ZONING_CSV    = joinpath(PHASE5_DIR_JL, "Jl_Phase5_Step6_Zoning_Percentages.csv")
-const OUTPUT_DIR    = joinpath(SCRIPT_DIR, "output")
-const THESIS_DIR    = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
+const SCRIPT_DIR     = @__DIR__
+const WORK_DIR       = normpath(joinpath(SCRIPT_DIR, ".."))
+# Phase 5b canonical Oahu OC (TMK-parcel-intersected; authoritative for the thesis).
+const PHASE5B_JL_CSV = joinpath(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study",
+                                 "Data", "Julia",  "Jl_Phase5_Oahu_Comparison.csv")
+const PHASE5B_PY_CSV = joinpath(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study",
+                                 "Data", "python", "Py_Phase5_Oahu_Comparison.csv")
+const PHASE5B_R_CSV  = joinpath(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study",
+                                 "Data", "R",      "Phase5_Oahu_Comparison.csv")
+const ZONING_CSV     = joinpath(WORK_DIR, "Phase 5 The Hawaii Micro-Case Study",
+                                 "Data", "Julia",  "Jl_Phase5_Step6_Zoning_Percentages.csv")
+const OUTPUT_DIR     = joinpath(SCRIPT_DIR, "output")
+const THESIS_DIR     = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
 mkpath(THESIS_DIR)
-const OUT_WAFFLE    = joinpath(THESIS_DIR, "12.141_Zoning_Waffle_Chart_TriLanguage.png")
-const M             = 100
-const OAHU_FIPS     = 15003
+const OUT_WAFFLE     = joinpath(THESIS_DIR, "12.141_Zoning_Waffle_Chart_TriLanguage.png")
+# Diagnostic-pathway constants (national model applied to Oahu, no TMK intersection).
+# Produces $30.07B grand mean — ~12.5% above Phase 5b canonical.
+# See QA/data/Oahu_OC_Direct_vs_Canonical_Note.md.
+# const PHASE1_JL_CSV = joinpath(WORK_DIR, "Phase 1 Parsing", "Data", "Julia",
+#                                 "Jl_Phase1_Baseline_Golf_Valuation.csv")
+# const PHASE3_DIR_JL = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
+#                                 "Data", "Julia")
+# const PHASE3_DIR_PY = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
+#                                 "Data", "python")
+# const PHASE3_DIR_R  = joinpath(WORK_DIR, "Phase 3 Economic Merge and MICE Imputation",
+#                                 "Data", "R")
+# const M = 100
+# const OAHU_FIPS = 15003
 
 # Zone-to-group mapping; codes absent from this dict → "Resort / Residential / Other"
 const ZONE_GROUP = Dict(
@@ -1410,56 +1419,46 @@ UHM_Palette = (green = UHM_GREEN, gold = UHM_GOLD, silver = UHM_SILVER, ocean = 
 
 # === 3. FUNCTIONS ===
 
-round_loc(lon, lat) = (round(Float64(lon); digits = 4), round(Float64(lat); digits = 4))
-
-function rubin_pool(vals::Vector{Float64})
-    M_local = length(vals)
-    M_local == 0 && return (est = NaN, se = NaN)
-    q_bar = mean(vals)
-    B     = M_local > 1 ? var(vals) : 0.0
-    T     = B * (1.0 + 1.0 / M_local)
-    (est = q_bar, se = sqrt(max(T, 0.0)))
+# Read Phase 5b Rubin-pooled q̄ from the language-specific Oahu comparison CSV.
+function read_qbar(path::String)
+    df  = CSV.read(path, DataFrame)
+    row = findfirst(df.Metric .== "Pooled Oahu Opportunity Cost - q_bar (\$B)")
+    row === nothing && error("q_bar row not found in $path")
+    parse(Float64, replace(string(df[row, :Value]), "," => "")) * 1e9
 end
 
-
-# Memory-safe loop over M imputations for one language.
-# Returns a Vector{Float64} of per-imputation total Oahu OC
-# (sum of imputed_acreage × FHFA_per_acre for all matched Oahu courses).
-function oahu_oc_totals(
-    lang_prefix::String,
-    phase3_dir::String,
-    acreage_col::Symbol,
-    use_course_id::Bool,
-    id_to_idx::Dict,
-    coord_to_idx::Dict,
-    fhfa::Vector{Float64}
-)
-    totals = Float64[]
-    for i in 1:M
-        path = joinpath(phase3_dir, "$(lang_prefix)_Imputed_Dataset_$(i).csv")
-        isfile(path) || error("Input file not found: $path")
-        df   = CSV.read(path, DataFrame)
-        oc_m = 0.0
-        for row in eachrow(df)
-            if use_course_id
-                ismissing(row.course_id) && continue
-                idx = get(id_to_idx, Int(row.course_id), 0)
-            else
-                loc = round_loc(row.Longitude, row.Latitude)
-                idx = get(coord_to_idx, loc, 0)
-            end
-            idx == 0 && continue
-            v = getproperty(row, acreage_col)
-            !ismissing(v) && Float64(v) > 0.0 || continue
-            oc_m += Float64(v) * fhfa[idx]
-        end
-        push!(totals, oc_m)
-        # [METHODOLOGY] Memory-safe: drop raw DataFrame after metric extraction.
-        df = nothing
-        GC.gc()
-    end
-    return totals
-end
+# Diagnostic: national-model-applied-to-Oahu pathway (Phase 3 × FHFA, no TMK
+# intersection). Produces $30.07B grand mean; ~12.5% above Phase 5b canonical.
+# See QA/data/Oahu_OC_Direct_vs_Canonical_Note.md.
+#
+# round_loc(lon, lat) = (round(Float64(lon); digits = 4), round(Float64(lat); digits = 4))
+#
+# function rubin_pool(vals::Vector{Float64})
+#     M_local = length(vals)
+#     M_local == 0 && return (est = NaN, se = NaN)
+#     q_bar = mean(vals)
+#     B     = M_local > 1 ? var(vals) : 0.0
+#     T     = B * (1.0 + 1.0 / M_local)
+#     (est = q_bar, se = sqrt(max(T, 0.0)))
+# end
+#
+# function oahu_oc_totals(lang_prefix, phase3_dir, acreage_col, use_course_id,
+#                         id_to_idx, coord_to_idx, fhfa)
+#     totals = Float64[]
+#     for i in 1:M
+#         path = joinpath(phase3_dir, "$(lang_prefix)_Imputed_Dataset_$(i).csv")
+#         isfile(path) || error("Input file not found: $path")
+#         df = CSV.read(path, DataFrame)
+#         oc_m = 0.0
+#         for row in eachrow(df)
+#             ... (coord/id match to FHFA table; no TMK parcel intersection)
+#             oc_m += Float64(v) * fhfa[idx]
+#         end
+#         push!(totals, oc_m)
+#         df = nothing; GC.gc()
+#     end
+#     return totals
+# end
 
 
 # Group zoning CSV rows into ZONE_LABELS categories.
@@ -1502,7 +1501,7 @@ function plot_waffle(
     end
     lbl_to_col = Dict(labels[i] => ZONE_COLORS[i] for i in eachindex(labels))
 
-    fig = Figure(size = (820, 820), backgroundcolor = :white)
+    fig = Figure(size = (1100, 820), backgroundcolor = :white)
     ax  = Axis(fig[1, 1];
         title         = "The Preservation Paradox - Zoning of Oahu Golf Land",
         subtitle      = "Grand Mean of Py / R / Jl Rubin-pooled estimates  │  M=100 per language",
@@ -1529,25 +1528,23 @@ function plot_waffle(
     oc_B  = grand_mean_oc / 1e9
     elems = [PolyElement(color = c, strokecolor = :transparent) for c in ZONE_COLORS]
     lbl_annot = [
-        @sprintf("%s  (%.1f%%  ≈  \$%.2fB OC)", labels[i], pcts[i], oc_B * pcts[i] / 100.0)
+        @sprintf("%s  (%.1f%%  ≈  \$%.1fB OC)", labels[i], pcts[i], oc_B * pcts[i] / 100.0)
         for i in eachindex(labels)
     ]
-    Legend(fig[2, 1], elems, lbl_annot;
-        orientation  = :horizontal,
+    Legend(fig[1, 2], elems, lbl_annot;
+        orientation  = :vertical,
         framevisible = false,
         labelsize    = 12,
-        halign       = :center
     )
 
-    Label(fig[3, 1],
+    Label(fig[2, 1],
         @sprintf(
-            "Grand Mean total Oahu OC: \$%.2fB  (Rubin-pooled independently per language, M=100 each; arithmetic mean of Jl, Py, R estimates). Tile proportions = land-area share by zoning category from Phase 5 parcel data.",
+            "Grand Mean total Oahu OC: \$%.2fB  (Phase 5b TMK-parcel-intersected Rubin-pooled estimates, M=100 per language; arithmetic mean of Jl, Py, R). Tile proportions = land-area share by zoning category from Phase 5 parcel data.",
             oc_B
         );
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
-    rowsize!(fig.layout, 2, Fixed(32))
-    rowsize!(fig.layout, 3, Fixed(44))
+    rowsize!(fig.layout, 2, Fixed(44))
 
     mkpath(dirname(out_path))
     save(out_path, fig; px_per_unit = 3)
@@ -1561,63 +1558,30 @@ end
 function main()
     println("\n--- Script 12: Zoning Waffle Chart ---\n")
 
-    isfile(PHASE1_JL_CSV) || error("Input file not found: $PHASE1_JL_CSV")
-    isfile(ZONING_CSV)    || error("Input file not found: $ZONING_CSV")
+    isfile(PHASE5B_JL_CSV) || error("Input file not found: $PHASE5B_JL_CSV")
+    isfile(PHASE5B_PY_CSV) || error("Input file not found: $PHASE5B_PY_CSV")
+    isfile(PHASE5B_R_CSV)  || error("Input file not found: $PHASE5B_R_CSV")
+    isfile(ZONING_CSV)     || error("Input file not found: $ZONING_CSV")
 
-    println("--- [1/5] Loading Phase 1 baseline (Oahu courses)")
-    baseline = CSV.read(PHASE1_JL_CSV, DataFrame)
-    baseline = dropmissing(baseline, [:course_id, :FHFA_Res_Value_Per_Acre, :Longitude, :Latitude, :FIPS])
-    oahu_df  = baseline[coalesce.(baseline.FIPS .== OAHU_FIPS, false), :]
-    n_oahu   = nrow(oahu_df)
-    @printf("    Oahu courses in baseline: %d\n", n_oahu)
-    n_oahu > 0 || error("No Oahu courses found in baseline (FIPS=$OAHU_FIPS)")
+    # [METHODOLOGY] Read Phase 5b Rubin-pooled OC estimates (TMK-parcel-intersected).
+    # Grand Mean = arithmetic mean of three independently pooled estimates (M=100 each).
+    println("--- [1/3] Reading Phase 5b Rubin-pooled Oahu OC estimates")
+    oc_jl = read_qbar(PHASE5B_JL_CSV)
+    oc_py = read_qbar(PHASE5B_PY_CSV)
+    oc_r  = read_qbar(PHASE5B_R_CSV)
+    @printf("    Phase 5b Oahu OC - Jl: \$%.3fB  Py: \$%.3fB  R: \$%.3fB\n",
+        oc_jl / 1e9, oc_py / 1e9, oc_r / 1e9)
+    grand_mean_oc = (oc_jl + oc_py + oc_r) / 3.0
+    @printf("    Grand Mean total Oahu OC: \$%.3fB\n", grand_mean_oc / 1e9)
 
-    course_ids = Int.(oahu_df.course_id)
-    fhfa       = Float64.(oahu_df.FHFA_Res_Value_Per_Acre)
-    lons       = Float64.(oahu_df.Longitude)
-    lats       = Float64.(oahu_df.Latitude)
-    id_to_idx  = Dict(course_ids[i] => i for i in 1:n_oahu)
-
-    _cnt = Dict{Tuple{Float64,Float64}, Int}()
-    for i in 1:n_oahu
-        k = round_loc(lons[i], lats[i])
-        _cnt[k] = get(_cnt, k, 0) + 1
-    end
-    coord_to_idx = Dict{Tuple{Float64,Float64}, Int}(
-        round_loc(lons[i], lats[i]) => i
-        for i in 1:n_oahu if _cnt[round_loc(lons[i], lats[i])] == 1
-    )
-
-    println("--- [2/5] Julia imputations (M=$M) - total Oahu OC per imputation")
-    totals_jl = oahu_oc_totals("Jl", PHASE3_DIR_JL, :osm_acreage,   true,  id_to_idx, coord_to_idx, fhfa)
-
-    println("--- [3/5] Python imputations (M=$M) - total Oahu OC per imputation")
-    totals_py = oahu_oc_totals("Py", PHASE3_DIR_PY, :osm_acreage,   false, id_to_idx, coord_to_idx, fhfa)
-
-    println("--- [4/5] R imputations (M=$M) - total Oahu OC per imputation")
-    totals_r  = oahu_oc_totals("R",  PHASE3_DIR_R,  :final_acreage, false, id_to_idx, coord_to_idx, fhfa)
-
-    # [METHODOLOGY] Rubin's Rules applied independently per language (M=100 each).
-    # Total Oahu OC: q̄ = mean of M per-imputation sums; between-imputation var B used for SE.
-    r_jl = rubin_pool(totals_jl)
-    r_py = rubin_pool(totals_py)
-    r_r  = rubin_pool(totals_r)
-    @printf("    Pooled total OC - Jl: \$%.2fB  Py: \$%.2fB  R: \$%.2fB\n",
-        r_jl.est / 1e9, r_py.est / 1e9, r_r.est / 1e9)
-
-    # [METHODOLOGY] Grand Mean = arithmetic mean of three independently pooled estimates.
-    valid_ests = filter(x -> !isnan(x) && x > 0, [r_jl.est, r_py.est, r_r.est])
-    isempty(valid_ests) && error("All three language OC estimates are NaN - check input data.")
-    grand_mean_oc = mean(valid_ests)
-    @printf("    Grand Mean total Oahu OC: \$%.2fB\n", grand_mean_oc / 1e9)
-
-    println("--- [5/5] Rendering Zoning Waffle Chart")
+    println("--- [2/3] Loading zoning percentages")
     zdf              = CSV.read(ZONING_CSV, DataFrame)
     pcts, total_acres = group_zones(zdf)
     tiles            = pct_to_tiles(pcts)
     @printf("    Zones - Preservation: %d%%  Agriculture: %d%%  Other: %d%%  (total acres: %.1f)\n",
         tiles[1], tiles[2], tiles[3], total_acres)
 
+    println("--- [3/3] Rendering Zoning Waffle Chart")
     plot_waffle(ZONE_LABELS, tiles, pcts, grand_mean_oc, OUT_WAFFLE)
 
     println()
@@ -1652,10 +1616,12 @@ const THESIS_DIR  = joinpath(OUTPUT_DIR, "Final_Thesis_Figures")
 mkpath(THESIS_DIR)
 const OUT_COUNTER = joinpath(THESIS_DIR, "13.141_Counterfactual_Area_TriLanguage.png")
 
-# External reference areas documented in Readings/03:
-# "Countries across the world use more land for golf courses than wind or solar energy"
-const SOLAR_ACRES   = 5_000_000.0   # theoretical utility-scale solar for significant U.S. demand
-const HOUSING_ACRES =    50_000.0   # ~1 million high-density units at 20 units/acre
+# Solar reference: EIA Preliminary Monthly Electric Generator Inventory, Aug 2024
+# (107.4 GW utility-scale solar in the Lower 48 × 6 ac/MW per SEIA central land-use intensity).
+# Source: Peterson & Peterson, "Utility-scale U.S. solar electricity generation continues to grow
+# in 2024," Today in Energy, EIA, 2 Oct 2024 (BibTeX: EIA2024, SEIA).
+const SOLAR_ACRES   =   644_000.0   # U.S. utility-scale solar capacity footprint, Aug 2024
+const HOUSING_ACRES =    50_000.0   # 1M units at 20 units/acre (HUD high-density range 15–30)
 
 # Colors for UH Manoa
 UHM_GREEN = colorant"#024731"   # Green
@@ -1704,7 +1670,7 @@ function plot_comparison(
 
     fig = Figure(size = (1200, 580), backgroundcolor = :white)
     ax  = Axis(fig[1, 1];
-        title          = "The Counterfactual Area Comparison - U.S. Golf Land vs. Competing Uses",
+        title          = "Magnitude of U.S. Golf Land Against Reference Categories",
         subtitle       = "Grand Mean of Py / R / Jl Rubin-pooled estimates  │  M=100 per language",
         titlesize      = 16,
         subtitlesize   = 12,
@@ -1712,12 +1678,12 @@ function plot_comparison(
         xlabel         = "Total Land Area (million acres)",
         xlabelsize     = 13,
         yticks         = (1:6, [
-            "1M High-Density\nHomes (Reference)",
+            "1M Homes at\n20 units/acre",
             "Golf - Julia (Rubin-pooled)",
             "Golf - Python (Rubin-pooled)",
             "Golf - R (Rubin-pooled)",
             "Golf - Grand Mean",
-            "Utility-Scale Solar\n(Reference)"
+            "Utility-Scale Solar\n(EIA Aug 2024, Reference)"
         ]),
         yticklabelsize = 11,
         ygridvisible   = true,
@@ -1732,7 +1698,7 @@ function plot_comparison(
     scatter!(ax, [SOLAR_ACRES   / M_ACRES], [6]; color = :goldenrod, markersize = 14, marker = :diamond)
     scatter!(ax, [HOUSING_ACRES / M_ACRES], [1]; color = :slategray, markersize = 14, marker = :diamond)
     text!(ax, SOLAR_ACRES   / M_ACRES + 0.08, 6.22;
-            text = @sprintf("%.1fM ac", SOLAR_ACRES / M_ACRES),
+            text = @sprintf("%.0fK ac", SOLAR_ACRES / 1000.0),
             color = :goldenrod, fontsize = 9, align = (:left, :center))
     text!(ax, HOUSING_ACRES / M_ACRES + 0.08, 1.22;
             text = @sprintf("%.0fk ac", HOUSING_ACRES / 1000.0),
@@ -1767,10 +1733,10 @@ function plot_comparison(
     end
 
     ylims!(ax, 0.35, 6.65)
-    xlims!(ax, -0.10, SOLAR_ACRES / M_ACRES * 1.12)
+    xlims!(ax, -0.10, 3.0)
 
     Label(fig[2, 1],
-        "Solar and housing references are external estimates (see Readings/03 - Countries across the world use more land for golf courses than wind or solar energy). Golf acreage from MICE-pooled OSM polygon data (Jl/Py: osm_acreage; R: final_acreage). Grand Mean = arithmetic mean of three independently Rubin-pooled national totals.";
+        "Solar reference: EIA Aug 2024, 107.4 GW × 6 ac/MW per SEIA (Peterson & Peterson 2024; SEIA n.d.). Housing reference: 1M units at 20 units/acre = 50,000 ac (illustrative density assumption within HUD's 15–30 units/acre high-density range). Golf acreage from MICE-pooled OSM polygon data (Jl/Py: osm_acreage; R: final_acreage). Grand Mean = arithmetic mean of three independently Rubin-pooled national totals.";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Fixed(42))

@@ -8,8 +8,7 @@ using Pkg
 # All packages required across Phases 1-5.
 PACKAGES = [
     # Phase 1 Parsing, Phase 2 Spatial Polygons (shared) & Phase 2 Spatial Polygons — parallel processing
-    "CSV", "DataFrames", "GeoDataFrames", "ArchGDAL",
-    "Statistics", "LibGEOS",
+    "CSV", "DataFrames", "GeoDataFrames", "ArchGDAL", "Statistics", "LibGEOS",
     # Phase 3 Economic Merge and MICE Imputation
     "CategoricalArrays", "Printf", "Random", "Mice",
     # Phase 4 Econometric Modeling

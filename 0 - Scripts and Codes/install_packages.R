@@ -8,7 +8,7 @@ PACKAGES <- c(
     # Phase 3 Economic Merge and MICE Imputation
     "mice", "VIM", "patchwork", "ggmice",
     # Phase 4 Econometric Modeling
-    "lmtest", "sandwich", "broom",
+    "lmtest", "sandwich", "broom","fixest", "estimatr", "plm", "marginaleffects", "modelsummary",
     # Phase 6 Images and Graphs
     "ggspatial", "kableExtra", "xtable", "ggdist", "biscale", "scales", "cowplot", "knitr"
 )
