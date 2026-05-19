@@ -90,37 +90,49 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
     sorted_labels = labels[order]
     n             = length(order)
 
-    fig = Figure(size = (900, 450))
+    fig = Figure(size = (1050, 450))
     ax  = Axis(fig[1, 1];
         yticks        = (1:n, sorted_labels),
         xlabel        = "Coefficient  [Dependent variable: log(Opportunity_Cost)]",
         title         = "Regression Coefficients - Tri-Language MICE-Pooled Models",
-        subtitle      = "Each dot = Rubin-pooled OLS estimate (M=100 imputations). Each bar = 95% CI.\n" *
+        subtitle      = "Each dot = Rubin-pooled OLS estimate (M=100 imputations). Outer bar = 99% CI · Inner bar = 95% CI.\n" *
                         "Three estimates per predictor, dodged vertically: \n Python (green) · R (blue) · Julia (purple).",
         titlesize = 14, subtitlesize = 11, subtitlecolor = "#024731", xgridvisible = true, ygridvisible = false, tellwidth = false
     )
 
     vlines!(ax, 0.0; color = "#888888", linestyle = :dash, linewidth = 0.5)
 
-    jl_coef = jl_reg.Coef[order]
-    jl_lo   = (jl_reg.Coef .- 1.96 .* jl_reg.Std_Error)[order]
-    jl_hi   = (jl_reg.Coef .+ 1.96 .* jl_reg.Std_Error)[order]
-    rangebars!(ax, collect(Float64.(1:n)) .- 0.2, jl_lo, jl_hi;
+    jl_coef    = jl_reg.Coef[order]
+    jl_ci99_lo = (jl_reg.Coef .- 2.576 .* jl_reg.Std_Error)[order]
+    jl_ci99_hi = (jl_reg.Coef .+ 2.576 .* jl_reg.Std_Error)[order]
+    jl_ci95_lo = (jl_reg.Coef .- 1.960 .* jl_reg.Std_Error)[order]
+    jl_ci95_hi = (jl_reg.Coef .+ 1.960 .* jl_reg.Std_Error)[order]
+    rangebars!(ax, collect(Float64.(1:n)) .- 0.2, jl_ci99_lo, jl_ci99_hi;
         direction = :x, color = :purple, linewidth = 1.5, whiskerwidth = 0.2)
+    rangebars!(ax, collect(Float64.(1:n)) .- 0.2, jl_ci95_lo, jl_ci95_hi;
+        direction = :x, color = :purple, linewidth = 0.75, whiskerwidth = 0.15)
     scatter!(ax, jl_coef, collect(Float64.(1:n)) .- 0.2; color = :purple, markersize = 12)
 
-    r_coef = r_reg.Coef[order]
-    r_lo   = (r_reg.Coef .- 1.96 .* r_reg.Std_Error)[order]
-    r_hi   = (r_reg.Coef .+ 1.96 .* r_reg.Std_Error)[order]
-    rangebars!(ax, collect(Float64.(1:n)), r_lo, r_hi;
+    r_coef    = r_reg.Coef[order]
+    r_ci99_lo = (r_reg.Coef .- 2.576 .* r_reg.Std_Error)[order]
+    r_ci99_hi = (r_reg.Coef .+ 2.576 .* r_reg.Std_Error)[order]
+    r_ci95_lo = (r_reg.Coef .- 1.960 .* r_reg.Std_Error)[order]
+    r_ci95_hi = (r_reg.Coef .+ 1.960 .* r_reg.Std_Error)[order]
+    rangebars!(ax, collect(Float64.(1:n)), r_ci99_lo, r_ci99_hi;
         direction = :x, color = :blue, linewidth = 1.5, whiskerwidth = 0.2)
+    rangebars!(ax, collect(Float64.(1:n)), r_ci95_lo, r_ci95_hi;
+        direction = :x, color = :blue, linewidth = 0.75, whiskerwidth = 0.15)
     scatter!(ax, r_coef, collect(Float64.(1:n)); color = :blue, markersize = 12)
 
-    py_coef = py_reg.Coef[order]
-    py_lo   = (py_reg.Coef .- 1.96 .* py_reg.Std_Error)[order]
-    py_hi   = (py_reg.Coef .+ 1.96 .* py_reg.Std_Error)[order]
-    rangebars!(ax, collect(Float64.(1:n)) .+ 0.2, py_lo, py_hi;
+    py_coef    = py_reg.Coef[order]
+    py_ci99_lo = (py_reg.Coef .- 2.576 .* py_reg.Std_Error)[order]
+    py_ci99_hi = (py_reg.Coef .+ 2.576 .* py_reg.Std_Error)[order]
+    py_ci95_lo = (py_reg.Coef .- 1.960 .* py_reg.Std_Error)[order]
+    py_ci95_hi = (py_reg.Coef .+ 1.960 .* py_reg.Std_Error)[order]
+    rangebars!(ax, collect(Float64.(1:n)) .+ 0.2, py_ci99_lo, py_ci99_hi;
         direction = :x, color = :green, linewidth = 1.5, whiskerwidth = 0.2)
+    rangebars!(ax, collect(Float64.(1:n)) .+ 0.2, py_ci95_lo, py_ci95_hi;
+        direction = :x, color = :green, linewidth = 0.75, whiskerwidth = 0.15)
     scatter!(ax, py_coef, collect(Float64.(1:n)) .+ 0.2; color = :green, markersize = 12)
 
     Legend(fig[1, 2],
@@ -128,14 +140,16 @@ function plot_forest(py_reg::DataFrame, r_reg::DataFrame, jl_reg::DataFrame, out
             [MarkerElement(color = :green,  marker = :circle)],
             [MarkerElement(color = :blue,   marker = :circle)],
             [MarkerElement(color = :purple, marker = :circle)],
+            [LineElement(color = :gray40, linewidth = 1.5)],
+            [LineElement(color = :gray60, linewidth = 0.75)],
         ],
-        ["Python", "R", "Julia"];
+        ["Python", "R", "Julia", "99% CI (outer)", "95% CI (inner)"];
         framevisible = false, labelsize = 11
     )
 
     Label(fig[2, 1:2],
         "Dependent variable: log(Opportunity_Cost). Each dot is a Rubin-pooled OLS coefficient estimated " *
-        "from M = 100 MICE imputations; each bar is the corresponding 95% confidence interval. " *
+        "from M = 100 MICE imputations; outer bar = 99% CI, inner bar = 95% CI. " *
         "The three languages use independent MICE backends (LightGBM, Random Forest, Mice.jl); " *
         "near-identical estimates across all three languages demonstrate robustness to imputation backend choice.";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
@@ -435,7 +449,7 @@ function plot_marginal(marginal_df::DataFrame, med_holes::Float64, out_path::Str
     Label(fig[2, 1],
         "Model: log(Opportunity_Cost) = β₀ + β₁·Holes + β₂·I(Urban). " *
         "OC (USD) = exp(ŷ); converted to millions. Grand Mean of Py/R/Jl Rubin-pooled estimates. " *
-        "Error bars: 95% CI (delta method; covariance terms omitted).";
+        "Error bars: 99% CI (delta method; covariance terms omitted).";
         fontsize = 10, color = "#024731", halign = :left, tellwidth = false, word_wrap = true
     )
     rowsize!(fig.layout, 2, Auto())
@@ -566,7 +580,7 @@ function main()
     se_pred_rural = sqrt(se_b0^2 + (med_holes * se_holes)^2)
     se_pred_urban = sqrt(se_b0^2 + (med_holes * se_holes)^2 + se_urban^2)
 
-    make_row(log_hat, se_pred, type; z = 1.96) = (
+    make_row(log_hat, se_pred, type; z = 2.576) = (
         type  = type,
         est_M = exp(log_hat)               / 1e6,
         lo_M  = exp(log_hat - z * se_pred) / 1e6,
@@ -783,8 +797,8 @@ function plot_dumbbell(
             # CI ends are clamped to [x_min_ax, x_max_ax] before computing half-widths
             # so that courses with high imputation variance (wide Rubin SE) do not
             # produce error bars spanning the entire axis or beyond.
-            q_lo   = est - 1.96 * se
-            q_hi   = est + 1.96 * se
+            q_lo   = est - 2.576 * se
+            q_hi   = est + 2.576 * se
             log_lo = q_lo > 0.0 ? log10(q_lo) : x_min_ax
             log_hi = q_hi > 0.0 ? log10(q_hi) : x_ctr
             bar_lo = max(x_ctr - max(log_lo, x_min_ax), 0.0)
@@ -827,7 +841,7 @@ function plot_legend_card(out_path::String)
         "Left endpoint: parcel acreage × USDA agricultural value per acre (restricted-use floor). " *
         "Right endpoints: parcel acreage × FHFA residential value per acre (HBU estimate, Rubin-pooled). " *
         "Horizontal gap = Zoning Tax / Deadweight Loss. " *
-        "Error bars: 95% CI via Rubin's Rules (delta method, log₁₀ scale); bars capped at axis limits for courses with high imputation variance. " *
+        "Error bars: 99% CI via Rubin's Rules (delta method, log₁₀ scale); bars capped at axis limits for courses with high imputation variance. " *
         "† No OSM polygon in Phase 2 (military/federal installation or unmapped course); " *
         "acreage fully imputed by MICE - wide CI reflects genuine uncertainty. " *
         "Courses where Py/R coordinate matching is ambiguous show Julia estimate only.";
@@ -1675,8 +1689,8 @@ function read_national_total(path::String)
     row = df[mask, :][1, :]
     (
         pooled = Float64(row.Pooled_Acres),
-        ci_lo  = Float64(row.CI_95_Lower_Acres),
-        ci_hi  = Float64(row.CI_95_Upper_Acres)
+        ci_lo  = Float64(row.CI_99_Lower_Acres),
+        ci_hi  = Float64(row.CI_99_Upper_Acres)
     )
 end
 

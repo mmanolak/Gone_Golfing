@@ -155,3 +155,61 @@ prose. These must be updated in a subsequent thesis-prose edit pass (not a scrip
   chart, 2,300,521 ac) is sourced from the main MICE pipeline separately.
 - Phase 5 CI updates affect only console output and intermediate summary files;
   no Phase 6 figure reads these values.
+
+---
+
+## 8. Dual-CI Extension — Task 6 (2026-05-18)
+
+**Scope:** Add both 95% and 99% CI computations in parallel across all affected
+scripts. Rationale: thesis figures now show dual bands (inner 95%, outer 99%) so
+downstream CSVs must carry both levels explicitly.
+
+### 8.1 Script Edits
+
+| File | Change |
+|------|--------|
+| `Phase 6/Bulk/Julia/5_Econometric_Plots.jl` | Forest plot: two `rangebars!` layers — 99% outer (`#444444`, lw 1.5), 95% inner (`#AAAAAA`, lw 0.75). Legend added (`fig[1,2]`). Figure widened 900→1050 px. Subtitle updated. |
+| `Phase 3/Bulk Tests/R/Phase_3_National_Acreage_Summary.R` | `pool_acreage()` returns both `ci95_*` and `ci99_*`. `type_pool` summarise expanded. CSV gains `CI_95_Lower/Upper_Acres` (true 95%) alongside corrected `CI_99_Lower/Upper_Acres`. |
+| `Phase 3/Bulk Tests/R/rubins_rules_pooling.R` | `rubins_rules()` returns `CI95_lo/hi` and `CI99_lo/hi`. Console prints both. CSV gains four rows: 99% CI Lower/Upper, 95% CI Lower/Upper. |
+| `Phase 3/Bulk Tests/Julia/Rubins_Pooling.jl` | Dual CI computation. Console prints both. DataFrame gains 4 rows: `99% CI Lower ($B)`, `99% CI Upper ($B)`, `95% CI Lower ($B)`, `95% CI Upper ($B)`. Return tuple extended. |
+| `Phase 3/Bulk Tests/python/rubins_rules_pooling.py` | Same as Julia — dual CI, dual console prints, 4 DataFrame rows. |
+| `Phase 6/Bulk/R/8_LaTeX_Tables.R` | `acreage_tbl` pipeline: `select(…, CI_99_Lower_Acres, CI_99_Upper_Acres)` inserted before `mutate()` to prevent CI_95 columns from bleeding into `across(where(is.numeric))`. `tbl1` footnote added. |
+| `Phase 6/Phase_6.R` | Inline copy of Table 1 logic (~line 1494–1520) receives identical `select()` + `footnote()` changes. |
+
+### 8.2 Column-Name Mismatch Bug Fix
+
+Task 5 renamed columns to `CI_95_Lower/Upper_Acres` but the underlying data still
+used z = 2.576 (99% values). This was a silent label/value mismatch. Fixed in Task 6:
+
+| Column | Task 5 state | Task 6 state |
+|--------|-------------|--------------|
+| `CI_95_Lower_Acres` | held 99% value (z = 2.576) | corrected to true 95% value (z = 1.960) |
+| `CI_95_Upper_Acres` | held 99% value (z = 2.576) | corrected to true 95% value (z = 1.960) |
+| `CI_99_Lower_Acres` | did not exist | added with z = 2.576 |
+| `CI_99_Upper_Acres` | did not exist | added with z = 2.576 |
+
+Same correction applied to all three language Rubin's Rules output CSVs.
+
+### 8.3 β_urban Four-Bound Sanity Check
+
+Source: `Phase 4 Econometric Modeling/Data/R/R_Regression_Results.csv`
+β_urban Coefficient = 4.0036 | Pooled SE = 0.021769
+
+| Bound | z | Value | Containment |
+|-------|---|-------|-------------|
+| 95% Lower | 1.960 | **3.9609** | — |
+| 99% Lower | 2.576 | **3.9475** | 95% lower > 99% lower ✓ |
+| Point estimate | — | **4.0036** | — |
+| 99% Upper | 2.576 | **4.0597** | — |
+| 95% Upper | 1.960 | **4.0463** | 95% upper < 99% upper ✓ |
+
+Width ratio: 2 × 2.576 × SE / (2 × 1.960 × SE) = 2.576 / 1.960 = **1.314×**.
+95% CI strictly contained within 99% CI. β_urban significant (***) at both levels.
+
+### 8.4 Task 6 Regeneration Log
+
+| Script | Output | Status |
+|--------|--------|--------|
+| `Phase 3/.../Phase_3_National_Acreage_Summary.R` | `National_Acreage_Summary.csv` | ✓ Rerun — dual CI columns; 99%: [2,290,463 – 2,319,354]; 95%: [2,293,917 – 2,315,899] |
+| `Phase 6/Bulk/R/8_LaTeX_Tables.R` | `8.1_Table1_Acreage.tex` | ✓ Rerun — `99\% CI Lower/Upper` headers; footnote added |
+| `Phase 6/Bulk/Julia/5_Econometric_Plots.jl` | `5.1_Forest_Plot.png` | ✓ Rerun — dual CI bands rendered |

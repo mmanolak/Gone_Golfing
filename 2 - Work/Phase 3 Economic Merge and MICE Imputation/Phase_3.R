@@ -1,6 +1,6 @@
 # Purpose: Complete Phase 3 pipeline - MICE imputation (m=100, Random Forest)
 #          followed by Rubin's Rules pooling to produce a national land-value
-#          point estimate with 95% CI.
+#          point estimate with 95% and 99% CI.
 # Inputs:  Phase 2 Spatial Polygons and True Acreage/Data/R/
 #            R_Phase2_Acreage_Matched_v2.csv
 # Outputs: Data/R/R_Imputed_Dataset_{1..100}.csv
@@ -13,7 +13,8 @@
 #   v_b   = var(Q_i, ddof=1)    -- between-imputation variance
 #   v_t   = v_w + v_b + v_b/m  -- total variance
 #   se    = sqrt(v_t)
-#   95%CI = q_bar +/- 1.96 * se
+#   99%CI = q_bar +/- 2.576 * se
+#   95%CI = q_bar +/- 1.960 * se
 
 
 # === 1. LIBRARIES ===
@@ -60,10 +61,12 @@ pool_acreage <- function(x) {
   v_b   <- var(x)
   se    <- sqrt(v_b + v_b / length(x))
   list(
-    mean  = q_bar,
-    sd_b  = sqrt(v_b),
-    ci_lo = q_bar - 1.96 * se,
-    ci_hi = q_bar + 1.96 * se
+    mean    = q_bar,
+    sd_b    = sqrt(v_b),
+    ci95_lo = q_bar - 1.960 * se,
+    ci95_hi = q_bar + 1.960 * se,
+    ci99_lo = q_bar - 2.576 * se,
+    ci99_hi = q_bar + 2.576 * se
   )
 }
 
@@ -175,8 +178,10 @@ v_w   <- mean(within_vars)
 v_b   <- var(aggregates)
 v_t   <- v_w + v_b + v_b / M
 se    <- sqrt(v_t)
-ci_lo <- q_bar - 1.96 * se
-ci_hi <- q_bar + 1.96 * se
+ci95_lo <- q_bar - 1.960 * se
+ci95_hi <- q_bar + 1.960 * se
+ci99_lo <- q_bar - 2.576 * se
+ci99_hi <- q_bar + 2.576 * se
 
 cat("\n=== RUBIN'S RULES RESULTS ===\n")
 cat(sprintf("  Pooled Aggregate National Value:  $%10.3f B\n", q_bar / 1e9))
@@ -185,8 +190,12 @@ cat(sprintf("  Between-Imputation Variance (v_b):%.4e\n",      v_b))
 cat(sprintf("  Total Variance (v_t):             %.4e\n",      v_t))
 cat(sprintf("  Standard Error:                   $%10.3f B\n", se / 1e9))
 cat(sprintf(
+  "  99%% Confidence Interval:         $%10.3f B - $%10.3f B\n",
+  ci99_lo / 1e9, ci99_hi / 1e9
+))
+cat(sprintf(
   "  95%% Confidence Interval:         $%10.3f B - $%10.3f B\n",
-  ci_lo / 1e9, ci_hi / 1e9
+  ci95_lo / 1e9, ci95_hi / 1e9
 ))
 
 pooled_df <- data.frame(
@@ -197,6 +206,8 @@ pooled_df <- data.frame(
     "Between-Imputation Variance (v_b)",
     "Total Variance (v_t)",
     "Standard Error ($)",
+    "99% CI Lower ($B)",
+    "99% CI Upper ($B)",
     "95% CI Lower ($B)",
     "95% CI Upper ($B)",
     paste0("Dataset ", 1:M, " Aggregate ($B)")
@@ -208,8 +219,10 @@ pooled_df <- data.frame(
     sprintf("%.4e", v_b),
     sprintf("%.4e", v_t),
     format(se, big.mark = ",", scientific = FALSE),
-    sprintf("%.3f", ci_lo / 1e9),
-    sprintf("%.3f", ci_hi / 1e9),
+    sprintf("%.3f", ci99_lo / 1e9),
+    sprintf("%.3f", ci99_hi / 1e9),
+    sprintf("%.3f", ci95_lo / 1e9),
+    sprintf("%.3f", ci95_hi / 1e9),
     sprintf("%.3f", aggregates / 1e9)
   )
 )
@@ -254,8 +267,10 @@ type_pool_ac  <- all_by_type_ac |>
   summarise(
     pooled_acres = mean(acreage),
     sd_b         = sd(acreage),
-    ci_lo        = pool_acreage(acreage)$ci_lo,
-    ci_hi        = pool_acreage(acreage)$ci_hi,
+    ci95_lo      = pool_acreage(acreage)$ci95_lo,
+    ci95_hi      = pool_acreage(acreage)$ci95_hi,
+    ci99_lo      = pool_acreage(acreage)$ci99_lo,
+    ci99_hi      = pool_acreage(acreage)$ci99_hi,
     .groups = "drop"
   ) |>
   arrange(desc(pooled_acres))
@@ -263,9 +278,13 @@ type_pool_ac  <- all_by_type_ac |>
 cat(sprintf("\n  Total U.S. Golf Acreage:  %s acres\n",
   format(round(nat_pool_ac$mean), big.mark = ",")))
 cat(sprintf("  Between-Imputation SD:    %.2f\n", nat_pool_ac$sd_b))
+cat(sprintf("  99%% CI:                   %s - %s acres\n",
+  format(round(nat_pool_ac$ci99_lo), big.mark = ","),
+  format(round(nat_pool_ac$ci99_hi), big.mark = ",")
+))
 cat(sprintf("  95%% CI:                   %s - %s acres\n",
-  format(round(nat_pool_ac$ci_lo), big.mark = ","),
-  format(round(nat_pool_ac$ci_hi), big.mark = ",")
+  format(round(nat_pool_ac$ci95_lo), big.mark = ","),
+  format(round(nat_pool_ac$ci95_hi), big.mark = ",")
 ))
 for (i in seq_len(nrow(type_pool_ac))) {
   row <- type_pool_ac[i, ]
@@ -281,8 +300,10 @@ acreage_summary_df <- bind_rows(
     County_Type       = "All",
     Pooled_Acres      = round(nat_pool_ac$mean, 2),
     SD_Between        = round(nat_pool_ac$sd_b, 4),
-    CI_95_Lower_Acres = round(nat_pool_ac$ci_lo, 2),
-    CI_95_Upper_Acres = round(nat_pool_ac$ci_hi, 2)
+    CI_95_Lower_Acres = round(nat_pool_ac$ci95_lo, 2),
+    CI_95_Upper_Acres = round(nat_pool_ac$ci95_hi, 2),
+    CI_99_Lower_Acres = round(nat_pool_ac$ci99_lo, 2),
+    CI_99_Upper_Acres = round(nat_pool_ac$ci99_hi, 2)
   ),
   type_pool_ac |>
     transmute(
@@ -290,8 +311,10 @@ acreage_summary_df <- bind_rows(
       County_Type       = county_type,
       Pooled_Acres      = round(pooled_acres, 2),
       SD_Between        = round(sd_b, 4),
-      CI_95_Lower_Acres = round(ci_lo, 2),
-      CI_95_Upper_Acres = round(ci_hi, 2)
+      CI_95_Lower_Acres = round(ci95_lo, 2),
+      CI_95_Upper_Acres = round(ci95_hi, 2),
+      CI_99_Lower_Acres = round(ci99_lo, 2),
+      CI_99_Upper_Acres = round(ci99_hi, 2)
     )
 )
 

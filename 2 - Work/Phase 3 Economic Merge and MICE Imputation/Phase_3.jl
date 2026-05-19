@@ -1,5 +1,5 @@
 # Purpose: Complete Phase 3 pipeline - MICE imputation (m=5) then Rubin's
-#          Rules pooling to produce a national land-value estimate with 95% CI.
+#          Rules pooling to produce a national land-value estimate with 95%/99% CI.
 # Inputs:  Phase 2 Spatial Polygons and True Acreage/Data/Julia/
 #            Jl_Phase2_Acreage_Matched.csv
 # Outputs: Data/Julia/Jl_Imputed_Dataset_{1..100}.csv
@@ -12,7 +12,8 @@
 #   v_b   = var(Q_i, ddof=1)    -- between-imputation variance
 #   v_t   = v_w + v_b + v_b/m  -- total variance
 #   se    = sqrt(v_t)
-#   95%CI = q_bar +/- 1.96 * se
+#   99%CI = q_bar +/- 2.576 * se
+#   95%CI = q_bar +/- 1.960 * se
 
 
 # === 1. LIBRARIES ===
@@ -153,8 +154,10 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     v_b   = var(aggregates; corrected = true)
     v_t   = v_w + v_b + v_b / m_datasets
     se    = sqrt(v_t)
-    ci_lo = q_bar - 1.96 * se
-    ci_hi = q_bar + 1.96 * se
+    ci95_lo = q_bar - 1.960 * se
+    ci95_hi = q_bar + 1.960 * se
+    ci99_lo = q_bar - 2.576 * se
+    ci99_hi = q_bar + 2.576 * se
 
     println("\n=== RUBIN'S RULES RESULTS ===")
     @printf("  Pooled Aggregate National Value:  \$%10.3f B\n", q_bar / 1e9)
@@ -163,8 +166,12 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     @printf("  Total Variance (v_t):             %.4e\n", v_t)
     @printf("  Standard Error:                   \$%10.3f B\n", se / 1e9)
     @printf(
+        "  99%% Confidence Interval:          \$%10.3f B - \$%10.3f B\n",
+        ci99_lo / 1e9, ci99_hi / 1e9
+    )
+    @printf(
         "  95%% Confidence Interval:          \$%10.3f B - \$%10.3f B\n",
-        ci_lo / 1e9, ci_hi / 1e9
+        ci95_lo / 1e9, ci95_hi / 1e9
     )
 
     pooled_df = DataFrame(
@@ -176,6 +183,8 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
                 "Between-Imputation Variance (v_b)",
                 "Total Variance (v_t)",
                 "Standard Error (\$)",
+                "99% CI Lower (\$B)",
+                "99% CI Upper (\$B)",
                 "95% CI Lower (\$B)",
                 "95% CI Upper (\$B)",
             ],
@@ -189,8 +198,10 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
                 @sprintf("%.4e",  v_b),
                 @sprintf("%.4e",  v_t),
                 @sprintf("%.2f",  se),
-                @sprintf("%.3f",  ci_lo / 1e9),
-                @sprintf("%.3f",  ci_hi / 1e9),
+                @sprintf("%.3f",  ci99_lo / 1e9),
+                @sprintf("%.3f",  ci99_hi / 1e9),
+                @sprintf("%.3f",  ci95_lo / 1e9),
+                @sprintf("%.3f",  ci95_hi / 1e9),
             ],
             [@sprintf("%.3f", aggregates[i] / 1e9) for i in 1:m_datasets]
         )
@@ -199,7 +210,7 @@ function run_pooling(in_dir::String, out_csv::String; m_datasets::Int = 5)
     CSV.write(out_csv, pooled_df; header = true)
     println("\n  [OK] Saved -> $out_csv")
 
-    return q_bar, se, ci_lo, ci_hi
+    return q_bar, se, ci95_lo, ci95_hi, ci99_lo, ci99_hi
 end
 
 
@@ -207,7 +218,14 @@ function pool_acreage(x::AbstractVector{<:Real})
     q_bar = mean(x)
     v_b   = var(x; corrected = true)
     se    = sqrt(v_b + v_b / length(x))
-    return (mean = q_bar, sd_b = sqrt(v_b), ci_lo = q_bar - 1.96 * se, ci_hi = q_bar + 1.96 * se)
+    return (
+        mean    = q_bar,
+        sd_b    = sqrt(v_b),
+        ci95_lo = q_bar - 1.960 * se,
+        ci95_hi = q_bar + 1.960 * se,
+        ci99_lo = q_bar - 2.576 * se,
+        ci99_hi = q_bar + 2.576 * se,
+    )
 end
 
 function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 5)
@@ -252,8 +270,10 @@ function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 
         DataFrame(
             pooled_acres = p.mean,
             sd_b         = p.sd_b,
-            ci_lo        = p.ci_lo,
-            ci_hi        = p.ci_hi,
+            ci95_lo      = p.ci95_lo,
+            ci95_hi      = p.ci95_hi,
+            ci99_lo      = p.ci99_lo,
+            ci99_hi      = p.ci99_hi,
         )
     end
     sort!(type_pool, :pooled_acres, rev = true)
@@ -261,7 +281,8 @@ function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 
     println("=== NATIONAL ACREAGE RESULTS ===")
     @printf("  Total U.S. Golf Acreage:  %s acres\n",          fmt(nat_pool.mean))
     @printf("  Between-Imputation SD:    %.2f\n",               nat_pool.sd_b)
-    @printf("  95%% CI:                   %s - %s acres\n",     fmt(nat_pool.ci_lo), fmt(nat_pool.ci_hi))
+    @printf("  99%% CI:                   %s - %s acres\n",     fmt(nat_pool.ci99_lo), fmt(nat_pool.ci99_hi))
+    @printf("  95%% CI:                   %s - %s acres\n",     fmt(nat_pool.ci95_lo), fmt(nat_pool.ci95_hi))
     for row in eachrow(type_pool)
         @printf("  %-20s %s acres\n", row.county_type, fmt(row.pooled_acres))
     end
@@ -271,16 +292,20 @@ function run_acreage_summary(in_dir::String, out_csv::String; m_datasets::Int = 
         County_Type       = "All",
         Pooled_Acres      = round(nat_pool.mean, digits = 2),
         SD_Between        = round(nat_pool.sd_b,  digits = 4),
-        CI_95_Lower_Acres = round(nat_pool.ci_lo, digits = 2),
-        CI_95_Upper_Acres = round(nat_pool.ci_hi, digits = 2),
+        CI_95_Lower_Acres = round(nat_pool.ci95_lo, digits = 2),
+        CI_95_Upper_Acres = round(nat_pool.ci95_hi, digits = 2),
+        CI_99_Lower_Acres = round(nat_pool.ci99_lo, digits = 2),
+        CI_99_Upper_Acres = round(nat_pool.ci99_hi, digits = 2),
     )
     type_rows = DataFrame(
         Category          = fill("By County Type", nrow(type_pool)),
         County_Type       = type_pool.county_type,
         Pooled_Acres      = round.(type_pool.pooled_acres, digits = 2),
         SD_Between        = round.(type_pool.sd_b,         digits = 4),
-        CI_95_Lower_Acres = round.(type_pool.ci_lo,        digits = 2),
-        CI_95_Upper_Acres = round.(type_pool.ci_hi,        digits = 2),
+        CI_95_Lower_Acres = round.(type_pool.ci95_lo,      digits = 2),
+        CI_95_Upper_Acres = round.(type_pool.ci95_hi,      digits = 2),
+        CI_99_Lower_Acres = round.(type_pool.ci99_lo,      digits = 2),
+        CI_99_Upper_Acres = round.(type_pool.ci99_hi,      digits = 2),
     )
     summary_df = vcat(national_row, type_rows)
 

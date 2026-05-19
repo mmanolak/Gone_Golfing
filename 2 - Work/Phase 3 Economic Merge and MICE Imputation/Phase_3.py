@@ -163,8 +163,10 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
     v_b   = aggregates.var(ddof=1)
     v_t   = v_w + v_b + v_b / m_datasets
     se    = np.sqrt(v_t)
-    ci_lo = q_bar - 1.96 * se
-    ci_hi = q_bar + 1.96 * se
+    ci95_lo = q_bar - 1.960 * se
+    ci95_hi = q_bar + 1.960 * se
+    ci99_lo = q_bar - 2.576 * se
+    ci99_hi = q_bar + 2.576 * se
 
     print("\n=== RUBIN'S RULES RESULTS ===")
     print(f"  Pooled Aggregate National Value:  ${q_bar / 1e9:>10.3f} B")
@@ -173,8 +175,12 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
     print(f"  Total Variance (v_t):             {v_t:.4e}")
     print(f"  Standard Error:                   ${se / 1e9:>10.3f} B")
     print(
+        f"  99% Confidence Interval:          "
+        f"${ci99_lo / 1e9:>10.3f} B - ${ci99_hi / 1e9:>10.3f} B"
+    )
+    print(
         f"  95% Confidence Interval:          "
-        f"${ci_lo / 1e9:>10.3f} B - ${ci_hi / 1e9:>10.3f} B"
+        f"${ci95_lo / 1e9:>10.3f} B - ${ci95_hi / 1e9:>10.3f} B"
     )
 
     metrics = [
@@ -184,8 +190,10 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
         ("Between-Imputation Variance (v_b)",    f"{v_b:.4e}"),
         ("Total Variance (v_t)",                 f"{v_t:.4e}"),
         ("Standard Error ($)",                   f"{se:.2f}"),
-        ("95% CI Lower ($B)",                    f"{ci_lo / 1e9:.3f}"),
-        ("95% CI Upper ($B)",                    f"{ci_hi / 1e9:.3f}"),
+        ("99% CI Lower ($B)",                    f"{ci99_lo / 1e9:.3f}"),
+        ("99% CI Upper ($B)",                    f"{ci99_hi / 1e9:.3f}"),
+        ("95% CI Lower ($B)",                    f"{ci95_lo / 1e9:.3f}"),
+        ("95% CI Upper ($B)",                    f"{ci95_hi / 1e9:.3f}"),
     ] + [
         (f"Dataset {i} Aggregate ($B)", f"{aggregates[i - 1] / 1e9:.3f}")
         for i in range(1, m_datasets + 1)
@@ -195,7 +203,7 @@ def run_pooling(in_dir, out_csv, m_datasets=100):
     pooled_df.to_csv(out_csv, index=False)
     print(f"\n  [OK] Saved -> {out_csv.name}")
 
-    return q_bar, se, ci_lo, ci_hi
+    return q_bar, se, ci95_lo, ci95_hi, ci99_lo, ci99_hi
 
 
 def pool_acreage(x: np.ndarray) -> dict:
@@ -205,8 +213,10 @@ def pool_acreage(x: np.ndarray) -> dict:
     return {
         "mean":  q_bar,
         "sd_b":  np.sqrt(v_b),
-        "ci_lo": q_bar - 1.96 * se,
-        "ci_hi": q_bar + 1.96 * se,
+        "ci95_lo": q_bar - 1.960 * se,
+        "ci95_hi": q_bar + 1.960 * se,
+        "ci99_lo": q_bar - 2.576 * se,
+        "ci99_hi": q_bar + 2.576 * se,
     }
 
 
@@ -263,8 +273,12 @@ def run_acreage_summary(in_dir, out_csv, m_datasets=100):
     print(f"  Total U.S. Golf Acreage:  {round(nat_pool['mean']):,} acres")
     print(f"  Between-Imputation SD:    {nat_pool['sd_b']:,.2f}")
     print(
+        f"  99% CI:                   "
+        f"{round(nat_pool['ci99_lo']):,} - {round(nat_pool['ci99_hi']):,} acres"
+    )
+    print(
         f"  95% CI:                   "
-        f"{round(nat_pool['ci_lo']):,} - {round(nat_pool['ci_hi']):,} acres"
+        f"{round(nat_pool['ci95_lo']):,} - {round(nat_pool['ci95_hi']):,} acres"
     )
     for _, row in type_pool.iterrows():
         print(f"  {row['county_type']:<20} {round(row['pooled_acres']):,} acres")
@@ -274,16 +288,20 @@ def run_acreage_summary(in_dir, out_csv, m_datasets=100):
         "County_Type":       "All",
         "Pooled_Acres":      round(nat_pool["mean"], 2),
         "SD_Between":        round(nat_pool["sd_b"], 4),
-        "CI_95_Lower_Acres": round(nat_pool["ci_lo"], 2),
-        "CI_95_Upper_Acres": round(nat_pool["ci_hi"], 2),
+        "CI_95_Lower_Acres": round(nat_pool["ci95_lo"], 2),
+        "CI_95_Upper_Acres": round(nat_pool["ci95_hi"], 2),
+        "CI_99_Lower_Acres": round(nat_pool["ci99_lo"], 2),
+        "CI_99_Upper_Acres": round(nat_pool["ci99_hi"], 2),
     }])
     type_rows = pd.DataFrame({
         "Category":          "By County Type",
         "County_Type":       type_pool["county_type"],
         "Pooled_Acres":      type_pool["pooled_acres"].round(2),
         "SD_Between":        type_pool["sd_b"].round(4),
-        "CI_95_Lower_Acres": type_pool["ci_lo"].round(2),
-        "CI_95_Upper_Acres": type_pool["ci_hi"].round(2),
+        "CI_95_Lower_Acres": type_pool["ci95_lo"].round(2),
+        "CI_95_Upper_Acres": type_pool["ci95_hi"].round(2),
+        "CI_99_Lower_Acres": type_pool["ci99_lo"].round(2),
+        "CI_99_Upper_Acres": type_pool["ci99_hi"].round(2),
     })
     summary_df = pd.concat([national_row, type_rows], ignore_index=True)
     summary_df.to_csv(out_csv, index=False)

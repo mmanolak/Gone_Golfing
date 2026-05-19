@@ -204,7 +204,7 @@ No regeneration will occur until the value cross-check confirmed above.
 
 # Task 6 — Dual-CI Extension (95% and 99% coexisting)
 
-**Status: IN PROGRESS**
+**Status: COMPLETE (2026-05-18)**
 
 **Scope (user-approved 2026-05-18):**
 
@@ -227,12 +227,12 @@ No regeneration will occur until the value cross-check confirmed above.
 - [x] `Phase 6 Visualization/Phase_6.R` — mirror Table 1 changes from `8_LaTeX_Tables.R`
 
 **Regeneration:**
-- [ ] `National_Acreage_Summary.csv` — rerun `Phase_3_National_Acreage_Summary.R`
-- [ ] `5.1_Forest_Plot.png` — rerun `5_Econometric_Plots.jl`
-- [ ] `8.1_Table1_Acreage.tex` — rerun `8_LaTeX_Tables.R`
+- [x] `National_Acreage_Summary.csv` — rerun `Phase_3_National_Acreage_Summary.R`
+- [x] `5.1_Forest_Plot.png` — rerun `5_Econometric_Plots.jl`
+- [x] `8.1_Table1_Acreage.tex` — rerun `8_LaTeX_Tables.R`
 
 **Deliverable:**
-- [ ] `QA/data/CI_99pct_Project_Update.md` amended with dual-CI extension section + β_urban four-bound sanity check
+- [x] `QA/data/CI_99pct_Project_Update.md` amended with dual-CI extension section + β_urban four-bound sanity check
 
 **Cross-language consistency note:** Forest plot reads coefficient SEs inline and applies two z multipliers (1.96 and 2.576) to the same SEs. Statistically valid; SE is unchanged.
 

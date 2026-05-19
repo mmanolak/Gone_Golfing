@@ -18,13 +18,17 @@ suppressPackageStartupMessages({
 
 
 # === 2. GLOBALS & PATHS ===
-
-SCRIPT_DIR   <- this.path::this.dir()
-PHASE2_SOURCE <- file.path(
-  SCRIPT_DIR, "..", "..",
-  "Phase 2 Spatial Polygons and True Acreage",
-  "R_Phase2_Acreage_Matched.csv"
+SCRIPT_DIR <- this.path::this.dir()
+PHASE3_DIR <- file.path(SCRIPT_DIR, "..", "..")
+WORK_DIR   <- file.path(PHASE3_DIR, "..")
+PHASE2_DIR <- file.path(
+  WORK_DIR, "Phase 2 Spatial Polygons and True Acreage"
 )
+
+SOURCE_CSV  <- file.path(
+  PHASE2_DIR, "Bulk Tests", "R", "R_Phase2_Acreage_Matched_v2.csv"
+)
+
 OUT_RDS <- file.path(SCRIPT_DIR, "R_Granular_Estimates.rds")
 
 M <- 5

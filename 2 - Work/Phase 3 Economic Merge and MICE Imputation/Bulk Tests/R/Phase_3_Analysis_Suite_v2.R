@@ -43,7 +43,7 @@ PHASE2_DIR <- file.path(
 )
 
 SOURCE_CSV  <- file.path(
-  PHASE2_DIR, "R_Phase2_Acreage_Matched_v2.csv"
+  PHASE2_DIR, "Bulk Tests", "R", "R_Phase2_Acreage_Matched_v2.csv"
 )
 
 M <- 5
