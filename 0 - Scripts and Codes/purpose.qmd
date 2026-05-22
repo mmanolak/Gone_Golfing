@@ -48,6 +48,8 @@ What is the aggregate financial opportunity cost of U.S. golf courses when evalu
 *   [Zoning Honolulu Land Information System - HOLIS / file: Zoning_](https://honolulu-cchnl.opendata.arcgis.com/)
 *   [Additional Honolulu (County) Data and Information](https://honolulu-cchnl.opendata.arcgis.com/)
 *   [Zoning Map Boundary](https://honolulu-cchnl.opendata.arcgis.com/datasets/b34c3a3de35f4eecbe87c4a6953571c3_12/explore?location=21.398077%2C-157.863063%2C11)
+*   [Hawaii Golf Courses](https://geoportal.hawaii.gov/datasets/e69af87bb0da489c96d9bcaf60f6c255_14/explore?location=20.674150%2C-157.265900%2C8)
+*   []()
 
 \newpage
 
